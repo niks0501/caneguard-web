@@ -36,6 +36,10 @@ command -v crontab >/dev/null 2>&1 || {
   echo "Missing crontab on Lightsail; install it as ubuntu with: sudo apt-get install -y cron" >&2
   exit 1
 }
+systemctl is-active --quiet cron || {
+  echo "The cron service is not running on Lightsail; start it as ubuntu with: sudo systemctl enable --now cron" >&2
+  exit 1
+}
 [[ -f "$archive" ]] || { echo "Release archive missing" >&2; exit 1; }
 [[ ! -e "$new" ]] || { echo "Release already exists" >&2; exit 1; }
 printf '%s  %s\n' "$expected_hash" "$archive" | sha256sum -c -

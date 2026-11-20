@@ -115,18 +115,21 @@ Put these in the GitHub `production` environment secret `CANEGUARD_PRODUCTION_EN
 CANEGUARD_PILOT_DISTRICT_CODE=<district code>
 CANEGUARD_PILOT_DISTRICT_NAME=<display name>
 CANEGUARD_BOOTSTRAP_ADMIN_EMAIL=<first administrator email>
-MAIL_MAILER=smtp   # plus the SMTP settings; a log or array mailer, or a failover chain that includes one, cannot send the first invitation
+MAIL_MAILER=smtp   # plus the SMTP settings; only an smtp mailer can send the first invitation (log, array and failover mailers fail the deploy before the account is created)
 ```
 Then run the deploy workflow. After `migrate --force`, `caneguard:bootstrap`:
 - fails the deploy when the district code or name is blank; it creates the district when missing, and an existing district is never renamed;
-- when `CANEGUARD_BOOTSTRAP_ADMIN_EMAIL` is set and no active admin exists, creates the administrator (display name `CaneGuard Administrator`) and then emails a set-password link. No password goes in env. If the email cannot be sent, the deploy fails but the pending account is kept; the next deploy emails the link again until an invitation is recorded;
-- fails the deploy when the admin email already belongs to another account. Set it to an unused address and deploy again;
-- once an active administrator exists, leaves the admin variables alone. It sends no further emails. To reissue the link, use Forgot password;
-- writes security audit rows (`bootstrap_district_created`, `account_created`, `account_invite_sent`) for everything it creates. These bootstrap rows are exempt from the security-audit retention prune, because a later deploy relies on them to recover a pending administrator. An invalid admin email fails the deploy before activation.
+- once an active administrator exists, leaves the admin variables alone, including a malformed admin email, and sends no further emails. To reissue the link, use Forgot password;
+- otherwise, when `CANEGUARD_BOOTSTRAP_ADMIN_EMAIL` is set, fails the deploy if the address is invalid, and fails the deploy when it already belongs to another account. Set it to an unused address and deploy again;
+- otherwise creates the administrator (display name `CaneGuard Administrator`) and then emails a set-password link. No password goes in env. If the email cannot be sent, the deploy fails but the pending account is kept; the next deploy emails the link again until an invitation is recorded;
+- records the invitation for an administrator who has already set a password through the emailed link but whose invitation record is missing;
+- writes security audit rows (`bootstrap_district_created`, `account_created`, `account_invite_sent`) for everything it creates. The successful `account_created` and `account_invite_sent` rows are exempt from the security-audit retention prune, because a later deploy relies on them to recover a pending administrator; other audit rows age out normally.
+
+If the mail server accepts the link but the invitation record cannot be written, the outcome is indeterminate: the account stays pending, and a later deploy sends the link again if the administrator has not yet set a password. This is the accepted policy; no outbox is kept.
 
 Admins and reviewers need no district. A district is required only to create a field reporter through the Accounts page.
 
-Still by hand: PHP-FPM and nginx upload/body limits, which need root. The host must also have the `cron` package, which the deploy checks for and does not install: `sudo apt-get install -y cron` as `ubuntu`.
+Still by hand: PHP-FPM and nginx upload/body limits, which need root. The host must also have the `cron` package and a running `cron` service. The deploy checks both and does not install or start them; as `ubuntu`, run `sudo apt-get install -y cron` and `sudo systemctl enable --now cron`.
 
 ## Scheduler for reminders, follow-up due notifications and pruning
 The saved reminder day and time (Asia/Manila) only fire if the Laravel scheduler runs. The deploy script installs this entry in the `deploy` user's crontab (marked `# caneguard-scheduler`, pointing at the stable `current` symlink). It replaces any earlier entry for that symlink, including the unmarked line from the previous runbook, keeps unrelated jobs, and records one `scheduler_cron_installed` audit row per installed entry, backfilled by a later deploy if a run was interrupted, so no manual crontab step is needed:

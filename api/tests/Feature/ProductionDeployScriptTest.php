@@ -90,6 +90,18 @@ class ProductionDeployScriptTest extends TestCase
         $this->assertSame($existing, file_get_contents($this->crontab));
     }
 
+    public function test_deploy_stops_before_migrations_when_the_cron_service_is_not_active(): void
+    {
+        $existing = "MAILTO=ops@example.test\n30 4 * * * /usr/local/bin/backup.sh\n";
+        file_put_contents($this->crontab, $existing);
+
+        $process = $this->deploy('release-1-'.str_repeat('b', 40), ['CANEGUARD_TEST_CRON_INACTIVE' => '1']);
+
+        $this->assertFalse($process->isSuccessful());
+        $this->assertSame($existing, file_get_contents($this->crontab));
+        $this->assertNotContains('artisan migrate --force --no-interaction', $this->logLines());
+    }
+
     public function test_failed_crontab_rewrite_aborts_before_replacing_the_existing_jobs(): void
     {
         $existing = "MAILTO=ops@example.test\n30 4 * * * /usr/local/bin/backup.sh\n";
@@ -124,6 +136,32 @@ class ProductionDeployScriptTest extends TestCase
         $this->assertSame("APP_KEY=base64:example\n", file_get_contents($this->root.'/shared/api/.env'));
         $this->assertSame(0600, fileperms($this->root.'/shared/api/.env') & 0777);
         $this->assertFileDoesNotExist($this->root.'/releases/.env-4242');
+    }
+
+    public function test_configuration_install_grants_php_fpm_read_through_acl_without_group_or_other_access(): void
+    {
+        $setfacl = trim((string) shell_exec('command -v setfacl'));
+        $getfacl = trim((string) shell_exec('command -v getfacl'));
+        if ($setfacl === '' || $getfacl === '' || posix_getpwnam('www-data') === false) {
+            $this->markTestSkipped('Needs the acl tools and the www-data account.');
+        }
+        file_put_contents($this->root.'/releases/.env-6161', "APP_KEY=base64:example\n");
+        $script = $this->root.'/install-production-env.sh';
+        file_put_contents($script, str_replace(
+            self::PRODUCTION_ROOT,
+            $this->root,
+            (string) file_get_contents(base_path('../scripts/install-production-env.sh')),
+        ));
+
+        $install = new Process(['bash', $script, '6161'], null, ['PATH' => getenv('PATH')]);
+        $install->run();
+        $this->assertTrue($install->isSuccessful(), $install->getErrorOutput());
+
+        $listing = (new Process([$getfacl, '--absolute-names', '--omit-header', $this->root.'/shared/api/.env']))->mustRun()->getOutput();
+        $entries = array_map('trim', explode("\n", trim($listing)));
+        $this->assertContains('user:www-data:r--', $entries);
+        $this->assertContains('group::---', $entries);
+        $this->assertContains('other::---', $entries);
     }
 
     public function test_failed_configuration_install_keeps_the_existing_env_and_removes_the_upload(): void
@@ -208,6 +246,7 @@ class ProductionDeployScriptTest extends TestCase
         $this->writeTool('composer', 'exit 0');
         $this->writeTool('setfacl', 'echo "setfacl $*" >> "$CANEGUARD_TEST_LOG"');
         $this->writeTool('getfacl', 'exit 0');
+        $this->writeTool('systemctl', 'if [[ -n "${CANEGUARD_TEST_CRON_INACTIVE:-}" ]]; then exit 3; fi');
         $this->writeTool('awk', 'if [[ -n "${CANEGUARD_TEST_AWK_FAILS:-}" ]]; then echo "awk: failed" >&2; exit 2; fi'."\n".'exec '.escapeshellarg(trim((string) shell_exec('command -v awk'))).' "$@"');
         $this->writeTool('curl', <<<'SH'
             url="${@: -1}"

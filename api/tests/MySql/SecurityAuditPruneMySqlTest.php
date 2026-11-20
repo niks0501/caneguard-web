@@ -20,12 +20,14 @@ class SecurityAuditPruneMySqlTest extends TestCase
             $nullMetadata = SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_REGISTRATION, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => null, 'created_at' => $old]);
             $webChannel = SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_ACCOUNT_CREATED, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => ['provisioning_channel' => 'web'], 'created_at' => $old]);
             $bootstrap = SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_ACCOUNT_CREATED, 'outcome' => SecurityAudit::OUTCOME_SUCCESS, 'metadata' => ['provisioning_channel' => 'bootstrap'], 'created_at' => $old]);
+            $failedInvite = SecurityAudit::query()->create(['action' => SecurityAudit::ACTION_ACCOUNT_INVITE, 'outcome' => SecurityAudit::OUTCOME_FAILURE, 'metadata' => ['provisioning_channel' => 'bootstrap'], 'created_at' => $old]);
 
             $this->artisan('auth:prune-security-audits')->assertSuccessful();
 
             $this->assertFalse(SecurityAudit::query()->whereKey($missingKey->id)->exists());
             $this->assertFalse(SecurityAudit::query()->whereKey($nullMetadata->id)->exists());
             $this->assertFalse(SecurityAudit::query()->whereKey($webChannel->id)->exists());
+            $this->assertFalse(SecurityAudit::query()->whereKey($failedInvite->id)->exists());
             $this->assertTrue(SecurityAudit::query()->whereKey($bootstrap->id)->exists());
         } finally {
             DB::rollBack();

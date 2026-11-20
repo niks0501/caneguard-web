@@ -181,6 +181,35 @@ class BootstrapDeploymentTest extends TestCase
         $this->assertSame(['owner@example.test'], $this->recipients($transport));
     }
 
+    public function test_malformed_leftover_admin_email_does_not_block_a_deploy_with_an_active_admin(): void
+    {
+        Notification::fake();
+        User::factory()->admin()->create(['email_verified_at' => now()]);
+        $this->configure(['caneguard.bootstrap_admin_email' => 'not-an-email']);
+
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+
+        $this->assertSame(1, User::query()->count());
+        Notification::assertNothingSent();
+    }
+
+    public function test_redeemed_bootstrap_invite_missing_its_record_is_recorded_on_the_next_deploy(): void
+    {
+        Notification::fake();
+        $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test']);
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+        $admin = User::query()->where('email', 'owner@example.test')->firstOrFail();
+        SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)->delete();
+        $admin->forceFill(['email_verified_at' => now()])->save();
+
+        $this->travel(2)->minutes();
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+
+        $this->assertSame(1, SecurityAudit::query()->where('target_user_id', $admin->id)
+            ->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)->where('outcome', SecurityAudit::OUTCOME_SUCCESS)->count());
+        Notification::assertSentToTimes($admin, ResetPassword::class, 1);
+    }
+
     public function test_failed_send_keeps_the_committed_account_and_the_next_deploy_sends_the_link(): void
     {
         $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test']);

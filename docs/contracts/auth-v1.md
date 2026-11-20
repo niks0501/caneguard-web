@@ -174,7 +174,7 @@ Audit metadata contains action context only and never contains passwords, reset 
 
 The retention period is configured with `CANEGUARD_SECURITY_AUDIT_RETENTION_DAYS`.
 
-The `auth:prune-security-audits` command removes records older than that configured period, except bootstrap provisioning records (`provisioning_channel` `bootstrap`). Those are kept so a pending first administrator can be recovered by a later deploy.
+The `auth:prune-security-audits` command removes records older than that configured period, except the successful `account_created` and `account_invite_sent` records of the bootstrap first administrator (`provisioning_channel` `bootstrap`). Those are kept so a later deploy can recover a pending first administrator.
 
 ## Admin-assisted recovery boundary
 

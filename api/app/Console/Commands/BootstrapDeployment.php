@@ -27,6 +27,8 @@ final class BootstrapDeployment extends Command
 
     public function handle(RecordSecurityAudit $audit): int
     {
+        $this->backfillRedeemedInvites($audit);
+
         $code = trim((string) config('caneguard.pilot_district_code'));
         $name = trim((string) config('caneguard.pilot_district_name'));
         if ($code === '' || $name === '') {
@@ -42,12 +44,6 @@ final class BootstrapDeployment extends Command
 
             return self::SUCCESS;
         }
-        if (filter_var($email, FILTER_VALIDATE_EMAIL) === false || strlen($email) > 255) {
-            $this->error('CANEGUARD_BOOTSTRAP_ADMIN_EMAIL is not a valid email address.');
-
-            return self::FAILURE;
-        }
-
         return $this->admin($audit, $email);
     }
 
@@ -75,6 +71,12 @@ final class BootstrapDeployment extends Command
             return self::SUCCESS;
         }
 
+        if (filter_var($email, FILTER_VALIDATE_EMAIL) === false || strlen($email) > 255) {
+            $this->error('CANEGUARD_BOOTSTRAP_ADMIN_EMAIL is not a valid email address.');
+
+            return self::FAILURE;
+        }
+
         $existing = User::query()->where('email', $email)->first();
         if ($existing !== null && ! $this->bootstrapEvent($existing, SecurityAudit::ACTION_ACCOUNT_CREATED)) {
             $this->error('CANEGUARD_BOOTSTRAP_ADMIN_EMAIL belongs to an existing account. Set it to an unused email address and deploy again.');
@@ -88,7 +90,7 @@ final class BootstrapDeployment extends Command
         }
 
         if (! $this->deliverable((string) config('mail.default'))) {
-            $this->error('Bootstrap admin: mail delivery is not configured (MAIL_MAILER is log or array). Configure SMTP and deploy again.');
+            $this->error('Bootstrap admin: mail delivery is not configured (MAIL_MAILER must resolve to smtp). Configure SMTP and deploy again.');
 
             return self::FAILURE;
         }
@@ -134,12 +136,27 @@ final class BootstrapDeployment extends Command
         }
     }
 
+    private function backfillRedeemedInvites(RecordSecurityAudit $audit): void
+    {
+        User::query()->where('role', User::ROLE_ADMIN)->whereNotNull('email_verified_at')->get()
+            ->filter(fn (User $admin) => $this->bootstrapRecorded($admin, SecurityAudit::ACTION_ACCOUNT_CREATED)
+                && ! $this->bootstrapRecorded($admin, SecurityAudit::ACTION_ACCOUNT_INVITE))
+            ->each(fn (User $admin) => $audit->handle(SecurityAudit::ACTION_ACCOUNT_INVITE, SecurityAudit::OUTCOME_SUCCESS, null, $admin, [
+                'provisioning_channel' => 'bootstrap',
+            ]));
+    }
+
     private function bootstrapEvent(User $user, string $action): bool
     {
         if ($user->role !== User::ROLE_ADMIN || ! $user->is_active || $user->hasVerifiedEmail()) {
             return false;
         }
 
+        return $this->bootstrapRecorded($user, $action);
+    }
+
+    private function bootstrapRecorded(User $user, string $action): bool
+    {
         return SecurityAudit::query()->where('target_user_id', $user->id)->where('action', $action)
             ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)->get()
             ->contains(fn (SecurityAudit $event) => ($event->metadata['provisioning_channel'] ?? null) === 'bootstrap');
@@ -152,12 +169,7 @@ final class BootstrapDeployment extends Command
             $config = array_merge($config, (new ConfigurationUrlParser)->parseConfiguration($config));
             $config['transport'] = Arr::pull($config, 'driver');
         }
-        $transport = $config['transport'] ?? null;
-        if ($transport === 'failover') {
-            return collect($config['mailers'] ?? [])
-                ->every(fn ($member) => $this->deliverable((string) $member));
-        }
 
-        return in_array($transport, ['smtp', 'ses', 'postmark', 'resend', 'sendmail'], true);
+        return ($config['transport'] ?? null) === 'smtp';
     }
 }
