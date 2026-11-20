@@ -38,7 +38,8 @@ trait FakeSmtpMailbox
 
     private function startFakeMailbox(string $mailer): int
     {
-        if (! function_exists('proc_open') || trim((string) shell_exec('command -v openssl python3')) === '') {
+        $missing = array_filter(['openssl', 'python3'], fn (string $tool): bool => trim((string) shell_exec('command -v '.escapeshellarg($tool))) === '');
+        if (! function_exists('proc_open') || $missing !== []) {
             $this->markTestSkipped('openssl and python3 are required for the fake mailbox.');
         }
         $this->fakeMailboxDir = sys_get_temp_dir().'/caneguard-fake-mailbox-'.bin2hex(random_bytes(4));
