@@ -66,48 +66,78 @@ final class BootstrapDeployment extends Command
 
     private function admin(RecordSecurityAudit $audit, string $email): int
     {
-        $hasActiveAdmin = User::query()->where('role', User::ROLE_ADMIN)->where('is_active', true)->exists();
-        if ($hasActiveAdmin) {
+        if (User::query()->where('role', User::ROLE_ADMIN)->get()->contains(fn (User $admin) => $admin->isActiveAdmin())) {
             $this->line('Bootstrap admin: an active administrator already exists; skipped.');
 
             return self::SUCCESS;
         }
-        if (User::query()->where('email', $email)->exists()) {
+
+        $existing = User::query()->where('email', $email)->first();
+        if ($existing !== null && ! $this->bootstrapEvent($existing, SecurityAudit::ACTION_ACCOUNT_CREATED)) {
             $this->error('CANEGUARD_BOOTSTRAP_ADMIN_EMAIL belongs to an existing account. Set it to an unused email address and deploy again.');
 
             return self::FAILURE;
         }
+        if ($existing !== null && $this->bootstrapEvent($existing, SecurityAudit::ACTION_ACCOUNT_INVITE)) {
+            $this->line('Bootstrap admin: the pending administrator was already sent a set-password email; skipped.');
+
+            return self::SUCCESS;
+        }
+
         if (! $this->deliverable((string) config('mail.default'))) {
             $this->error('Bootstrap admin: mail delivery is not configured (MAIL_MAILER is log or array). Configure SMTP and deploy again.');
 
             return self::FAILURE;
         }
 
-        try {
-            DB::transaction(function () use ($audit, $email): void {
-                $user = new User(['name' => 'CaneGuard Administrator', 'email' => $email, 'role' => User::ROLE_ADMIN]);
-                // Unusable random secret: the administrator sets the real password through the emailed link.
-                $user->forceFill(['password' => Str::random(64), 'registration_origin' => 'office_certified', 'email_verified_at' => null])->save();
-                $audit->handle(SecurityAudit::ACTION_ACCOUNT_CREATED, SecurityAudit::OUTCOME_SUCCESS, null, $user, [
-                    'after' => ['role' => $user->role, 'is_active' => $user->is_active], 'provisioning_channel' => 'bootstrap',
-                ]);
-                if (Password::broker()->sendResetLink(['email' => $user->email]) !== Password::RESET_LINK_SENT) {
-                    throw new \RuntimeException('Set-password email was not sent.');
-                }
-                $audit->handle(SecurityAudit::ACTION_ACCOUNT_INVITE, SecurityAudit::OUTCOME_SUCCESS, null, $user, [
-                    'provisioning_channel' => 'bootstrap',
-                ]);
-            });
-        } catch (\Throwable $e) {
-            Log::warning('Bootstrap administrator set-password email could not be sent; no account was created.', ['exception' => $e::class]);
-            $this->error('Bootstrap admin: the set-password email could not be sent, so no administrator was created. Fix mail delivery and deploy again.');
+        $user = $existing ?? $this->createAdmin($audit, $email);
+        if (! $this->sendSetPasswordEmail($user)) {
+            $this->error('Bootstrap admin: the set-password email could not be sent. The administrator account is kept; fix mail delivery and deploy again.');
 
             return self::FAILURE;
         }
+        $audit->handle(SecurityAudit::ACTION_ACCOUNT_INVITE, SecurityAudit::OUTCOME_SUCCESS, null, $user, [
+            'provisioning_channel' => 'bootstrap',
+        ]);
 
-        $this->line('Bootstrap admin: created and set-password email sent.');
+        $this->line('Bootstrap admin: set-password email sent.');
 
         return self::SUCCESS;
+    }
+
+    private function createAdmin(RecordSecurityAudit $audit, string $email): User
+    {
+        return DB::transaction(function () use ($audit, $email): User {
+            $user = new User(['name' => 'CaneGuard Administrator', 'email' => $email, 'role' => User::ROLE_ADMIN]);
+            // Unusable random secret: the administrator sets the real password through the emailed link.
+            $user->forceFill(['password' => Str::random(64), 'registration_origin' => 'office_certified', 'email_verified_at' => null])->save();
+            $audit->handle(SecurityAudit::ACTION_ACCOUNT_CREATED, SecurityAudit::OUTCOME_SUCCESS, null, $user, [
+                'after' => ['role' => $user->role, 'is_active' => $user->is_active], 'provisioning_channel' => 'bootstrap',
+            ]);
+
+            return $user;
+        });
+    }
+
+    private function sendSetPasswordEmail(User $user): bool
+    {
+        try {
+            return Password::broker()->sendResetLink(['email' => $user->email]) === Password::RESET_LINK_SENT;
+        } catch (\Throwable $e) {
+            Log::warning('Bootstrap administrator set-password email could not be sent.', ['exception' => $e::class]);
+
+            return false;
+        }
+    }
+
+    private function bootstrapEvent(User $user, string $action): bool
+    {
+        if ($user->role !== User::ROLE_ADMIN || ! $user->is_active || $user->hasVerifiedEmail()) {
+            return false;
+        }
+
+        return SecurityAudit::query()->where('target_user_id', $user->id)->where('action', $action)->get()
+            ->contains(fn (SecurityAudit $event) => ($event->metadata['provisioning_channel'] ?? null) === 'bootstrap');
     }
 
     private function deliverable(string $mailer): bool

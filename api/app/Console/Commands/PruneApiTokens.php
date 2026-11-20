@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Actions\Auth\RecordSecurityAudit;
 use App\Models\SecurityAudit;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 final class PruneApiTokens extends Command
 {
@@ -14,15 +15,17 @@ final class PruneApiTokens extends Command
 
     public function handle(RecordSecurityAudit $audit): int
     {
-        $status = $this->call('sanctum:prune-expired', ['--hours' => 24]);
-        if ($status !== self::SUCCESS) {
-            return $status;
-        }
+        return DB::transaction(function () use ($audit): int {
+            $status = $this->call('sanctum:prune-expired', ['--hours' => 24]);
+            if ($status !== self::SUCCESS) {
+                return $status;
+            }
 
-        $audit->handle(SecurityAudit::ACTION_PRUNE_RUN, SecurityAudit::OUTCOME_SUCCESS, metadata: [
-            'command' => 'sanctum:prune-expired', 'hours' => 24,
-        ]);
+            $audit->handle(SecurityAudit::ACTION_PRUNE_RUN, SecurityAudit::OUTCOME_SUCCESS, metadata: [
+                'command' => 'sanctum:prune-expired', 'hours' => 24,
+            ]);
 
-        return self::SUCCESS;
+            return self::SUCCESS;
+        });
     }
 }

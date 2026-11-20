@@ -29,6 +29,33 @@ class PruneSecurityAuditsTest extends TestCase
         $this->assertDatabaseHas('security_audits', ['action' => SecurityAudit::ACTION_PRUNE_RUN, 'outcome' => SecurityAudit::OUTCOME_SUCCESS]);
     }
 
+    public function test_security_audit_prune_keeps_the_records_when_its_run_record_cannot_be_written(): void
+    {
+        config(['caneguard.security_audit.retention_days' => 30]);
+        SecurityAudit::query()->create([
+            'action' => SecurityAudit::ACTION_REGISTRATION,
+            'outcome' => SecurityAudit::OUTCOME_SUCCESS,
+            'created_at' => now()->subDays(31),
+        ]);
+        SecurityAudit::creating(function (SecurityAudit $audit): void {
+            if ($audit->action === SecurityAudit::ACTION_PRUNE_RUN) {
+                throw new \RuntimeException('audit store down');
+            }
+        });
+
+        $thrown = null;
+        try {
+            $this->artisan('auth:prune-security-audits')->run();
+        } catch (\RuntimeException $e) {
+            $thrown = $e;
+        } finally {
+            SecurityAudit::flushEventListeners();
+        }
+
+        $this->assertSame('audit store down', $thrown?->getMessage());
+        $this->assertDatabaseCount('security_audits', 1);
+    }
+
     public function test_api_token_prune_removes_tokens_expired_over_a_day_and_records_the_run(): void
     {
         $user = User::factory()->create();

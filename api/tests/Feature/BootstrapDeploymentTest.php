@@ -9,6 +9,7 @@ use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\Events\NotificationSending;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -160,19 +161,59 @@ class BootstrapDeploymentTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    public function test_failed_send_rolls_back_the_administrator_and_fails_the_deploy(): void
+    public function test_set_password_email_is_sent_only_after_the_account_is_committed(): void
     {
         $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test']);
-        $this->app['events']->listen(
-            NotificationSending::class,
-            fn () => throw new \RuntimeException('mail down'),
-        );
+        $outsideTransaction = DB::transactionLevel();
+        $levelAtSend = null;
+        $this->app['events']->listen(NotificationSending::class, function () use (&$levelAtSend): bool {
+            $levelAtSend = DB::transactionLevel();
+
+            return false;
+        });
+
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+
+        $this->assertSame($outsideTransaction, $levelAtSend);
+        $this->assertDatabaseHas('users', ['email' => 'owner@example.test']);
+    }
+
+    public function test_failed_send_keeps_the_committed_account_and_the_next_deploy_sends_the_link(): void
+    {
+        $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test']);
+        $mailDown = true;
+        $this->app['events']->listen(NotificationSending::class, function () use (&$mailDown): bool {
+            if ($mailDown) {
+                throw new \RuntimeException('mail down');
+            }
+
+            return false;
+        });
 
         $this->artisan('caneguard:bootstrap')->assertFailed();
 
-        $this->assertSame(0, User::query()->count());
-        $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_CREATED)->count());
+        $this->assertDatabaseHas('users', ['email' => 'owner@example.test']);
         $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)->count());
+
+        $mailDown = false;
+        $this->travel(2)->minutes();
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+
+        $this->assertSame(1, User::query()->count());
+        $this->assertSame(1, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)->count());
+    }
+
+    public function test_pending_admin_created_outside_bootstrap_is_not_taken_over(): void
+    {
+        Notification::fake();
+        $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test']);
+        User::factory()->admin()->create(['email' => 'owner@example.test', 'email_verified_at' => null]);
+
+        $this->artisan('caneguard:bootstrap')->assertFailed();
+
+        $this->assertSame(1, User::query()->count());
+        $this->assertSame(0, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)->count());
+        Notification::assertNothingSent();
     }
 
     public function test_bootstrap_admin_history_names_the_deployment_instead_of_an_administrator(): void
@@ -201,24 +242,40 @@ class BootstrapDeploymentTest extends TestCase
         }
     }
 
-    public function test_failed_invite_audit_rolls_back_the_account_and_its_reset_token(): void
+    public function test_failed_invite_audit_after_the_send_is_completed_by_the_next_deploy(): void
     {
-        Notification::fake();
         $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test']);
+        $sends = 0;
+        $this->app['events']->listen(NotificationSending::class, function () use (&$sends): bool {
+            $sends++;
+
+            return false;
+        });
         SecurityAudit::creating(function (SecurityAudit $audit): void {
             if ($audit->action === SecurityAudit::ACTION_ACCOUNT_INVITE) {
                 throw new \RuntimeException('audit store down');
             }
         });
 
+        $thrown = null;
         try {
-            $this->artisan('caneguard:bootstrap')->assertFailed();
+            $this->artisan('caneguard:bootstrap')->run();
+        } catch (\RuntimeException $e) {
+            $thrown = $e;
         } finally {
             SecurityAudit::flushEventListeners();
         }
 
-        $this->assertSame(0, User::query()->count());
-        $this->assertDatabaseCount('password_reset_tokens', 0);
+        $this->assertSame('audit store down', $thrown?->getMessage());
+        $this->assertDatabaseHas('users', ['email' => 'owner@example.test']);
+        $this->assertSame(1, $sends);
+
+        $this->travel(2)->minutes();
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+
+        $this->assertSame(2, $sends);
+        $this->assertSame(1, User::query()->count());
+        $this->assertSame(1, SecurityAudit::query()->where('action', SecurityAudit::ACTION_ACCOUNT_INVITE)->count());
     }
 
     public function test_scheduler_entry_is_recorded_once_while_it_is_installed(): void
