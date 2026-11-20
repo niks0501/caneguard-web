@@ -11,23 +11,30 @@ const schema = z.object({ data: z.object({ installed: z.boolean(), enabled: z.bo
 type AerialSettings = z.infer<typeof schema>["data"];
 const url = "/api/v1/admin/aerial-analysis";
 
+const caseDetails = { queryKey: reportKeys.details(), predicate: isCaseDetailQuery };
+
+/** In-flight case reads are cancelled first so they cannot restore evidence. */
+async function evictAerialEvidence(queryClient: QueryClient) {
+  await queryClient.cancelQueries(caseDetails);
+  queryClient.setQueriesData<DiseaseReport>(
+    caseDetails,
+    (current) => current && { ...current, aerialAnalyses: undefined },
+  );
+  queryClient.removeQueries({ queryKey: ["aerial-mask"] });
+}
+
 /**
  * The check is live only when the server has it installed and an Admin has it
- * switched on. Once it is not live, drop cached results: in-flight case reads
- * are cancelled first so they cannot restore them.
+ * switched on. Once it is not live, drop cached results.
  */
 async function reconcileAerialCache(queryClient: QueryClient, settings: AerialSettings) {
-  const caseDetails = { queryKey: reportKeys.details(), predicate: isCaseDetailQuery };
   recordAerialGate(settings);
-  if (!aerialCheckLive(settings)) {
-    await queryClient.cancelQueries(caseDetails);
-    queryClient.setQueriesData<DiseaseReport>(
-      caseDetails,
-      (current) => current && { ...current, aerialAnalyses: undefined },
-    );
-    queryClient.removeQueries({ queryKey: ["aerial-mask"] });
-  }
+  if (!aerialCheckLive(settings)) await evictAerialEvidence(queryClient);
   void queryClient.invalidateQueries(caseDetails);
+}
+
+function sameGate(a: AerialSettings | undefined, b: AerialSettings) {
+  return a !== undefined && a.installed === b.installed && a.enabled === b.enabled;
 }
 
 export function AerialAnalysisSettings() {
@@ -51,8 +58,10 @@ export function AerialAnalysisSettings() {
     onSuccess: async (response, _enabled, readsAtSend) => {
       const next = schema.parse(response.data).data;
       await queryClient.cancelQueries({ queryKey: aerialSettingsKey });
-      if (aerialGateReadCount() !== readsAtSend) {
-        await queryClient.invalidateQueries({ queryKey: aerialSettingsKey });
+      const current = queryClient.getQueryData<AerialSettings>(aerialSettingsKey);
+      if (aerialGateReadCount() !== readsAtSend && !sameGate(current, next)) {
+        await evictAerialEvidence(queryClient);
+        await queryClient.resetQueries({ queryKey: aerialSettingsKey });
         return;
       }
       queryClient.setQueryData(aerialSettingsKey, next);

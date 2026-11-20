@@ -202,7 +202,44 @@ describe("aerial canopy check admin switch", () => {
     await vi.waitFor(() => expect(reads).toBe(3));
     await vi.waitFor(() => expect(client.isFetching({ queryKey: ["aerial-analysis-settings"] })).toBe(0));
     expect(screen.getByRole("button", { name: "Turn off aerial check" })).toBeInTheDocument();
-    expect(client.getQueryData(reportKeys.detail("case-1"))).toEqual({ id: "case-1", aerialAnalyses: [{ uuid: "a-9" }] });
+    expect(client.getQueryData(reportKeys.detail("case-1"))).toEqual({ id: "case-1", aerialAnalyses: undefined });
+  });
+
+  it("shows neither state when a conflicting settings read cannot be reconciled", async () => {
+    let enabled = true;
+    let reads = 0;
+    let releaseSave: () => void = () => undefined;
+    const saveHeld = new Promise<void>((resolve) => { releaseSave = resolve; });
+    let putStarted: () => void = () => undefined;
+    const putReached = new Promise<void>((resolve) => { putStarted = resolve; });
+    server.use(
+      http.get(url, () => {
+        reads += 1;
+        if (reads === 3) return new HttpResponse(null, { status: 500 });
+        return HttpResponse.json({ data: { installed: true, enabled } });
+      }),
+      http.put(url, async ({ request }) => {
+        const body = (await request.json()) as { enabled: boolean };
+        putStarted();
+        await saveHeld;
+        enabled = body.enabled;
+        return HttpResponse.json({ data: { installed: true, enabled } });
+      }),
+    );
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(reportKeys.detail("case-1"), { id: "case-1", aerialAnalyses: [{ uuid: "a-9" }] });
+    const user = userEvent.setup();
+    show(client);
+    await user.click(await screen.findByRole("button", { name: "Turn off aerial check" }));
+    await putReached;
+    void client.invalidateQueries({ queryKey: ["aerial-analysis-settings"] });
+    await vi.waitFor(() => expect(reads).toBe(2));
+    await vi.waitFor(() => expect(client.isFetching({ queryKey: ["aerial-analysis-settings"] })).toBe(0));
+    releaseSave();
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Turn off aerial check" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Turn on aerial check" })).not.toBeInTheDocument();
+    expect(client.getQueryData(reportKeys.detail("case-1"))).toEqual({ id: "case-1", aerialAnalyses: undefined });
   });
 
   it("reports a failed save", async () => {

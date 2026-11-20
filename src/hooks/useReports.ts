@@ -94,7 +94,9 @@ function useReportMutation<TInput>(
     onSuccess: (report, _input, offsAtSend) => {
       const cached = queryClient.getQueryData<DiseaseReport>(reportKeys.detail(reportId));
       const offObservedWhileSaving = aerialOffReadCount() !== offsAtSend;
-      const aerialAnalyses = report.aerialAnalyses === undefined || offObservedWhileSaving
+      const aerialSnapshotsConflict = cached !== undefined
+        && (cached.aerialAnalyses !== undefined) !== (report.aerialAnalyses !== undefined);
+      const aerialAnalyses = offObservedWhileSaving || aerialSnapshotsConflict
         ? undefined
         : cached ? cached.aerialAnalyses : report.aerialAnalyses;
       queryClient.setQueryData<DiseaseReport>(reportKeys.detail(reportId), { ...report, aerialAnalyses });
