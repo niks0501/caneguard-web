@@ -89,6 +89,15 @@ class ProductionDeployScriptTest extends TestCase
         $this->assertNotContains('artisan auth:rollback-barrier on', $this->logLines());
     }
 
+    public function test_routine_deploy_keeps_a_barrier_carrying_previous_release_serving(): void
+    {
+        $process = $this->deploy('release-1-'.str_repeat('b', 40), ['CANEGUARD_TEST_OLD_HAS_ROLLBACK_BARRIER' => '1'], siteDown: false);
+
+        $this->assertTrue($process->isSuccessful(), $process->getErrorOutput());
+        $this->assertNotContains('artisan up', $this->logLines());
+        $this->assertNotContains('artisan auth:rollback-barrier on', $this->logLines());
+    }
+
     public function test_unreadable_crontab_fails_the_deploy_and_keeps_the_existing_jobs(): void
     {
         $existing = "MAILTO=ops@example.test\n30 4 * * * /usr/local/bin/backup.sh\n";
@@ -337,6 +346,9 @@ class ProductionDeployScriptTest extends TestCase
             fi
             if [[ "$1 $2" == "artisan tinker" && "$*" == *isDownForMaintenance* ]]; then
               [[ -f "$down" ]] && echo down || echo up
+            fi
+            if [[ "$1 $2" == "artisan list" && "$*" == *"--raw"* && -n "${CANEGUARD_TEST_OLD_HAS_ROLLBACK_BARRIER:-}" ]]; then
+              echo "auth:rollback-barrier state"
             fi
             if [[ "$1 $2" == "artisan caneguard:bootstrap" ]]; then
               echo "bootstrap saw current=$(readlink "$CANEGUARD_TEST_ROOT/current")" >> "$CANEGUARD_TEST_LOG"

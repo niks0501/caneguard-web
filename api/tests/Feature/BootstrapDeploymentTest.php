@@ -104,6 +104,32 @@ class BootstrapDeploymentTest extends TestCase
         $this->assertDatabaseCount('district_memberships', 0);
     }
 
+    public function test_bootstrap_invitation_token_redeems_for_the_created_admin(): void
+    {
+        Notification::fake();
+        $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test']);
+
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+
+        $admin = User::query()->where('email', 'owner@example.test')->firstOrFail();
+        $token = null;
+        Notification::assertSentTo($admin, ResetPassword::class, function (ResetPassword $notification) use (&$token): bool {
+            $token = $notification->token;
+
+            return true;
+        });
+        $this->assertIsString($token);
+        $this->assertDatabaseHas('password_reset_tokens', ['email' => $admin->email, 'user_id' => $admin->getKey()]);
+
+        $this->postJson('/reset-password', [
+            'email' => $admin->email,
+            'token' => $token,
+            'password' => 'Str0ng-Passphrase!42',
+            'password_confirmation' => 'Str0ng-Passphrase!42',
+        ])->assertOk()->assertJsonPath('code', 'PASSWORD_RESET');
+        $this->assertTrue($admin->fresh()->hasVerifiedEmail());
+    }
+
     public function test_pending_admin_is_not_emailed_again_on_later_deploys(): void
     {
         Notification::fake();

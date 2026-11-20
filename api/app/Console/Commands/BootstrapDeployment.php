@@ -7,6 +7,7 @@ use App\Models\District;
 use App\Models\SecurityAudit;
 use App\Models\User;
 use App\Support\BootstrapAdministrator;
+use App\Support\MailDelivery;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -168,8 +169,16 @@ final class BootstrapDeployment extends Command
 
     private function sendSetPasswordEmail(User $user): ?string
     {
+        $broker = Password::broker();
+        if ($broker->getRepository()->recentlyCreatedToken($user)) {
+            return Password::RESET_THROTTLED;
+        }
+
         try {
-            return Password::broker()->sendResetLink(['email' => $user->email]);
+            $token = MailDelivery::issueToken($user);
+            $user->sendPasswordResetNotification($token);
+
+            return Password::RESET_LINK_SENT;
         } catch (TransportExceptionInterface $e) {
             Log::warning('Bootstrap administrator set-password email could not be sent.', ['exception' => $e::class]);
 
