@@ -86,7 +86,11 @@ class AdminAccountCreationTest extends TestCase
      */
     private function subprocessEnvironment(string $root, array $overrides = []): array
     {
-        return array_merge([
+        $inherited = array_fill_keys(array_keys(getenv()), false);
+
+        return array_merge($inherited, [
+            'PATH' => (string) getenv('PATH'),
+            'APP_KEY' => 'base64:'.base64_encode(str_repeat('k', 32)),
             'DB_URL' => '',
             'DB_CONNECTION' => 'sqlite',
             'DB_CACHE_CONNECTION' => '',

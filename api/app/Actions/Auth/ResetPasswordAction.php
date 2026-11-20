@@ -25,7 +25,8 @@ final class ResetPasswordAction
                 ->where('email', $credentials['email'])
                 ->lockForUpdate()
                 ->first();
-            if ($account === null || $token === null || (int) $token->user_id !== (int) $account->getKey()) {
+            if ($account === null || $token === null || (int) $token->user_id !== (int) $account->getKey()
+                || ! Password::broker()->getRepository()->exists($account, $credentials['token'])) {
                 return Password::INVALID_TOKEN;
             }
 

@@ -145,12 +145,12 @@ fi
 php artisan caneguard:record-scheduler-install "$cron_line" --no-interaction
 php artisan auth:backfill-onboarding
 
+php artisan auth:rollback-barrier on
 ln -s "$new" "$root/.activate-$$"
 mv -Tf "$root/.activate-$$" "$current"
 activated=1
 
-# Releases a barrier left engaged by an earlier rollback that failed, so this release can issue links.
-php artisan auth:rollback-barrier off
+php artisan up
 
 # Ensure public API and SPA both respond through the activated Nginx root.
 health="$(curl --fail --silent --show-error --max-time 20 https://caneguard.online/api/health)"
@@ -169,6 +169,7 @@ if grep -q '__CSP_NONCE__' <<<"$root_shell"; then
   echo "SPA shell served without a CSP nonce" >&2
   exit 1
 fi
+php artisan auth:rollback-barrier off
 successful=1
 echo "PASS: Active release $release_id"
 echo "Rollback reference: $old"
