@@ -122,7 +122,7 @@ class ReportAerialAnalysisController extends Controller
 
         return Storage::disk('local')->response($path, null, [
             'Content-Type' => $mime,
-            'Cache-Control' => 'private, max-age=300',
+            'Cache-Control' => 'private, no-cache',
             'X-Content-Type-Options' => 'nosniff',
         ]);
     }

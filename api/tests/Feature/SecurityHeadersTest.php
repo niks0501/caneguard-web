@@ -58,14 +58,45 @@ class SecurityHeadersTest extends TestCase
         return $scriptMatch[1];
     }
 
-    public function test_spa_shell_allows_only_the_named_map_provider(): void
+    public function test_spa_shell_allows_the_maptiler_origin_and_a_same_origin_map_worker(): void
     {
-        $policy = (string) $this->get('/')->assertOk()->headers->get('Content-Security-Policy');
+        $index = public_path('index.html');
+        $original = is_file($index) ? file_get_contents($index) : null;
+        copy(base_path('../index.html'), $index);
 
-        $this->assertStringContainsString("img-src 'self' data: blob: https://api.maptiler.com;", $policy);
-        $this->assertStringContainsString("connect-src 'self' https://api.maptiler.com;", $policy);
-        $this->assertStringContainsString('worker-src blob:', $policy);
-        $this->assertStringNotContainsString('*', $policy);
+        try {
+            $directives = $this->policyDirectives($this->get('/')->assertOk());
+        } finally {
+            $original === null ? @unlink($index) : file_put_contents($index, $original);
+        }
+
+        $this->assertSame(["'self'", 'data:', 'blob:', 'https://api.maptiler.com'], $directives['img-src']);
+        $this->assertSame(["'self'", 'https://api.maptiler.com'], $directives['connect-src']);
+        $this->assertSame(["'self'"], $directives['worker-src']);
+        $this->assertArrayNotHasKey('child-src', $directives);
+    }
+
+    public function test_json_responses_get_no_map_sources(): void
+    {
+        $directives = $this->policyDirectives($this->getJson('/api/health')->assertOk());
+
+        $this->assertArrayNotHasKey('worker-src', $directives);
+        $this->assertArrayNotHasKey('connect-src', $directives);
+        $this->assertSame(["'none'"], $directives['default-src']);
+    }
+
+    /** @return array<string, list<string>> */
+    private function policyDirectives(TestResponse $response): array
+    {
+        $directives = [];
+        foreach (explode(';', (string) $response->headers->get('Content-Security-Policy')) as $directive) {
+            $parts = preg_split('/\s+/', trim($directive)) ?: [];
+            if ($parts !== [] && $parts[0] !== '') {
+                $directives[array_shift($parts)] = $parts;
+            }
+        }
+
+        return $directives;
     }
 
     public function test_html_responses_use_a_nonce_for_inline_content(): void

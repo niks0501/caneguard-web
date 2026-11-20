@@ -12,8 +12,6 @@ return new class extends Migration
         Schema::create('feature_switches', function (Blueprint $table): void {
             $table->string('name', 80)->primary();
             $table->boolean('enabled')->default(false);
-            $table->foreignId('updated_by_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamps();
         });
     }
 

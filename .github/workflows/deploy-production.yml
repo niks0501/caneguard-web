@@ -76,7 +76,9 @@ jobs:
           # git. Restrict it to https://caneguard.online in the MapTiler account.
           VITE_MAPTILER_KEY: ${{ secrets.CANEGUARD_MAPTILER_KEY }}
           VITE_REALTIME_ENABLED: "false"
-        run: npm run build
+        run: |
+          test -n "$VITE_MAPTILER_KEY" || { echo "CANEGUARD_MAPTILER_KEY must be set for the production build." >&2; exit 1; }
+          npm run build
 
       - name: Package tracked source and built React assets
         run: |

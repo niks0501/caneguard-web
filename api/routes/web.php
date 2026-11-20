@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 $serveSpa = static function (Request $request) {
     $index = public_path('index.html');
     if (is_file($index)) {
+        $request->attributes->set('spa_shell', true);
         // The built shell carries one inline theme script marked with this
         // placeholder; give it the CSP nonce of this response.
         $html = str_replace(

@@ -111,17 +111,17 @@ Rollback: an Admin chooses **Turn off aerial check** in Admin Settings (immediat
 
 ## Maps need the MapTiler key at build time and the CSP allowlist
 
-The production build has no map without a key: it shows **Map unavailable** (no provider-free fallback outside development).
 1. Create a MapTiler key restricted to the `https://caneguard.online` origin. A `VITE_*` value is public in the shipped bundle, so the origin restriction is the real protection.
-2. Store it as the GitHub Actions secret `CANEGUARD_MAPTILER_KEY`. The deploy workflow passes it to the React build as `VITE_MAPTILER_KEY`; with the secret absent the build is still valid and maps stay unavailable.
-3. The Laravel SPA shell CSP allows `https://api.maptiler.com` for `img-src` and `connect-src` (config `caneguard.map_origins`), plus `blob:` workers and images that MapLibre needs. Report-document responses get none of these additions. Nginx must not add its own stricter CSP to the shell.
-4. After a deploy, open the Map page signed in: tiles should draw and the browser console should show no CSP violations.
+2. Store it as the GitHub Actions secret `CANEGUARD_MAPTILER_KEY`. The deploy workflow passes it to the React build as `VITE_MAPTILER_KEY` and fails the build step while the secret is empty, so a release never ships with maps unavailable.
+3. Basemap style, tile and glyph requests go from the browser to MapTiler, so MapTiler receives the approximate area and zoom of the locations on screen (for example a filtered report's coordinates on the validation map, or field bounds on the boundaries map). The captain allows these location-derived requests.
+4. The map worker is bundled as a same-origin asset and registered before any map mounts (`src/lib/mapLibreWorker.ts`). The SPA shell CSP allows `https://api.maptiler.com` for `connect-src` and `img-src`, `blob:` images, and `worker-src 'self'`. Report documents and other HTML get none of these. Nginx must not add its own stricter CSP to the shell.
+5. After a deploy, open the Map page signed in: tiles should draw and the browser console should show no CSP violations.
 
 ### Mobile manual-map tile proxy (`EXPO_PUBLIC_MAP_TILE_PROXY_URL`)
-The proxy lives in this API: `GET /api/v1/mobile/map-tiles/{z}/{x}/{y}.png` (zoom 11–18, mobile token with `report:status`), fetching from `tile.openstreetmap.org` and caching for a day. The mobile production environment sets `EXPO_PUBLIC_MAP_TILE_PROXY_URL=https://caneguard.online/api/v1/mobile/map-tiles/{z}/{x}/{y}.png`; it must match `EXPO_PUBLIC_API_BASE_URL`'s origin. Set it only after confirming the proxy:
+The proxy lives in this API: `GET /api/v1/mobile/map-tiles/{z}/{x}/{y}.png` (zoom 11–18, mobile token with `report:status`), fetching from `tile.openstreetmap.org` and caching for a day. The value for the mobile production environment is `EXPO_PUBLIC_MAP_TILE_PROXY_URL=https://caneguard.online/api/v1/mobile/map-tiles/{z}/{x}/{y}.png`; it must match `EXPO_PUBLIC_API_BASE_URL`'s origin. This runbook does not set it. The Mobile release owner sets it after confirming the proxy:
 - the upstream answers: `curl -sS -A 'CaneGuard-MapTileProxy/1.0' -o /dev/null -w '%{http_code} %{content_type}\n' https://tile.openstreetmap.org/11/1676/898.png` prints `200 image/png`;
 - the route is live on production: the same path without a token on `https://caneguard.online` answers `401`, not `404`;
-- one authenticated fetch with a real mobile token returns `200 image/png` (not checked by automation: it needs a production credential).
+- one cold authenticated fetch with a real mobile token, through production, returns `200 image/png` and its body decodes as an image. The proxy caches for a day, so only a request the cache has not answered proves the production path. Automation does not run this check; it needs a production credential.
 
 ## Scheduler for reminders and follow-up due notifications
 The saved reminder day and time (Asia/Manila) only fire if the Laravel scheduler runs. Add one cron entry for the application user, from the `api` directory of the active release:

@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import { AppErrorFallback } from "./app/AppErrorBoundary";
 import { initializeTheme } from "./theme/themePreference";
+import "./lib/mapLibreWorker";
 
 // Seed the appearance store from the same stored choice the inline script in
 // index.html already painted, so every later theme read agrees with the page.

@@ -1,25 +1,32 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { axiosClient } from "../../api/axiosClient";
 import { toApiError } from "../../api/ApiError";
 import { env } from "../../config/env";
+import { reportKeys } from "../../hooks/reportQueries";
 import { Button } from "../ui/Button";
 
 const schema = z.object({ data: z.object({ installed: z.boolean(), enabled: z.boolean() }) });
 const url = "/api/v1/admin/aerial-analysis";
 
 export function AerialAnalysisSettings() {
+  const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: ["aerial-analysis-settings"], retry: false, enabled: env.dataSource === "api",
     queryFn: async ({ signal }) => schema.parse((await axiosClient.get(url, { signal })).data).data,
   });
   const save = useMutation({
     retry: false,
+    networkMode: "always",
     mutationFn: async (enabled: boolean) => {
       if (!navigator.onLine) throw new Error("An online connection is required.");
       return axiosClient.put(url, { enabled });
     },
-    onSuccess: () => query.refetch(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: reportKeys.details() });
+      void queryClient.invalidateQueries({ queryKey: ["aerial-mask"] });
+      return query.refetch();
+    },
   });
   if (env.dataSource !== "api") return null;
   const settings = query.data;

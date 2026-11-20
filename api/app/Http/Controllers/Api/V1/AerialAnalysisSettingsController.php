@@ -28,9 +28,10 @@ final class AerialAnalysisSettingsController extends Controller
         $actor = $request->user();
         $enabled = (bool) $input['enabled'];
         DB::transaction(function () use ($actor, $enabled): void {
-            DB::table('feature_switches')->updateOrInsert(
-                ['name' => AerialSwitch::NAME],
-                ['enabled' => $enabled, 'updated_by_id' => $actor->getKey(), 'updated_at' => now()->utc(), 'created_at' => now()->utc()],
+            DB::table('feature_switches')->upsert(
+                [['name' => AerialSwitch::NAME, 'enabled' => $enabled]],
+                ['name'],
+                ['enabled'],
             );
             SecurityAudit::query()->create([
                 'actor_id' => $actor->getKey(),

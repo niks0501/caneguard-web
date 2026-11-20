@@ -176,9 +176,10 @@ class ReportAerialAnalysisTest extends TestCase
         Storage::disk('local')->assertExists($row->image_path);
         Storage::disk('local')->assertExists($row->mask_path);
         $this->assertSame(self::SHA, $row->weights_sha256);
-        $this->get("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}/image")->assertOk();
+        $this->get("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}/image")
+            ->assertOk()->assertHeader('Cache-Control', 'no-cache, private');
         $this->get("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}/mask")
-            ->assertOk()->assertHeader('Content-Type', 'image/png');
+            ->assertOk()->assertHeader('Content-Type', 'image/png')->assertHeader('Cache-Control', 'no-cache, private');
 
         $report->refresh();
         $this->assertSame(33.0, (float) $report->affected_portion_percent);
