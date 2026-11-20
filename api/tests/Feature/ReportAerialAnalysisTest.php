@@ -106,7 +106,7 @@ class ReportAerialAnalysisTest extends TestCase
         $this->postJson("/api/v1/reports/{$report->uuid}/aerial-analyses", ['image' => $this->photo()])->assertNotFound();
     }
 
-    public function test_admin_switch_reports_install_state_and_audits_each_change(): void
+    public function test_admin_switch_reports_install_state_and_transitions(): void
     {
         $this->actingAs(User::factory()->admin()->create(), 'web');
 
