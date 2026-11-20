@@ -167,7 +167,7 @@ describe("report mutations", () => {
     it("keeps aerial analyses from a save sent after an Off the settings screen already showed", async () => {
       const { queryClient, report } = setup();
       const returned = [{ uuid: "a4" }] as never;
-      let enabled = false;
+      const enabled = false;
       server.use(http.get(settingsUrl, () => HttpResponse.json({ data: { installed: true, enabled } })));
       vi.mocked(reportsRepository.updateReview).mockResolvedValue({ ...report, reviewVersion: nextVersion(report), aerialAnalyses: returned });
       const Harness = saveButtonHarness(report.uuid, report.reviewVersion!);

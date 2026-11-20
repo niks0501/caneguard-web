@@ -41,9 +41,9 @@ export function AerialAnalysisSettings() {
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: aerialSettingsKey, retry: false, enabled: env.dataSource === "api",
-    queryFn: async ({ signal }) => {
+    queryFn: async ({ signal, client }) => {
       const settings = schema.parse((await axiosClient.get(url, { signal })).data).data;
-      await reconcileAerialCache(queryClient, settings);
+      await reconcileAerialCache(client, settings);
       return settings;
     },
   });
