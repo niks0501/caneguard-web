@@ -1,0 +1,62 @@
+# Live API acceptance — Q5 admin aerial switch (isolated local instance)
+
+Instance: Laravel on http://127.0.0.1:8099, sqlite /tmp/cg-live-r2/db.sqlite, demo seed accounts,
+`CANEGUARD_AERIAL_ANALYSIS_ENABLED` toggled by restarting the server. Commands and actual outputs.
+
+## A. Install flag OFF (switch row later set to ON by the Admin, persists)
+
+    GET /api/v1/admin/aerial-analysis            HTTP 200  {"data":{"installed":false,"enabled":false}}
+    PUT /api/v1/admin/aerial-analysis {"enabled":true}   HTTP 409  CONFLICT
+    GET /api/v1/admin/aerial-analysis (reviewer)  HTTP 403  FORBIDDEN
+    GET /api/v1/reports/c2f5a8d1-...              HTTP 200  has aerial_analyses key: False
+    POST /api/v1/reports/c2f5a8d1-.../aerial-analyses (png upload)  HTTP 404
+
+After the Admin turned the switch on in the UI, the server restarted with the install flag OFF:
+
+    GET /api/v1/admin/aerial-analysis            HTTP 200  {"data":{"installed":false,"enabled":true}}
+    PUT /api/v1/admin/aerial-analysis {"enabled":false}  HTTP 409  CONFLICT
+    GET /api/v1/reports/c2f5a8d1-...              HTTP 200  has aerial_analyses key: False
+    POST .../aerial-analyses                      HTTP 404
+
+=> the environment flag remains the installed gate; the saved Admin switch cannot outvote it.
+
+## B. Install flag ON, Admin switch not yet set (row absent)
+
+    GET /api/v1/admin/aerial-analysis            HTTP 200  {"data":{"installed":true,"enabled":false}}
+    POST .../aerial-analyses                      HTTP 404
+    GET /api/v1/reports/c2f5a8d1-...              has aerial_analyses key: False
+
+## C. Install flag ON and Admin turned it on through Admin Settings (real UI click)
+
+    feature_switches row: [{"name":"aerial_analysis","enabled":1}]
+    GET /api/v1/reports/c2f5a8d1-...              has aerial_analyses key: True   value: []
+    POST .../aerial-analyses (invalid file)       HTTP 422 VALIDATION_ERROR (route admitted, not 404)
+
+## D. Admin turned it off through Admin Settings (real UI click)
+
+    GET /api/v1/reports/c2f5a8d1-...              has aerial_analyses key: False
+    POST .../aerial-analyses                      HTTP 404
+
+## E. Admin-only surface
+
+    GET /api/v1/admin/aerial-analysis (reviewer)  HTTP 403 FORBIDDEN
+
+## F. Mobile tile proxy route (D11 runbook check, unauthenticated)
+
+    GET /api/v1/mobile/map-tiles/11/1676/898.png  HTTP 401 {"message":"Unauthenticated."}
+    (the runbook's "not 404" production probe; the cold authenticated production fetch needs a
+    production mobile token and was not run)
+
+## G. CSP, live HTTP from the same server (built SPA shell copied from dist)
+
+SPA shell `GET /`:
+
+    img-src 'self' data: blob:; ... connect-src 'self' https://api.maptiler.com; worker-src 'self'
+
+JSON API `GET /api/health`:
+
+    default-src 'none'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'
+
+Report document `GET /api/v1/reports/documents/report/pdf` (HTTP 200, application/pdf):
+
+    default-src 'none'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'

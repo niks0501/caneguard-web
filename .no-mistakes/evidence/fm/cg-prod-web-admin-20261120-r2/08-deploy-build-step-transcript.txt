@@ -1,0 +1,39 @@
+# Live run of the production deploy step "Build production React assets"
+
+The shell body was extracted verbatim from .github/workflows/deploy-production.yml with
+`node -e` + the yaml parser and executed with bash -e, so the real step script ran, not a copy.
+
+Extracted step run script (last two lines):
+
+    test -n "${VITE_MAPTILER_KEY//[[:space:]]/}" || { echo "CANEGUARD_MAPTILER_KEY must be set for the production build." >&2; exit 1; }
+    npm run build
+
+## Blank key (the failure mode the secret guard exists for)
+
+    $ env VITE_API_BASE_URL=https://caneguard.online VITE_DATA_SOURCE=api VITE_MAPTILER_KEY= \
+        VITE_REALTIME_ENABLED=false bash -e build-step.sh
+    CANEGUARD_MAPTILER_KEY must be set for the production build.
+    exit=1
+    dist exists: no
+
+## Key present (local API origin, disposable placeholder key)
+
+    $ env VITE_API_BASE_URL=http://127.0.0.1:8099 VITE_DATA_SOURCE=api \
+        VITE_MAPTILER_KEY=disposable-local-key VITE_REALTIME_ENABLED=false bash -e build-step.sh
+    ...
+    dist/assets/maplibre-gl-Dg0s5ZIB.js   1,077.54 kB
+    dist/assets/maplibre-gl-worker-BHxRxEec.js  (same-origin worker chunk)
+    ✓ built in 1.71s
+    exit=0
+
+    $ grep -rl "disposable-local-key" dist/assets
+    dist/assets/apiConnectivity.context-C7wCY-0w.js
+
+## Repository node test for the same step (supporting)
+
+    $ npm run test:deploy-production-workflow
+    ✔ production build step passes the MapTiler build secret to Vite
+    ✔ production build fails and does not build when the MapTiler key is empty
+    ✔ production build fails and does not build when the MapTiler key is whitespace
+    ✔ production build runs the Vite build with the MapTiler key when it is set
+    pass 4 / fail 0
