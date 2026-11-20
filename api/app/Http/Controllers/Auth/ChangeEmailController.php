@@ -34,27 +34,30 @@ class ChangeEmailController extends Controller
             ], 422);
         }
 
-        DB::transaction(function () use ($audits, $request, $revoker, $user): void {
-            $oldEmail = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail()->email;
+        $account = DB::transaction(function () use ($audits, $request, $revoker, $user): User {
+            $account = User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+            $oldEmail = $account->email;
             MailDelivery::revokeResetTokens($oldEmail);
-            $user->forceFill([
+            $account->forceFill([
                 'email' => $request->validated('email'),
                 'email_verified_at' => null,
             ])->save();
-            $revoker->handle($user);
+            $revoker->handle($account);
             $audits->handle(
                 SecurityAudit::ACTION_EMAIL_CHANGE,
                 SecurityAudit::OUTCOME_SUCCESS,
-                actor: $user,
-                target: $user,
+                actor: $account,
+                target: $account,
                 metadata: [
                     'old_email' => $oldEmail,
-                    'new_email' => $user->email,
+                    'new_email' => $account->email,
                 ],
             );
+
+            return $account;
         });
 
-        $user->sendEmailVerificationNotification();
+        $account->sendEmailVerificationNotification();
         $revoker->logoutCurrentWebSession($request, $user);
 
         return response()->json([

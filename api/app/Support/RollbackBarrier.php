@@ -18,11 +18,17 @@ final class RollbackBarrier
     public static function engage(): void
     {
         Cache::forever(self::FLAG, true);
+        if (Cache::get(self::FLAG) !== true) {
+            throw new \RuntimeException('The rollback barrier could not be engaged; issuance is not paused.');
+        }
     }
 
     public static function release(): void
     {
         Cache::forget(self::FLAG);
+        if (Cache::has(self::FLAG)) {
+            throw new \RuntimeException('The rollback barrier could not be released; issuance remains paused.');
+        }
     }
 
     /** Runs $write in a database transaction after checking the flag, so a refused issuance writes nothing. */

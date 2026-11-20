@@ -151,7 +151,11 @@ old_commands="$(cd "$old/api" && php artisan list --raw)" || {
 }
 legacy_cutover=0
 if [[ "$old_commands" != *"auth:rollback-barrier "* ]]; then
-  if [[ ! -f "$shared/storage/framework/down" ]]; then
+  old_state="$(cd "$old/api" && php artisan tinker --execute='echo app()->isDownForMaintenance() ? "down" : "up";')" || {
+    echo "ERROR: could not read the previous release's maintenance state; deployment stopped before switching." >&2
+    exit 1
+  }
+  if [[ "$old_state" != "down" ]]; then
     echo "ERROR: the previous release predates the rollback barrier and is still serving; put it in maintenance mode and drain it before this cutover (docs/production-deployment.md)." >&2
     exit 1
   fi
@@ -164,6 +168,10 @@ activated=1
 
 if [[ "$legacy_cutover" -eq 1 ]]; then
   php artisan up
+  [[ "$(php artisan tinker --execute='echo app()->isDownForMaintenance() ? "down" : "up";')" == "up" ]] || {
+    echo "ERROR: the new release is still in maintenance mode after up; the site is not serving." >&2
+    exit 1
+  }
 fi
 
 # Ensure public API and SPA both respond through the activated Nginx root.
