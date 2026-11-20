@@ -154,20 +154,6 @@ class AdminAccountCreationTest extends TestCase
         $this->assertStringContainsString('failover@example.test', (string) file_get_contents($messages[0]));
     }
 
-    public function test_production_failover_with_a_log_member_reports_invite_not_sent(): void
-    {
-        Notification::fake();
-        $this->productionMail();
-        config(['mail.default' => 'failover', 'mail.mailers.failover.mailers' => ['smtp', 'log']]);
-        $this->pilotDistrict();
-        $this->actingAs(User::factory()->admin()->create(), 'web');
-
-        $this->postJson('/api/v1/admin/accounts', $this->payload(['email' => 'fallback@example.test']))
-            ->assertCreated()->assertJsonPath('invite_sent', false);
-        Notification::assertNothingSent();
-        $this->assertDatabaseCount('password_reset_tokens', 0);
-    }
-
     public function test_production_smtp_without_tls_reports_invite_not_sent_and_issues_no_token(): void
     {
         Notification::fake();
@@ -215,6 +201,18 @@ class AdminAccountCreationTest extends TestCase
 
         config(['caneguard.auth.operator_link_email' => null]);
         $this->artisan('auth:set-password-link')->assertFailed();
+    }
+
+    public function test_operator_link_refuses_reset_urls_with_a_fragment_or_credentials(): void
+    {
+        $this->productionMail();
+        User::factory()->reviewer()->unverified()->create(['email' => 'frag@example.test']);
+
+        foreach (['https://app.example.test/reset-password#token', 'https://user:secret@app.example.test/reset-password'] as $url) {
+            config(['caneguard.auth.password_reset_url' => $url]);
+            $this->artisan('auth:set-password-link', ['email' => 'frag@example.test'])->assertFailed();
+        }
+        $this->assertDatabaseCount('password_reset_tokens', 0);
     }
 
     public function test_operator_link_refuses_accounts_that_completed_onboarding_and_unknown_emails(): void

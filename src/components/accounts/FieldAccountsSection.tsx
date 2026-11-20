@@ -97,7 +97,7 @@ function FieldRow({ account, onNotice, onSaved }: { account: FieldAccount; onNot
     onNotice("");
     try {
       const { invite_sent } = await resendFieldInvite(account.uuid);
-      onNotice(invite_sent ? `Set-password link sent to ${account.email}.` : `The set-password email to ${account.email} could not be sent. Try again later.`);
+      onNotice(invite_sent ? `Set-password link sent to ${account.email}.` : `The set-password email to ${account.email} could not be sent. If mail is unavailable, an operator can issue a set-password link with php artisan auth:set-password-link <email>.`);
     } catch (failure) {
       onNotice(failure instanceof ApiError && failure.status === 429
         ? "A set-password link was issued a moment ago. Wait a minute before sending another."

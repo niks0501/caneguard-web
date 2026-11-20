@@ -94,7 +94,7 @@ describe("User Management", () => {
     expect(notice).toHaveTextContent("Farmer mobile sign-in is currently limited");
     expect(notice).toHaveTextContent("hold this account and contact support");
     expect(notice).not.toHaveTextContent("sign in through the mobile app");
-    if (!inviteSent) expect(notice).toHaveTextContent("They can still set a password from the sign-in page");
+    if (!inviteSent) expect(notice).toHaveTextContent("an operator can issue a set-password link");
   });
 
   it("keeps the invite fallback and mobile direction when delivery fails", async () => {
@@ -112,7 +112,7 @@ describe("User Management", () => {
 
     const notice = await screen.findByText(/Account created for Field Person/);
     expect(notice).toHaveTextContent("the set-password email could not be sent");
-    expect(notice).toHaveTextContent("They can request a link from the sign-in page.");
+    expect(notice).toHaveTextContent("an operator can issue a set-password link");
     expect(notice).toHaveTextContent("Next steps: 1. They open the set-password email. 2. They sign in on the phone.");
   });
 

@@ -27,18 +27,6 @@ class IssueSetPasswordLink extends Command
             return self::FAILURE;
         }
 
-        $user = User::query()->where('email', strtolower($email))->first();
-        if ($user === null || ! $user->is_active) {
-            $this->error('No active account matches that email.');
-
-            return self::FAILURE;
-        }
-        if ($user->hasVerifiedEmail()) {
-            $this->error('This account has already completed onboarding. The account holder can use Forgot Password instead.');
-
-            return self::FAILURE;
-        }
-
         try {
             $urls->assertPasswordResetUrl();
         } catch (LogicException $e) {
@@ -47,12 +35,26 @@ class IssueSetPasswordLink extends Command
             return self::FAILURE;
         }
 
-        $token = DB::transaction(function () use ($user, $audit): string {
+        $issued = DB::transaction(function () use ($email, $audit): array|string {
+            $user = User::query()->where('email', strtolower($email))->lockForUpdate()->first();
+            if ($user === null || ! $user->is_active) {
+                return 'No active account matches that email.';
+            }
+            if ($user->hasVerifiedEmail()) {
+                return 'This account has already completed onboarding. The account holder can use Forgot Password instead.';
+            }
+
             $token = Password::broker()->createToken($user);
             $audit->handle(SecurityAudit::ACTION_OPERATOR_LINK, SecurityAudit::OUTCOME_SUCCESS, null, $user, ['channel' => 'operator_link']);
 
-            return $token;
+            return [$user, $token];
         });
+        if (is_string($issued)) {
+            $this->error($issued);
+
+            return self::FAILURE;
+        }
+        [$user, $token] = $issued;
 
         $minutes = (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60);
         $this->line($urls->passwordReset($user, $token));

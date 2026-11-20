@@ -13,12 +13,7 @@ const nextSteps: Record<NewAccountRole, string> = {
   reviewer: "Next step: Tell them to sign in at the web sign-in page, then use the web workspace.",
   admin: "Next step: Tell them to sign in at the web sign-in page, then use the web workspace.",
 };
-const inviteFallbacks: Record<NewAccountRole, string> = {
-  farmer: "They can still set a password from the sign-in page.",
-  field_reporter: "They can request a link from the sign-in page.",
-  reviewer: "They can request a link from the sign-in page.",
-  admin: "They can request a link from the sign-in page.",
-};
+const inviteFallback = "If mail is unavailable, an operator can issue a set-password link with php artisan auth:set-password-link <email>.";
 
 export function AddAccountDialog({ onCreated }: { onCreated: (notice: string) => Promise<void> | void }) {
   const [open, setOpen] = useState(false);
@@ -45,7 +40,7 @@ export function AddAccountDialog({ onCreated }: { onCreated: (notice: string) =>
       setForm(emptyForm);
       const inviteNotice = created.invite_sent
         ? `Account created for ${created.data.name}. A set-password link was emailed to ${created.data.email}.`
-        : `Account created for ${created.data.name}, but the set-password email could not be sent. ${inviteFallbacks[created.data.role]}`;
+        : `Account created for ${created.data.name}, but the set-password email could not be sent. ${inviteFallback}`;
       await onCreated(`${inviteNotice} ${nextSteps[created.data.role]}`);
     } catch (failure) {
       setError(failure instanceof ApiError && failure.status === 422
