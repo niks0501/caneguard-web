@@ -57,8 +57,11 @@ The workflow needs the dedicated `deploy` key; your personal workstation SSH key
 ## Shared `.env` template
 `api/.env.production.example` lists the production values (HTTPS `FRONTEND_URL`, host-only session cookie, `SANCTUM_STATEFUL_DOMAINS`, MySQL, `BROADCAST_CONNECTION=null`, `LOG_LEVEL=warning`). Do not copy `api/.env.example` to production: its `APP_ENV=local`, `SESSION_DOMAIN=localhost`, localhost Sanctum domains, `LOG_LEVEL=debug` and `BROADCAST_CONNECTION=reverb` break sign-in (419 on `/login`, 401 right after it) or stop the app booting. `php artisan db:seed` refuses to run in production.
 
+## Accepted model versions
+The shared `.env` sets `CANEGUARD_ACCEPTED_MODEL_VERSIONS=v2.0-mobilenetv2,v1.0-mobilenetv2` (also the code default), so the shipped phone's `v2.0-mobilenetv2` and the earlier `v1.0-mobilenetv2` are both recognised. It is recognition only: an unlisted version still persists and shows the office warning. Run `php artisan config:cache` in the active release after changing it.
+
 ## Server upload limits (check before relying on photo uploads)
-The deploy workflow and both preflights do not check the web server's upload limits, and the phone sends the original photo (the contract allows 10 MiB). Check these on the server, as `ubuntu`, before a go-live and after any PHP or nginx change:
+The deploy workflow and both preflights do not check the web server's upload limits, and the phone sends the original photo (the contract allows 10 MiB; a smaller phone-side target is tracked separately and does not change these server limits). Set these production values on the server, as `ubuntu`, and check them before a go-live and after any PHP or nginx change:
 
 | Layer | Setting | Needs | Check |
 |---|---|---|---|

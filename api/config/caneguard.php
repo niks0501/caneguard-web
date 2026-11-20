@@ -69,7 +69,7 @@ return [
     // Recognition only: unknown bounded versions remain valid submitted evidence.
     'accepted_model_versions' => array_values(array_filter(array_map(
         'trim',
-        explode(',', (string) env('CANEGUARD_ACCEPTED_MODEL_VERSIONS', 'v1.0-mobilenetv2')),
+        explode(',', (string) env('CANEGUARD_ACCEPTED_MODEL_VERSIONS', 'v2.0-mobilenetv2,v1.0-mobilenetv2')),
     ))),
     'weekly_send_enabled' => env('CANEGUARD_WEEKLY_SEND_ENABLED', false),
     'weekly_appendix_enabled' => env('CANEGUARD_WEEKLY_APPENDIX_ENABLED', false),
