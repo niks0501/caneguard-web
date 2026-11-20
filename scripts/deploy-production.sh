@@ -51,6 +51,12 @@ activated=0
 successful=0
 maintenance=0
 restore_previous_release() {
+  if [[ "$(cd "$old/api" && php artisan list --raw)" == *"auth:revoke-reset-links "* ]]; then
+    ln -s "$old" "$root/.rollback-$$" || return 1
+    mv -Tf "$root/.rollback-$$" "$current" || return 1
+    return 0
+  fi
+  maintenance=1
   (cd "$new/api" && php artisan down --retry=60) || {
     echo "ERROR: could not enter maintenance mode; rollback aborted, new release stays active." >&2
     return 1
@@ -75,7 +81,6 @@ cleanup() {
   restored=0
   if [[ "$successful" -ne 1 && "$activated" -eq 1 ]]; then
     echo "Health check failed; restoring previous code symlink" >&2
-    maintenance=1
     if restore_previous_release; then
       restored=1
     fi
