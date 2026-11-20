@@ -51,9 +51,8 @@ final class CreateWebAccount
                 DistrictMembership::query()->firstOrCreate(['user_id' => $user->id, 'district_id' => $district->id]);
             }
             $user->refresh();
-            // The access-event ledger is district-scoped, so it is written only when a district exists.
-            $event = $district === null ? null : AccountAccessEvent::query()->create([
-                'operation_id' => (string) Str::uuid(), 'district_id' => $district->id, 'target_id' => $user->id, 'actor_id' => $manager->id,
+            $event = AccountAccessEvent::query()->create([
+                'operation_id' => (string) Str::uuid(), 'district_id' => $district?->id, 'target_id' => $user->id, 'actor_id' => $manager->id,
                 'contract_version' => 'account-access-event-v1', 'action' => 'create', 'office_reference' => self::OFFICE_REFERENCE,
                 'actor_snapshot' => ['uuid' => $manager->uuid, 'name' => $manager->name, 'role' => $manager->role],
                 'before' => ['role' => null, 'membership_state' => 'not_issued', 'membership_id' => null, 'grants' => [], 'review_state' => 'new'],

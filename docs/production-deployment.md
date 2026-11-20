@@ -36,7 +36,7 @@ The workflow refuses unknown host keys. Do not use `ssh-keyscan` as an unverifie
 - After migration succeeds, it atomically switches `current` to the new code and verifies HTTPS API readiness and the frontend.
 - The frontend check fetches `/` and fails with `SPA shell served without a CSP nonce` when the built `__CSP_NONCE__` placeholder is still present. Nginx must route the shell through `index.php`, as the Laravel route substitutes the per-response CSP nonce into the theme script; a static `api/public/index.html` leaves the placeholder in place and trips this check.
 - On an activation health-check failure, it restores the old code symlink. **Database migrations are not rolled back.** This is a code rollback, not a full transactional deploy.
-- No `migrate:fresh`, `db:seed`, `key:generate`, or database reset runs on production. `caneguard:bootstrap` is not a seeder: it adds only a missing pilot district and first admin, and never edits or deletes existing rows.
+- No `migrate:fresh`, `db:seed`, `key:generate`, or database reset runs on production. `caneguard:bootstrap` is not a seeder: it adds only a missing pilot district and first admin, deactivates an earlier pending first admin when the configured address changes, and never deletes rows.
 - Existing previous releases are retained. No automatic pruning.
 
 ## Release safety
@@ -115,13 +115,13 @@ Put these in the GitHub `production` environment secret `CANEGUARD_PRODUCTION_EN
 CANEGUARD_PILOT_DISTRICT_CODE=<district code>
 CANEGUARD_PILOT_DISTRICT_NAME=<display name>
 CANEGUARD_BOOTSTRAP_ADMIN_EMAIL=<first administrator email>
-MAIL_MAILER=smtp   # plus the SMTP settings; only an smtp mailer can send the first invitation (log, array and failover mailers fail the deploy before the account is created)
+MAIL_MAILER=smtp   # plus MAIL_HOST, MAIL_PORT, MAIL_USERNAME and MAIL_PASSWORD (the template lists them). Only an smtp mailer can send the first invitation, and the relay must be encrypted: MAIL_SCHEME=smtps, or STARTTLS required by MAIL_REQUIRE_TLS=true (the default). Log, array and failover mailers, and plaintext relays off this machine, fail the deploy before the account is created. A plaintext relay on 127.0.0.1 or localhost is the only exception.
 ```
 Then run the deploy workflow. After `migrate --force`, `caneguard:bootstrap`:
 - fails the deploy when the district code or name is blank; it creates the district when missing, and an existing district is never renamed;
 - once an active administrator exists, leaves the admin variables alone, including a malformed admin email, and sends no further emails. To reissue the link, use Forgot password;
 - otherwise, when `CANEGUARD_BOOTSTRAP_ADMIN_EMAIL` is set, fails the deploy if the address is invalid, and fails the deploy when it already belongs to another account. Set it to an unused address and deploy again;
-- otherwise creates the administrator (display name `CaneGuard Administrator`) and then emails a set-password link. No password goes in env. If the email cannot be sent, the deploy fails but the pending account is kept; the next deploy emails the link again until an invitation is recorded. Changing `CANEGUARD_BOOTSTRAP_ADMIN_EMAIL` before that administrator sets a password supersedes the earlier invitation: the earlier address is deactivated and its links stop working, so only the new address can onboard. Setting the old address again then fails the deploy as an existing account;
+- otherwise creates the administrator (display name `CaneGuard Administrator`) and then emails a set-password link. No password goes in env. If the email cannot be sent, the deploy fails but the pending account is kept; the next deploy emails the link again until an invitation is recorded. Changing `CANEGUARD_BOOTSTRAP_ADMIN_EMAIL` before that administrator sets a password supersedes the earlier invitation, even when the mail check then fails: the earlier address is deactivated, its reset links are deleted, and an `account_status_change` audit row records it, so only the new address can onboard. Setting the old address again then fails the deploy as an existing account;
 - writes security audit rows (`bootstrap_district_created`, `account_created`, `account_invite_sent`) for everything it creates. The successful `account_created` and `account_invite_sent` rows are exempt from the security-audit retention prune, because a later deploy relies on them to recover a pending administrator; other audit rows age out normally.
 
 If the mail server accepts the link but the invitation record cannot be written, the outcome is indeterminate: the account stays pending, and a later deploy sends the link again if the administrator has not yet set a password. This is the accepted policy; no outbox is kept.

@@ -72,8 +72,9 @@ class AdminAccountCreationTest extends TestCase
                 ->assertCreated()->assertJsonPath('invite_sent', true);
             $user = User::query()->where('email', $email)->firstOrFail();
             $this->assertDatabaseHas('security_audits', ['target_user_id' => $user->id, 'action' => 'account_created', 'outcome' => 'success']);
+            $this->assertDatabaseHas('account_access_events', ['target_id' => $user->id, 'district_id' => null, 'action' => 'create']);
         }
-        $this->assertDatabaseCount('account_access_events', 0);
+        $this->assertDatabaseCount('account_access_events', 3);
         $this->assertDatabaseCount('district_memberships', 0);
     }
 

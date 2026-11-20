@@ -14,13 +14,17 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
+use Symfony\Component\Mailer\Transport\Smtp\Stream\SocketStream;
 
 /**
- * Run by every production deploy after migrations. Safe to repeat: it only adds
- * what is missing from the environment and never edits or removes existing rows.
+ * Run by every production deploy after migrations. Safe to repeat: it adds what is
+ * missing from the environment, and deactivates an earlier pending first administrator
+ * when the configured address changes. It never removes rows.
  */
 final class BootstrapDeployment extends Command
 {
+    private const LOCAL_HOSTS = ['127.0.0.1', '::1', 'localhost'];
+
     protected $signature = 'caneguard:bootstrap';
 
     protected $description = 'Create the pilot district and first administrator from environment values when they are missing';
@@ -110,25 +114,30 @@ final class BootstrapDeployment extends Command
             return self::SUCCESS;
         }
 
+        $this->supersedePendingAdmins($audit, $email);
+
         if (! $this->deliverable((string) config('mail.default'))) {
-            $this->error('Bootstrap admin: mail delivery is not configured (MAIL_MAILER must resolve to smtp). Configure SMTP and deploy again.');
+            $this->error('Bootstrap admin: mail delivery is not configured. MAIL_MAILER must resolve to smtp, and the relay must be encrypted (MAIL_SCHEME=smtps or MAIL_REQUIRE_TLS=true) unless it is on this machine. Configure SMTP and deploy again.');
 
             return self::FAILURE;
         }
 
-        $this->supersedePendingAdmins($email);
-
         return $existing ?? $this->createAdmin($audit, $email);
     }
 
-    private function supersedePendingAdmins(string $email): void
+    private function supersedePendingAdmins(RecordSecurityAudit $audit, string $email): void
     {
         User::query()->where('role', User::ROLE_ADMIN)->where('is_active', true)->whereNull('email_verified_at')
             ->where('email', '!=', $email)->get()
             ->filter(fn (User $admin) => $this->bootstrapRecorded($admin, SecurityAudit::ACTION_ACCOUNT_CREATED))
-            ->each(function (User $admin): void {
+            ->each(function (User $admin) use ($audit): void {
                 $admin->forceFill(['is_active' => false])->save();
                 Password::broker()->getRepository()->delete($admin);
+                $audit->handle('account_status_change', SecurityAudit::OUTCOME_SUCCESS, null, $admin, [
+                    'before' => ['role' => User::ROLE_ADMIN, 'is_active' => true],
+                    'after' => ['role' => $admin->role, 'is_active' => false],
+                    'provisioning_channel' => 'bootstrap',
+                ]);
             });
     }
 
@@ -174,9 +183,17 @@ final class BootstrapDeployment extends Command
     private function deliverable(string $mailer): bool
     {
         try {
-            return Mail::mailer($mailer)->getSymfonyTransport() instanceof EsmtpTransport;
+            $transport = Mail::mailer($mailer)->getSymfonyTransport();
         } catch (\LogicException) {
             return false;
         }
+        if (! $transport instanceof EsmtpTransport) {
+            return false;
+        }
+
+        $stream = $transport->getStream();
+
+        return $transport->isTlsRequired()
+            || ($stream instanceof SocketStream && ($stream->isTLS() || in_array($stream->getHost(), self::LOCAL_HOSTS, true)));
     }
 }

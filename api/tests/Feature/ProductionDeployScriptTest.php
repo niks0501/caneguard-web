@@ -296,8 +296,9 @@ class ProductionDeployScriptTest extends TestCase
         $this->writeTool('systemctl', <<<'SH'
             if [[ "$1" == "is-enabled" ]]; then
               state="${CANEGUARD_TEST_CRON_STATE:-enabled}"
-              echo "$state"
-              [[ "$state" == enabled ]]
+              [[ " $* " == *" --quiet "* ]] || echo "$state"
+              [[ "$state" == enabled || "$state" == enabled-runtime ]]
+              exit
             fi
             if [[ "$1" == "is-active" && -n "${CANEGUARD_TEST_CRON_INACTIVE:-}" ]]; then exit 3; fi
             SH);
