@@ -11,7 +11,7 @@ import { FieldAccountsSection } from "./FieldAccountsSection";
 
 vi.mock("../../auth/useAuth", () => ({ useAuth: vi.fn() }));
 vi.mock("../../services/accountsAdmin.api", async original => ({ ...await original<typeof api>(), listFieldAccounts: vi.fn(), changeFieldAccess: vi.fn(), resendFieldInvite: vi.fn() }));
-const active: api.FieldAccount = { uuid: "00000000-0000-4000-8000-000000000301", name: "Field Sample", email: "field@example.test", role: "field_reporter", is_active: true, access_version: 3, invite_pending: false, membership_state: "active", allowed_actions: ["revoke", "replace"], denial_reasons: [] };
+const active: api.FieldAccount = { uuid: "00000000-0000-4000-8000-000000000301", name: "Field Sample", email: "field@example.test", role: "field_reporter", is_active: true, access_version: 3, invite_pending: false, email_verified: true, membership_state: "active", allowed_actions: ["revoke", "replace"], denial_reasons: [] };
 const disabled: api.FieldAccount = { ...active, is_active: false, access_version: 4, membership_state: "revoked", allowed_actions: ["restore"] };
 const notIssued: api.FieldAccount = { ...active, uuid: "00000000-0000-4000-8000-000000000302", name: "Unassigned Sample", membership_state: "not_issued", allowed_actions: [], denial_reasons: ["Legacy or unsupported identity requires controlled operator reconciliation."] };
 const unverified: api.FieldAccount = { ...disabled, uuid: "00000000-0000-4000-8000-000000000303", name: "Unverified Sample", allowed_actions: [], denial_reasons: ["Email not verified. Staff issuance is unavailable."] };

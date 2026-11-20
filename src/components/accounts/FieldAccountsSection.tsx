@@ -111,7 +111,7 @@ function FieldRow({ account, onNotice, onSaved }: { account: FieldAccount; onNot
   return <tr>
     <td data-label="Name">{account.name}</td>
     <td data-label="Email">{account.email}</td>
-    <td data-label="Status">{!account.is_active ? "Disabled" : invitePending ? "Invite pending" : account.membership_state === "not_issued" ? "Not admitted" : "Active"}</td>
+    <td data-label="Status">{!account.is_active ? "Disabled" : invitePending ? "Invite pending" : !account.email_verified ? "Email unverified. Use Forgot Password." : account.membership_state === "not_issued" ? "Not admitted" : "Active"}</td>
     <td data-label="Action">
       <Link className="accounts-open" to={routes.accountDetail(account.uuid)} aria-label={`History for ${account.name}`}>History</Link>
       {invitePending ? <Button variant="secondary" disabled={resending} aria-label={`Resend set-password link to ${account.name}`} onClick={() => void resend()}>{resending ? "Sending…" : "Resend link"}</Button> : null}

@@ -361,6 +361,7 @@ class AdminAccountCreationTest extends TestCase
 
         $this->assertIsArray($row);
         $this->assertFalse($row['invite_pending']);
+        $this->assertFalse($row['email_verified']);
     }
 
     public function test_reset_link_issued_before_an_email_change_cannot_reset_a_new_account_at_the_old_address(): void
@@ -387,33 +388,60 @@ class AdminAccountCreationTest extends TestCase
         $this->assertTrue(Hash::check('password', $newOwner->refresh()->password));
     }
 
-    public function test_documented_operator_invocation_issues_for_the_env_target_despite_a_stale_default_cache(): void
+    public function test_documented_operator_invocation_reads_the_env_target_while_ordinary_invocation_uses_a_stale_cache(): void
     {
         $artisan = base_path('artisan');
-        $cache = base_path('bootstrap/cache/config.php');
-        if (is_file($cache)) {
-            $this->markTestSkipped('A default config cache already exists in this checkout.');
-        }
-        $database = (string) tempnam(sys_get_temp_dir(), 'caneguard-operator-');
-        $absent = sys_get_temp_dir().'/caneguard-absent-'.bin2hex(random_bytes(4)).'.php';
-        $base = ['DB_CONNECTION' => 'sqlite', 'DB_DATABASE' => $database, 'CANEGUARD_PASSWORD_RESET_URL' => 'https://app.example.test/reset-password'];
+        $directory = sys_get_temp_dir().'/caneguard-operator-'.bin2hex(random_bytes(6));
+        mkdir($directory, 0700);
+        $cache = $directory.'/config.php';
+        $absent = $directory.'/absent-config.php';
+        $database = $directory.'/database.sqlite';
+        touch($database);
+        $base = [
+            'DB_URL' => false,
+            'DB_CONNECTION' => 'sqlite',
+            'DB_DATABASE' => $database,
+            'APP_CONFIG_CACHE' => $absent,
+            'CANEGUARD_PASSWORD_RESET_URL' => 'https://app.example.test/reset-password',
+        ];
+        $issuedFor = function ($result): ?string {
+            $this->assertTrue($result->successful(), $result->errorOutput());
+            parse_str((string) parse_url((string) strtok($result->output(), "\n"), PHP_URL_QUERY), $query);
+
+            return $query['email'] ?? null;
+        };
 
         try {
             $this->assertTrue(Process::env($base)->run([PHP_BINARY, $artisan, 'migrate', '--force'])->successful());
-            $this->assertTrue(Process::env($base)->run([PHP_BINARY, $artisan, 'tinker', '--execute=App\\Models\\User::factory()->reviewer()->unverified()->create(["email" => "fresh@example.test"]);'])->successful());
-            $this->assertTrue(Process::env($base + ['CANEGUARD_OPERATOR_LINK_EMAIL' => 'stale@example.test'])->run([PHP_BINARY, $artisan, 'config:cache'])->successful());
+            $this->assertTrue(Process::env($base)->run([PHP_BINARY, $artisan, 'tinker', '--execute=App\\Models\\User::factory()->reviewer()->unverified()->create(["email" => "stale@example.test"]); App\\Models\\User::factory()->reviewer()->unverified()->create(["email" => "fresh@example.test"]);'])->successful());
+            $this->assertTrue(Process::env(array_replace($base, ['APP_CONFIG_CACHE' => $cache, 'CANEGUARD_OPERATOR_LINK_EMAIL' => 'stale@example.test']))->run([PHP_BINARY, $artisan, 'config:cache'])->successful());
+            $cached = file_get_contents($cache);
 
-            $result = Process::env($base + ['CANEGUARD_OPERATOR_LINK_EMAIL' => 'fresh@example.test', 'APP_CONFIG_CACHE' => $absent])
-                ->run([PHP_BINARY, $artisan, 'auth:set-password-link']);
+            $ordinary = $issuedFor(Process::env(array_replace($base, ['APP_CONFIG_CACHE' => $cache, 'CANEGUARD_OPERATOR_LINK_EMAIL' => 'fresh@example.test']))
+                ->run([PHP_BINARY, $artisan, 'auth:set-password-link']));
+            $this->assertSame('stale@example.test', $ordinary);
 
-            $this->assertTrue($result->successful(), $result->errorOutput());
-            parse_str((string) parse_url((string) strtok($result->output(), "\n"), PHP_URL_QUERY), $query);
-            $this->assertSame('fresh@example.test', $query['email'] ?? null);
-            $this->assertNotEmpty($query['token'] ?? null);
+            $documented = $issuedFor(Process::env($base + ['CANEGUARD_OPERATOR_LINK_EMAIL' => 'fresh@example.test'])
+                ->run([PHP_BINARY, $artisan, 'auth:set-password-link']));
+            $this->assertSame('fresh@example.test', $documented);
+            $this->assertSame($cached, file_get_contents($cache));
         } finally {
-            @unlink($cache);
-            @unlink($database);
+            array_map('unlink', glob($directory.'/*') ?: []);
+            @rmdir($directory);
         }
+    }
+
+    public function test_disabled_then_reenabled_pending_account_still_gets_the_operator_fallback(): void
+    {
+        config(['caneguard.auth.password_reset_url' => 'https://app.example.test/reset-password']);
+        $pending = User::factory()->reviewer()->unverified()->create(['email' => 'toggled@example.test']);
+
+        $pending->forceFill(['is_active' => false])->save();
+        $pending->forceFill(['is_active' => true])->save();
+        config(['caneguard.auth.operator_link_email' => 'toggled@example.test']);
+        $this->artisan('auth:set-password-link')->assertSuccessful();
+
+        $this->assertDatabaseHas('security_audits', ['target_user_id' => $pending->id, 'action' => 'operator_link_issued', 'outcome' => 'success']);
     }
 
     public function test_operator_link_fails_before_replacing_a_token_when_the_reset_url_is_invalid(): void

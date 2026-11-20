@@ -36,6 +36,7 @@ class ChangePasswordController extends Controller
         DB::transaction(function () use ($audits, $revoker, $request, $user): void {
             $user->forceFill([
                 'password' => $request->validated('password'),
+                'onboarded_at' => $user->onboarded_at ?? now(),
             ])->save();
             $revoker->handle($user);
             $audits->handle(

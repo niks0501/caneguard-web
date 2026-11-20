@@ -149,14 +149,10 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->is_active && $this->hasVerifiedEmail() && $this->isWebUser();
     }
 
-    /**
-     * Every password reset, password change and email change revokes credentials, which moves auth_version off its
-     * creation value of 1 and never moves it back, so an account that has ever onboarded keeps this answer after
-     * audit pruning. Any other value fails closed.
-     */
+    /** onboarded_at is set only when the holder sets a password; authority changes and audit pruning never touch it. */
     public function hasCompletedOnboarding(): bool
     {
-        return $this->hasVerifiedEmail() || (int) $this->auth_version !== 1;
+        return $this->onboarded_at !== null || $this->hasVerifiedEmail();
     }
 
     public function isActiveAdmin(): bool
@@ -223,6 +219,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
+            'onboarded_at' => 'datetime',
             'biometric_enabled' => 'boolean',
             'is_active' => 'boolean',
             'auth_version' => 'integer',
