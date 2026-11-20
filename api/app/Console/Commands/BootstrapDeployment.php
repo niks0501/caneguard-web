@@ -48,6 +48,7 @@ final class BootstrapDeployment extends Command
 
             return self::SUCCESS;
         }
+
         return $this->admin($audit, $email);
     }
 

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Support\AuthUrlBuilder;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -19,7 +20,7 @@ class AuthUrlBuilderTest extends TestCase
         config(['caneguard.auth.password_reset_url' => 'https://web.example.test/reset-password?token=stale&lang=en']);
         $user = User::factory()->make(['email' => 'owner@example.test']);
 
-        $link = app(\App\Support\AuthUrlBuilder::class)->passwordReset($user, 'issued-token');
+        $link = app(AuthUrlBuilder::class)->passwordReset($user, 'issued-token');
 
         $query = (string) parse_url($link, PHP_URL_QUERY);
         parse_str($query, $parsed);
@@ -36,7 +37,7 @@ class AuthUrlBuilderTest extends TestCase
 
         $this->expectException(\LogicException::class);
 
-        app(\App\Support\AuthUrlBuilder::class)->passwordReset($user, 'reset-token-for-test');
+        app(AuthUrlBuilder::class)->passwordReset($user, 'reset-token-for-test');
     }
 
     public function test_auth_notifications_use_configured_urls(): void

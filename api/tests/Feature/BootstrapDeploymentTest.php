@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\URL;
 use Symfony\Component\Mailer\Exception\TransportException;
+use Symfony\Component\Process\Process;
 use Tests\Support\CapturingSmtpTransport;
 use Tests\TestCase;
 
@@ -33,7 +34,7 @@ class BootstrapDeploymentTest extends TestCase
             putenv('PATH='.$this->originalPath);
         }
         if ($this->fakeCrontabDir !== null) {
-            (new \Symfony\Component\Process\Process(['rm', '-rf', $this->fakeCrontabDir]))->run();
+            (new Process(['rm', '-rf', $this->fakeCrontabDir]))->run();
         }
         parent::tearDown();
     }
@@ -645,7 +646,7 @@ class BootstrapDeploymentTest extends TestCase
     /** Routes the default mailer to an in-memory SMTP transport that records every message actually delivered to it. */
     private function captureMail(): CapturingSmtpTransport
     {
-        $transport = new CapturingSmtpTransport();
+        $transport = new CapturingSmtpTransport;
         Mail::extend('smtp', fn () => $transport);
         config(['mail.default' => 'capture', 'mail.mailers.capture' => ['transport' => 'smtp']]);
 

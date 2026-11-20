@@ -207,7 +207,7 @@ class ProductionDeployScriptTest extends TestCase
 
     public function test_truncated_configuration_stream_keeps_the_existing_env(): void
     {
-        $process = $this->runScript('scripts/install-production-env.sh', [], [], "APP_KEY=base64:exam");
+        $process = $this->runScript('scripts/install-production-env.sh', [], [], 'APP_KEY=base64:exam');
 
         $this->assertFalse($process->isSuccessful());
         $this->assertSame("APP_ENV=production\n", file_get_contents($this->root.'/shared/api/.env'));
