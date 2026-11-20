@@ -2,7 +2,10 @@
 
 namespace App\Support;
 
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
+use Throwable;
 
 /** Whether the default mailer can really deliver: log and array never do, and SMTP must require TLS. */
 final class MailDelivery
@@ -23,13 +26,56 @@ final class MailDelivery
         return ! in_array($transport, ['', 'log', 'array'], true);
     }
 
-    /** Issues a reset token only when the mailer can deliver it. The token commits before SMTP is attempted, so a failed send leaves a live token to resend. */
-    public static function sendResetLink(array $credentials): string
+    /**
+     * Issues a reset token and sends it. The token commits before SMTP is attempted; if the send fails, the
+     * previously issued token rows are restored, so a failed attempt never destroys a working link.
+     */
+    public static function sendResetLink(array $credentials, bool $onboardingOnly = false): string
     {
         if (! self::canDeliver()) {
             return Password::INVALID_USER;
         }
+        app(AuthUrlBuilder::class)->assertPasswordResetUrl();
 
-        return Password::broker()->sendResetLink($credentials);
+        $broker = Password::broker();
+        $table = (string) config('auth.passwords.users.table', 'password_reset_tokens');
+        $user = null;
+        $token = null;
+        $previous = [];
+        $status = DB::transaction(function () use ($broker, $table, $credentials, $onboardingOnly, &$user, &$token, &$previous): string {
+            $found = $broker->getUser($credentials);
+            if ($found === null) {
+                return Password::INVALID_USER;
+            }
+            $user = User::query()->whereKey($found->getAuthIdentifier())->lockForUpdate()->first();
+            if ($user === null || ($onboardingOnly && (! $user->is_active || $user->hasVerifiedEmail()))) {
+                return Password::INVALID_USER;
+            }
+            if ($broker->getRepository()->recentlyCreatedToken($user)) {
+                return Password::RESET_THROTTLED;
+            }
+            $previous = DB::table($table)->where('email', $user->email)->get()->map(fn ($row): array => (array) $row)->all();
+            $token = $broker->createToken($user);
+
+            return Password::RESET_LINK_SENT;
+        });
+        if ($status !== Password::RESET_LINK_SENT) {
+            return $status;
+        }
+
+        try {
+            $user->sendPasswordResetNotification($token);
+        } catch (Throwable $e) {
+            DB::transaction(function () use ($table, $user, $previous): void {
+                DB::table($table)->where('email', $user->email)->delete();
+                if ($previous !== []) {
+                    DB::table($table)->insert($previous);
+                }
+            });
+
+            throw $e;
+        }
+
+        return Password::RESET_LINK_SENT;
     }
 }

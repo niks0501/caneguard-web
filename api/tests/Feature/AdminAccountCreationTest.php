@@ -152,28 +152,25 @@ class AdminAccountCreationTest extends TestCase
         $this->assertDatabaseCount('password_reset_tokens', 0);
     }
 
-    public function test_failed_smtp_send_leaves_a_live_token_that_a_later_resend_delivers(): void
+    public function test_failed_smtp_send_keeps_an_existing_operator_link_usable(): void
     {
         $this->productionMail();
         $this->pilotDistrict();
         $field = User::factory()->fieldReporter()->unverified()->create(['email' => 'field@example.test']);
-        $this->actingAs(User::factory()->admin()->create(), 'web');
+        $query = $this->issueOperatorLink('field@example.test');
 
+        $this->travel(2)->minutes();
         config([
             'mail.mailers.smtp.host' => '127.0.0.1',
             'mail.mailers.smtp.port' => $this->unusedPort(),
             'mail.mailers.smtp.require_tls' => true,
         ]);
         app('mail.manager')->forgetMailers();
-        $this->postJson('/api/v1/admin/accounts/'.$field->uuid.'/invite')->assertOk()->assertJsonPath('invite_sent', false);
-        $this->assertDatabaseHas('password_reset_tokens', ['email' => 'field@example.test']);
+        $this->actingAs(User::factory()->admin()->create(), 'web');
 
-        $this->travel(2)->minutes();
-        $this->startFakeMailbox('smtp');
-        $this->postJson('/api/v1/admin/accounts/'.$field->uuid.'/invite')->assertOk()->assertJsonPath('invite_sent', true);
-        $messages = $this->fakeMailboxMessages();
-        $this->assertCount(1, $messages);
-        $this->assertStringContainsString('field@example.test', (string) file_get_contents($messages[0]));
+        $this->postJson('/api/v1/admin/accounts/'.$field->uuid.'/invite')->assertOk()->assertJsonPath('invite_sent', false);
+        $this->postWeb('/reset-password', $query + ['password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42'])->assertOk();
+        $this->assertTrue(Hash::check('Str0ng-Passphrase!42', $field->refresh()->password));
     }
 
     public function test_forgot_password_answers_the_contract_message_when_smtp_is_unreachable(): void
