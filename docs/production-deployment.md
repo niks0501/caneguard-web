@@ -108,6 +108,11 @@ Enabling the send flag requires a supervised `php artisan queue:work` and workin
 
 Local proof without real mail: `cd api && php artisan test --filter=WeeklyReportMailEndToEndTest` queues a report and delivers it through the real `weekly_smtp` transport (TLS verified) into `api/tests/Support/fake_smtp_mailbox.py`, a local mailbox that relays nothing. It needs `openssl` and `python3` on the machine and skips itself when either is missing. For production variable names and ordered steps, see the "Production checklist: enable weekly report email" GitHub issue.
 
+## Invite and account mail
+Set `MAIL_MAILER=smtp`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_REQUIRE_TLS=true` and `MAIL_FROM_*` in the shared production `.env` before onboarding anyone beyond the first admin. In production the `log` and `array` mailers (including a failover containing them) count as not sent: invite results report `invite_sent: false`, the audit records a failure, and no link is generated.
+
+Fallback with no mail: `php artisan auth:set-password-link <email>` prints a one-time set-password link (expires per `auth.passwords`) for the account holder. No password is typed or kept in env.
+
 ## Aerial analysis needs Python and the model staged first
 `CANEGUARD_AERIAL_ANALYSIS_ENABLED` defaults to `false` in code and `api/.env.example`; leave it `false` until the staging and identity checks below are complete. With it on and anything missing, uploads answer `503` ("The aerial check is unavailable right now"). Releases ship `aerial-inference/segment.py` and `model.onnx.sha256` but never `model.onnx` or weights (they are too large for git); the operator stages the model by hand. Torch is not installed on the server.
 

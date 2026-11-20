@@ -9,6 +9,7 @@ use App\Models\SecurityAudit;
 use App\Models\User;
 use App\Security\AccountsDirectory;
 use App\Security\DistrictAccess;
+use App\Support\MailDelivery;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
@@ -73,7 +74,8 @@ final class CreateWebAccount
     {
         $sent = false;
         try {
-            $sent = Password::broker()->sendResetLink(['email' => $user->email]) === Password::RESET_LINK_SENT;
+            // log/array mailers accept the message but deliver nothing: never claim it was sent.
+            $sent = MailDelivery::canDeliver() && Password::broker()->sendResetLink(['email' => $user->email]) === Password::RESET_LINK_SENT;
         } catch (\Throwable $e) {
             Log::warning('Account invitation could not be sent.', ['user' => $user->uuid, 'exception' => $e::class]);
         }

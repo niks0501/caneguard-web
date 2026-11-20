@@ -21,6 +21,41 @@ class AdminAccountCreationTest extends TestCase
         return array_merge(['name' => 'New Person', 'email' => 'New.Person@example.test', 'role' => 'reviewer', 'current_password' => 'password'], $override);
     }
 
+    public function test_production_log_or_array_mailer_reports_invite_not_sent(): void
+    {
+        Notification::fake();
+        $this->pilotDistrict();
+        $this->app['env'] = 'production';
+        $admin = User::factory()->admin()->create();
+        $this->actingAs($admin, 'web');
+
+        foreach (['log', 'array', 'failover'] as $i => $mailer) {
+            config(['mail.default' => $mailer]);
+            $email = "m{$i}@example.test";
+            $this->postJson('/api/v1/admin/accounts', $this->payload(['email' => $email, 'role' => 'field_reporter']))
+                ->assertCreated()->assertJsonPath('invite_sent', false);
+            $field = User::query()->where('email', $email)->firstOrFail();
+            $this->travel(2)->minutes();
+            $this->postJson('/api/v1/admin/accounts/'.$field->uuid.'/invite')->assertOk()->assertJsonPath('invite_sent', false);
+            $this->assertDatabaseHas('security_audits', ['target_user_id' => $field->id, 'action' => 'account_invite_sent', 'outcome' => 'failure']);
+        }
+        Notification::assertNothingSent();
+
+        config(['mail.default' => 'smtp']);
+        $this->postJson('/api/v1/admin/accounts', $this->payload(['email' => 'real@example.test']))
+            ->assertCreated()->assertJsonPath('invite_sent', true);
+    }
+
+    public function test_operator_command_prints_a_one_time_link_that_sets_the_password(): void
+    {
+        $user = User::factory()->reviewer()->create(['email' => 'op@example.test']);
+
+        $this->artisan('auth:set-password-link', ['email' => 'OP@example.test'])->assertSuccessful();
+        $this->assertDatabaseHas('security_audits', ['target_user_id' => $user->id, 'action' => 'account_invite_sent', 'outcome' => 'success']);
+
+        $this->artisan('auth:set-password-link', ['email' => 'nobody@example.test'])->assertFailed();
+    }
+
     public function test_admin_creates_unverified_account_and_invite_audits_are_written(): void
     {
         Notification::fake();

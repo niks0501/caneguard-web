@@ -4,6 +4,7 @@ namespace App\Actions\Auth;
 
 use App\Models\SecurityAudit;
 use App\Models\User;
+use App\Support\MailDelivery;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 
@@ -15,7 +16,9 @@ final class ResendWebAccountInvite
     {
         $status = Password::INVALID_USER;
         try {
-            $status = Password::broker()->sendResetLink(['email' => $user->email]);
+            if (MailDelivery::canDeliver()) {
+                $status = Password::broker()->sendResetLink(['email' => $user->email]);
+            }
         } catch (\Throwable $e) {
             Log::warning('Account invitation could not be re-sent.', ['user' => $user->uuid, 'exception' => $e::class]);
         }

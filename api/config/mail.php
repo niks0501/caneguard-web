@@ -58,7 +58,8 @@ return [
             'port' => env('MAIL_PORT', 2525),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
-            'require_tls' => env('MAIL_REQUIRE_TLS', true),
+            // Production credentials must not cross the wire in clear text.
+            'require_tls' => (bool) env('MAIL_REQUIRE_TLS', false),
             'timeout' => null,
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
