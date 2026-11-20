@@ -79,7 +79,7 @@ It supplements rather than replaces P0F, whose separate role is to prove the com
 
 Idempotency is keyed on the reporter and `client_uuid`. The API normalizes that key to lowercase before it stores or looks it up, so a retry that differs only in case returns the original report (`200`) and the reply carries the stored key; a corrected submission needs a new `client_uuid`.
 
-The reply is the mobile upload resource; the artifact's `response` block declares the `data` keys it carries. It carries no office review actors, case history, audit entries, or reporter email; office actions stay on the Web report read endpoints.
+The reply is the mobile upload resource; the artifact's `response` block declares the `data` keys it carries. The artifact gate requires that block, so a reply key cannot be added, removed, or retyped without updating the contract. It carries no office review actors, case history, audit entries, or reporter email; office actions stay on the Web report read endpoints.
 
 ## Validation boundary
 

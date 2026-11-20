@@ -13,6 +13,7 @@ const TOP_LEVEL_KEYS = [
   'version',
   'wire',
   'fields',
+  'response',
   'versioning',
 ];
 const FIELD_TYPES = new Set([
@@ -75,6 +76,7 @@ export function validateMobileReportUploadArtifact(definition, source = 'artifac
 
   validateWire(definition.wire, issues);
   validateFields(definition.fields, issues);
+  validateResponse(definition.response, issues);
   validateVersioning(definition.versioning, issues);
 
   if (issues.length > 0) {
@@ -317,6 +319,31 @@ function validateImage(field, prefix, issues) {
   }
 }
 
+function validateResponse(response, issues) {
+  if (!isObject(response)) {
+    issues.push('response must be an object');
+    return;
+  }
+
+  if (response.content_type !== 'application/json') {
+    issues.push('response.content_type must be application/json');
+  }
+
+  const statusCodes = response.status_codes;
+  if (!isObject(statusCodes)) {
+    issues.push('response.status_codes must be an object');
+  } else {
+    for (const key of ['created', 'idempotent_replay']) {
+      if (!Number.isInteger(statusCodes[key])) {
+        issues.push(`response.status_codes.${key} must be an integer`);
+      }
+    }
+  }
+
+  validateStringList(response.required_keys, 'response.required_keys', issues);
+  validateStringList(response.data_keys, 'response.data_keys', issues);
+}
+
 function validateVersioning(versioning, issues) {
   if (!isObject(versioning)) {
     issues.push('versioning must be an object');
@@ -353,7 +380,7 @@ async function main() {
   const definition = await readMobileReportUploadArtifact(artifactPath);
   console.log(
     `[artifact] PASS ${artifactPath}: ${Object.keys(definition.fields).length} v1 fields, `
-      + 'multipart wire boundary and declared domains are structurally valid.',
+      + 'multipart wire boundary, declared reply and domains are structurally valid.',
   );
 }
 
