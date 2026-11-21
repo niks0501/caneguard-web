@@ -149,6 +149,39 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->is_active && $this->hasVerifiedEmail() && $this->isWebUser();
     }
 
+    /**
+     * Onboarding is complete when the marker is set, the account was created by public signup (a holder-chosen
+     * password), or a successful password reset or change is on record. Email changes and authority changes never
+     * complete it, and a verified email alone does not either. Evidence is read live inside the caller's locked
+     * transaction, so a success row written by an older release after the backfill is honored immediately; the marker
+     * is only a fast path.
+     */
+    public function hasCompletedOnboarding(): bool
+    {
+        return $this->onboarded_at !== null
+            || $this->registration_origin === 'public_signup'
+            || SecurityAudit::query()
+                ->where('target_user_id', $this->getKey())
+                ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)
+                ->whereIn('action', SecurityAudit::ONBOARDING_EVIDENCE_ACTIONS)
+                ->exists();
+    }
+
+    /** Marks accounts whose history records a holder-chosen password: a public signup, or a successful reset or change. */
+    public static function backfillOnboardedAt(): int
+    {
+        $passwordSet = DB::table('security_audits')
+            ->whereNotNull('target_user_id')
+            ->where('outcome', SecurityAudit::OUTCOME_SUCCESS)
+            ->whereIn('action', SecurityAudit::ONBOARDING_EVIDENCE_ACTIONS)
+            ->select('target_user_id');
+
+        return DB::table('users')
+            ->whereNull('onboarded_at')
+            ->where(fn ($query) => $query->whereIn('id', $passwordSet)->orWhere('registration_origin', 'public_signup'))
+            ->update(['onboarded_at' => now()]);
+    }
+
     public function isActiveAdmin(): bool
     {
         return $this->hasWebAccess() && $this->role === self::ROLE_ADMIN;
@@ -213,6 +246,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
+            'onboarded_at' => 'datetime',
             'biometric_enabled' => 'boolean',
             'is_active' => 'boolean',
             'auth_version' => 'integer',

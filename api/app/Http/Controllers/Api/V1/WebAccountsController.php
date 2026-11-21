@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SecurityAudit;
 use App\Models\User;
 use App\Security\AccountsDirectory;
+use App\Support\MailDelivery;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -68,7 +69,8 @@ class WebAccountsController extends Controller
                 $detail = $directory->detail($user, $actor);
 
                 return array_merge(self::account($user), [
-                    'invite_pending' => ! $user->hasVerifiedEmail(),
+                    'invite_pending' => ! $user->hasVerifiedEmail() && ! $user->hasCompletedOnboarding(),
+                    'email_verified' => $user->hasVerifiedEmail(),
                     'membership_state' => $detail['membership_state'],
                     'allowed_actions' => $detail['allowed_actions'],
                     'denial_reasons' => $detail['denial_reasons'],
@@ -120,10 +122,10 @@ class WebAccountsController extends Controller
     {
         Gate::authorize('create', User::class);
         $user = User::query()->where('uuid', $uuid)->where('role', User::ROLE_FIELD_REPORTER)->firstOrFail();
-        abort_if($user->hasVerifiedEmail() || ! $user->is_active, 409, 'This account has no pending invite.');
 
         $status = $resend->handle($request->user(), $user);
-        abort_if($status === Password::RESET_THROTTLED, 429, 'A link was sent a moment ago. Wait a minute before sending another.');
+        abort_if($status === MailDelivery::NOT_PENDING, 409, 'This account has no pending invite.');
+        abort_if($status === Password::RESET_THROTTLED, 429, 'A set-password link was issued a moment ago. Wait a minute before sending another.');
 
         return response()->json(['invite_sent' => $status === Password::RESET_LINK_SENT]);
     }

@@ -58,6 +58,9 @@ class LoginController extends Controller
         }
 
         $request->session()->put('auth.version', $user->auth_version);
+        if ($user->onboarded_at === null) {
+            $user->forceFill(['onboarded_at' => now()])->save();
+        }
 
         return response()->json([], 204);
     }

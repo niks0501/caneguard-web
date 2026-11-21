@@ -40,6 +40,22 @@ class AuthUrlBuilderTest extends TestCase
         app(AuthUrlBuilder::class)->passwordReset($user, 'reset-token-for-test');
     }
 
+    public function test_verification_link_keeps_a_routing_query_from_the_configured_url(): void
+    {
+        config(['caneguard.auth.verification_url' => 'https://web.example.test/verify-email?route=mobile']);
+        Notification::fake();
+        $user = User::factory()->unverified()->create();
+
+        $user->sendEmailVerificationNotification();
+
+        Notification::assertSentTo($user, VerifyEmail::class, function (VerifyEmail $notification) use ($user): bool {
+            $query = [];
+            parse_str((string) parse_url((string) $notification->toMail($user)->actionUrl, PHP_URL_QUERY), $query);
+
+            return ($query['route'] ?? null) === 'mobile' && ($query['id'] ?? null) === (string) $user->getKey();
+        });
+    }
+
     public function test_auth_notifications_use_configured_urls(): void
     {
         config([

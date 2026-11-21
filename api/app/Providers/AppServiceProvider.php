@@ -7,6 +7,7 @@ use App\Models\Report;
 use App\Policies\ReportPolicy;
 use App\Security\LocalCompromisedPasswordVerifier;
 use App\Support\AuthUrlBuilder;
+use App\Support\RequiredTlsSmtpTransport;
 use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Auth\Notifications\ResetPassword as ResetPasswordNotification;
 use Illuminate\Auth\Notifications\VerifyEmail;
@@ -14,6 +15,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Validation\UncompromisedVerifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -38,6 +40,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Mail::extend('caneguard_smtp', static fn (array $config): RequiredTlsSmtpTransport => RequiredTlsSmtpTransport::fromConfig($config));
         Gate::policy(Report::class, ReportPolicy::class);
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
         Sanctum::authenticateAccessTokensUsing(static function (PersonalAccessToken $token, bool $valid): bool {

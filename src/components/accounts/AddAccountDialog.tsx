@@ -9,16 +9,11 @@ import { Modal } from "../ui/Modal";
 const emptyForm = { name: "", email: "", role: "reviewer" as NewAccountRole, password: "" };
 const nextSteps: Record<NewAccountRole, string> = {
   farmer: "Next step: Farmer mobile sign-in is currently limited, so hold this account and contact support instead of sending them to mobile sign-in.",
-  field_reporter: "Next steps: 1. They open the set-password email. 2. They sign in on the phone. They are added to the pilot district automatically.",
+  field_reporter: "Next steps: 1. They set a password from their set-password link. 2. They sign in on the phone. They are added to the pilot district automatically.",
   reviewer: "Next step: Tell them to sign in at the web sign-in page, then use the web workspace.",
   admin: "Next step: Tell them to sign in at the web sign-in page, then use the web workspace.",
 };
-const inviteFallbacks: Record<NewAccountRole, string> = {
-  farmer: "They can still set a password from the sign-in page.",
-  field_reporter: "They can request a link from the sign-in page.",
-  reviewer: "They can request a link from the sign-in page.",
-  admin: "They can request a link from the sign-in page.",
-};
+const inviteFallback = "If mail is unavailable, an operator can issue a set-password link by following the production runbook's fallback steps.";
 
 export function AddAccountDialog({ onCreated }: { onCreated: (notice: string) => Promise<void> | void }) {
   const [open, setOpen] = useState(false);
@@ -44,8 +39,8 @@ export function AddAccountDialog({ onCreated }: { onCreated: (notice: string) =>
       setOpen(false);
       setForm(emptyForm);
       const inviteNotice = created.invite_sent
-        ? `Account created for ${created.data.name}. A set-password link was emailed to ${created.data.email}.`
-        : `Account created for ${created.data.name}, but the set-password email could not be sent. ${inviteFallbacks[created.data.role]}`;
+        ? `Account created for ${created.data.name}. A set-password link was emailed.`
+        : `Account created for ${created.data.name}, but the set-password email could not be sent. ${inviteFallback}`;
       await onCreated(`${inviteNotice} ${nextSteps[created.data.role]}`);
     } catch (failure) {
       setError(failure instanceof ApiError && failure.status === 422

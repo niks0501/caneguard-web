@@ -56,6 +56,7 @@ export async function createAccount(command: NewAccountCommand, password: string
 export const fieldAccountSchema = accountSchema.extend({
   role: z.literal("field_reporter"),
   invite_pending: z.boolean(),
+  email_verified: z.boolean().optional(),
   membership_state: z.enum(["not_issued", "active", "revoked"]),
   allowed_actions: z.array(z.enum(["admit", "replace", "revoke", "restore", "keep_farmer", "defer", "reopen", "transfer"])),
   denial_reasons: z.array(z.string()),

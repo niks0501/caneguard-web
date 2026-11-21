@@ -79,6 +79,25 @@ class ProductionDeployScriptTest extends TestCase
         );
     }
 
+    public function test_legacy_cutover_is_refused_while_the_previous_release_is_still_serving(): void
+    {
+        $process = $this->deploy('release-1-'.str_repeat('b', 40), [], siteDown: false);
+
+        $this->assertFalse($process->isSuccessful());
+        $this->assertStringContainsString('predates the rollback barrier and is still serving', $process->getErrorOutput());
+        $this->assertSame($this->root.'/releases/'.self::OLD_RELEASE, readlink($this->root.'/current'));
+        $this->assertNotContains('artisan auth:rollback-barrier on', $this->logLines());
+    }
+
+    public function test_routine_deploy_keeps_a_barrier_carrying_previous_release_serving(): void
+    {
+        $process = $this->deploy('release-1-'.str_repeat('b', 40), ['CANEGUARD_TEST_OLD_HAS_ROLLBACK_BARRIER' => '1'], siteDown: false);
+
+        $this->assertTrue($process->isSuccessful(), $process->getErrorOutput());
+        $this->assertNotContains('artisan up', $this->logLines());
+        $this->assertNotContains('artisan auth:rollback-barrier on', $this->logLines());
+    }
+
     public function test_unreadable_crontab_fails_the_deploy_and_keeps_the_existing_jobs(): void
     {
         $existing = "MAILTO=ops@example.test\n30 4 * * * /usr/local/bin/backup.sh\n";
@@ -248,8 +267,15 @@ class ProductionDeployScriptTest extends TestCase
         $this->assertFileDoesNotExist($this->root.'/shared/api/.env.next');
     }
 
-    private function deploy(string $releaseId, array $env = []): Process
+    private function deploy(string $releaseId, array $env = [], bool $siteDown = true): Process
     {
+        $down = $this->root.'/shared/api/storage/framework/down';
+        if ($siteDown) {
+            is_dir(dirname($down)) || mkdir(dirname($down), 0777, true);
+            file_put_contents($down, '');
+        } else {
+            @unlink($down);
+        }
         $staging = $this->root.'/staging-'.$releaseId;
         mkdir($staging.'/api/public', 0777, true);
         mkdir($staging.'/scripts', 0777, true);
@@ -310,6 +336,20 @@ class ProductionDeployScriptTest extends TestCase
     {
         $this->writeTool('php', <<<'SH'
             echo "$*" >> "$CANEGUARD_TEST_LOG"
+            down="$CANEGUARD_TEST_ROOT/shared/api/storage/framework/down"
+            if [[ "$1 $2" == "artisan down" ]]; then
+              mkdir -p "$(dirname "$down")"
+              : > "$down"
+            fi
+            if [[ "$1 $2" == "artisan up" ]]; then
+              rm -f "$down"
+            fi
+            if [[ "$1 $2" == "artisan tinker" && "$*" == *isDownForMaintenance* ]]; then
+              [[ -f "$down" ]] && echo down || echo up
+            fi
+            if [[ "$1 $2" == "artisan list" && "$*" == *"--raw"* && -n "${CANEGUARD_TEST_OLD_HAS_ROLLBACK_BARRIER:-}" ]]; then
+              echo "auth:rollback-barrier state"
+            fi
             if [[ "$1 $2" == "artisan caneguard:bootstrap" ]]; then
               echo "bootstrap saw current=$(readlink "$CANEGUARD_TEST_ROOT/current")" >> "$CANEGUARD_TEST_LOG"
             fi

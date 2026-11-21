@@ -7,16 +7,14 @@ use App\Models\District;
 use App\Models\SecurityAudit;
 use App\Models\User;
 use App\Support\BootstrapAdministrator;
+use App\Support\MailDelivery;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
-use Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport;
-use Symfony\Component\Mailer\Transport\Smtp\Stream\SocketStream;
 
 /**
  * Run by every production deploy after migrations. Safe to repeat: it adds what is
@@ -25,8 +23,6 @@ use Symfony\Component\Mailer\Transport\Smtp\Stream\SocketStream;
  */
 final class BootstrapDeployment extends Command
 {
-    private const LOCAL_HOSTS = ['127.0.0.1', '::1', 'localhost'];
-
     protected $signature = 'caneguard:bootstrap';
 
     protected $description = 'Create the pilot district and first administrator from environment values when they are missing';
@@ -128,7 +124,7 @@ final class BootstrapDeployment extends Command
 
         $this->supersedePendingAdmins($audit, $email, $retired);
 
-        if (! $this->deliverable((string) config('mail.default'))) {
+        if (! MailDelivery::canDeliver((string) config('mail.default'))) {
             $this->error('Bootstrap admin: mail delivery is not configured. MAIL_MAILER must resolve to smtp, and the relay must be encrypted (MAIL_SCHEME=smtps or MAIL_REQUIRE_TLS=true) unless it is on this machine with MAIL_REQUIRE_TLS=false. Configure SMTP and deploy again.');
 
             return self::FAILURE;
@@ -168,8 +164,16 @@ final class BootstrapDeployment extends Command
 
     private function sendSetPasswordEmail(User $user): ?string
     {
+        $broker = Password::broker();
+        if ($broker->getRepository()->recentlyCreatedToken($user)) {
+            return Password::RESET_THROTTLED;
+        }
+
         try {
-            return Password::broker()->sendResetLink(['email' => $user->email]);
+            $token = MailDelivery::issueToken($user);
+            $user->sendPasswordResetNotification($token);
+
+            return Password::RESET_LINK_SENT;
         } catch (TransportExceptionInterface $e) {
             Log::warning('Bootstrap administrator set-password email could not be sent.', ['exception' => $e::class]);
 
@@ -184,22 +188,5 @@ final class BootstrapDeployment extends Command
         }
 
         return BootstrapAdministrator::recorded($user, $action);
-    }
-
-    private function deliverable(string $mailer): bool
-    {
-        try {
-            $transport = Mail::mailer($mailer)->getSymfonyTransport();
-        } catch (\Throwable) {
-            return false;
-        }
-        if (! $transport instanceof EsmtpTransport) {
-            return false;
-        }
-
-        $stream = $transport->getStream();
-
-        return $transport->isTlsRequired()
-            || ($stream instanceof SocketStream && ($stream->isTLS() || in_array($stream->getHost(), self::LOCAL_HOSTS, true)));
     }
 }

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\District;
 use App\Models\SecurityAudit;
 use App\Models\User;
+use App\Support\MailDelivery;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Console\Scheduling\Schedule;
@@ -13,7 +14,6 @@ use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\URL;
 use Symfony\Component\Mailer\Exception\TransportException;
 use Symfony\Component\Process\Process;
@@ -102,6 +102,32 @@ class BootstrapDeploymentTest extends TestCase
         $this->assertDatabaseHas('security_audits', ['target_user_id' => $admin->id, 'action' => 'account_created', 'outcome' => 'success']);
         $this->assertDatabaseHas('security_audits', ['target_user_id' => $admin->id, 'action' => 'account_invite_sent', 'outcome' => 'success']);
         $this->assertDatabaseCount('district_memberships', 0);
+    }
+
+    public function test_bootstrap_invitation_token_redeems_for_the_created_admin(): void
+    {
+        Notification::fake();
+        $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test']);
+
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+
+        $admin = User::query()->where('email', 'owner@example.test')->firstOrFail();
+        $token = null;
+        Notification::assertSentTo($admin, ResetPassword::class, function (ResetPassword $notification) use (&$token): bool {
+            $token = $notification->token;
+
+            return true;
+        });
+        $this->assertIsString($token);
+        $this->assertDatabaseHas('password_reset_tokens', ['email' => $admin->email, 'user_id' => $admin->getKey()]);
+
+        $this->postJson('/reset-password', [
+            'email' => $admin->email,
+            'token' => $token,
+            'password' => 'Str0ng-Passphrase!42',
+            'password_confirmation' => 'Str0ng-Passphrase!42',
+        ])->assertOk()->assertJsonPath('code', 'PASSWORD_RESET');
+        $this->assertTrue($admin->fresh()->hasVerifiedEmail());
     }
 
     public function test_pending_admin_is_not_emailed_again_on_later_deploys(): void
@@ -437,6 +463,23 @@ class BootstrapDeploymentTest extends TestCase
         $this->assertDatabaseHas('users', ['email' => 'owner@example.test']);
     }
 
+    public function test_implicit_tls_relay_is_accepted_before_creating_the_administrator(): void
+    {
+        Notification::fake();
+        $this->configure([
+            'caneguard.bootstrap_admin_email' => 'owner@example.test',
+            'mail.mailers.smtp.scheme' => 'smtps',
+            'mail.mailers.smtp.host' => 'mail.example.test',
+            'mail.mailers.smtp.port' => 465,
+            'mail.mailers.smtp.require_tls' => false,
+        ]);
+        Mail::purge('smtp');
+
+        $this->artisan('caneguard:bootstrap')->assertSuccessful();
+
+        $this->assertDatabaseHas('users', ['email' => 'owner@example.test']);
+    }
+
     public function test_reset_link_with_a_fragment_is_never_recorded_as_sent(): void
     {
         $this->configure(['caneguard.bootstrap_admin_email' => 'owner@example.test', 'caneguard.auth.password_reset_url' => 'https://web.example.test/reset-password#help']);
@@ -543,7 +586,7 @@ class BootstrapDeploymentTest extends TestCase
         ]))->assertForbidden();
 
         $this->postJson('/reset-password', [
-            'email' => 'first@example.test', 'token' => Password::broker()->createToken($first),
+            'email' => 'first@example.test', 'token' => MailDelivery::issueToken($first),
             'password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42',
         ])->assertUnprocessable()->assertJsonPath('code', 'INVALID_RESET_TOKEN');
         $this->assertFalse($first->fresh()->hasVerifiedEmail());
@@ -574,7 +617,7 @@ class BootstrapDeploymentTest extends TestCase
         ]))->assertForbidden();
 
         $this->postJson('/reset-password', [
-            'email' => 'first@example.test', 'token' => Password::broker()->createToken($first),
+            'email' => 'first@example.test', 'token' => MailDelivery::issueToken($first),
             'password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42',
         ])->assertUnprocessable()->assertJsonPath('code', 'INVALID_RESET_TOKEN');
         $this->assertFalse($first->fresh()->hasVerifiedEmail());
@@ -593,7 +636,7 @@ class BootstrapDeploymentTest extends TestCase
         $this->assertFalse($first->fresh()->hasVerifiedEmail());
 
         $this->postJson('/reset-password', [
-            'email' => 'first@example.test', 'token' => Password::broker()->createToken($first),
+            'email' => 'first@example.test', 'token' => MailDelivery::issueToken($first),
             'password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42',
         ])->assertOk()->assertJsonPath('code', 'PASSWORD_RESET');
         $this->assertTrue($first->fresh()->hasVerifiedEmail());
@@ -610,7 +653,7 @@ class BootstrapDeploymentTest extends TestCase
         Notification::assertNotSentTo($first, VerifyEmail::class);
 
         $this->postJson('/reset-password', [
-            'email' => 'first@example.test', 'token' => Password::broker()->createToken($first),
+            'email' => 'first@example.test', 'token' => MailDelivery::issueToken($first),
             'password' => 'Str0ng-Passphrase!42', 'password_confirmation' => 'Str0ng-Passphrase!42',
         ])->assertOk();
         $first->forceFill(['email_verified_at' => null])->save();

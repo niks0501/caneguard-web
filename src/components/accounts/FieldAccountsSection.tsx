@@ -97,10 +97,10 @@ function FieldRow({ account, onNotice, onSaved }: { account: FieldAccount; onNot
     onNotice("");
     try {
       const { invite_sent } = await resendFieldInvite(account.uuid);
-      onNotice(invite_sent ? `Set-password link sent to ${account.email}.` : `The set-password email to ${account.email} could not be sent. Try again later.`);
+      onNotice(invite_sent ? "Set-password link sent." : `The set-password email could not be sent. If mail is unavailable, an operator can issue a set-password link by following the production runbook's fallback steps.`);
     } catch (failure) {
       onNotice(failure instanceof ApiError && failure.status === 429
-        ? "A link was sent a moment ago. Wait a minute before sending another."
+        ? "Wait a minute before sending another set-password link."
         : failure instanceof ApiError && failure.status === 409
           ? "This account has no pending invite. Reload the list."
           : "The link was not confirmed sent. Check the account before trying again.");
@@ -111,7 +111,7 @@ function FieldRow({ account, onNotice, onSaved }: { account: FieldAccount; onNot
   return <tr>
     <td data-label="Name">{account.name}</td>
     <td data-label="Email">{account.email}</td>
-    <td data-label="Status">{!account.is_active ? "Disabled" : invitePending ? "Invite pending" : account.membership_state === "not_issued" ? "Not admitted" : "Active"}</td>
+    <td data-label="Status">{!account.is_active ? "Disabled" : invitePending ? "Invite pending" : account.email_verified === false ? "Email unverified. Use Forgot Password." : account.membership_state === "not_issued" ? "Not admitted" : "Active"}</td>
     <td data-label="Action">
       <Link className="accounts-open" to={routes.accountDetail(account.uuid)} aria-label={`History for ${account.name}`}>History</Link>
       {invitePending ? <Button variant="secondary" disabled={resending} aria-label={`Resend set-password link to ${account.name}`} onClick={() => void resend()}>{resending ? "Sending…" : "Resend link"}</Button> : null}

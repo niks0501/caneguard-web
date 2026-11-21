@@ -59,7 +59,7 @@ Validation failures use `{ "message": "The given data was invalid.", "code": "VA
 
 The verification and reset links use `CANEGUARD_VERIFICATION_URL` and `CANEGUARD_PASSWORD_RESET_URL`.
 
-Those values are deployment configuration, must be absolute URLs without a fragment, and must use HTTPS in production.
+Those values are deployment configuration, must be absolute URLs without a fragment or embedded credentials, and must use HTTPS in production.
 
 Each generated parameter carries one authoritative value: `token` and `email`, or `id`, `hash`, `expires` and `signature`, replace any same-named parameter already present in the configured URL, and unrelated query parameters are kept.
 
@@ -178,16 +178,16 @@ Audit metadata contains action context only and never contains passwords, reset 
 
 The retention period is configured with `CANEGUARD_SECURITY_AUDIT_RETENTION_DAYS`.
 
-The `auth:prune-security-audits` command removes records older than that configured period, except the successful `account_created` and `account_invite_sent` records of a bootstrap first administrator (`provisioning_channel` `bootstrap`) that is still pending (active and not yet verified). Those are kept so a later deploy can recover it; once it is verified or superseded, they are pruned like other records.
+The `auth:prune-security-audits` command removes records older than that configured period, except successful password-reset, password-change and mobile-login records for accounts that have no onboarding marker, which are kept until the marker is set, and except the successful `account_created` and `account_invite_sent` records of a bootstrap first administrator (`provisioning_channel` `bootstrap`) that is still pending (active and not yet verified). Those are kept so a later deploy can recover it; once it is verified or superseded, they are pruned like other records.
 
 ## Admin-assisted recovery boundary
 
-The Web accounts surface manages district authority only; it has no credential-recovery handoff workflow.
+The Web accounts surface manages district authority only; it has no credential-recovery handoff workflow. No web or API response exposes an admin password setter, plaintext credential handoff, email-verification bypass, or reset-token display.
 
-v1 therefore does not expose an admin password setter, plaintext credential handoff, email-verification bypass, or reset-token display.
+The one break-glass exception is the operator console command `php artisan auth:set-password-link`. It runs only on the deployment host, refuses to run while a config cache is loaded, reads its target from `CANEGUARD_OPERATOR_LINK_EMAIL` in the shared production `.env`, prints a one-time reset link to that operator's terminal, and never returns the token over HTTP. Interactive step-up does not apply because the command has no web session to step up; host shell access is its authentication. Each issuance writes an `operator_link_issued` audit with the host operator identity. Audit retention keeps successful password-reset, password-change and mobile-login records until the account has its onboarding marker, because they are the evidence reconciliation reads. A successful web password login records the onboarding marker, and a successful mobile password login is onboarding evidence; email changes, verification alone, and authority changes never complete onboarding. A reset link is bound to the account that issued it and redeems only for that account. The command refuses inactive accounts and accounts that have completed onboarding. It also requires `CANEGUARD_OPERATOR_LINK_NO_PASSWORD_CONFIRMED` to equal the target account's UUID, which confirms the account has no password; a confirmation for another account is refused. A link is single-use and expires per `auth.passwords`; a newer issuance replaces the earlier link, and redeeming it sets the password, verifies the email, and revokes sessions and tokens.
 
 If a user cannot access email, support must first verify identity through the approved municipal process and escalate to an authorized deployment operator.
 
-A future recovery workflow must be separately approved and must require an authenticated admin step-up, an auditable identity decision, a one-time expiring handoff, forced password replacement, email verification, and session/token revocation.
+Any other recovery workflow must be separately approved and must require an authenticated admin step-up, an auditable identity decision, a one-time expiring handoff, forced password replacement, email verification, and session/token revocation.
 
-Until that workflow exists, support must not issue or record a password or bearer token manually.
+Outside this command, support must not issue or record a password or bearer token manually.

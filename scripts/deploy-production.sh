@@ -49,13 +49,25 @@ old="$(readlink -f "$current")"
 
 activated=0
 successful=0
+restored=0
+restore_previous_release() {
+  if [[ "$legacy_cutover" -eq 1 ]]; then
+    echo "ERROR: $old predates the rollback barrier; automatic rollback is refused and the new release stays active. Roll back by the operator procedure in docs/production-deployment.md." >&2
+    return 1
+  fi
+  ln -s "$old" "$root/.rollback-$$" || return 1
+  mv -Tf "$root/.rollback-$$" "$current" || return 1
+}
 cleanup() {
   status=$?
   trap - EXIT
   if [[ "$successful" -ne 1 && "$activated" -eq 1 ]]; then
     echo "Health check failed; restoring previous code symlink" >&2
-    ln -s "$old" "$root/.rollback-$$"
-    mv -Tf "$root/.rollback-$$" "$current"
+    if restore_previous_release; then
+      restored=1
+    fi
+  fi
+  if [[ "$restored" -eq 1 ]]; then
     curl --fail --silent --show-error --max-time 15 https://caneguard.online/api/health || true
     echo "WARNING: Database migrations are not rolled back automatically." >&2
   fi
@@ -75,7 +87,10 @@ rm -rf "$new/api/storage"
 ln -s "$shared/storage" "$new/api/storage"
 cd "$new/api"
 composer install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader
-php artisan optimize:clear
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+php artisan event:clear
 php artisan config:cache
 php artisan view:cache
 
@@ -128,10 +143,36 @@ if [[ "$cron_next" != "$cron_existing" ]]; then
   echo "Installed scheduler cron for deploy"
 fi
 php artisan caneguard:record-scheduler-install "$cron_line" --no-interaction
+php artisan auth:backfill-onboarding
 
+old_commands="$(cd "$old/api" && php artisan list --raw)" || {
+  echo "ERROR: could not read the previous release's commands; deployment stopped before switching." >&2
+  exit 1
+}
+legacy_cutover=0
+if [[ "$old_commands" != *"auth:rollback-barrier "* ]]; then
+  old_state="$(cd "$old/api" && php artisan tinker --execute='echo app()->isDownForMaintenance() ? "down" : "up";')" || {
+    echo "ERROR: could not read the previous release's maintenance state; deployment stopped before switching." >&2
+    exit 1
+  }
+  if [[ "$old_state" != "down" ]]; then
+    echo "ERROR: the previous release predates the rollback barrier and is still serving; put it in maintenance mode and drain it before this cutover (docs/production-deployment.md)." >&2
+    exit 1
+  fi
+  legacy_cutover=1
+  php artisan auth:rollback-barrier on
+fi
 ln -s "$new" "$root/.activate-$$"
 mv -Tf "$root/.activate-$$" "$current"
 activated=1
+
+if [[ "$legacy_cutover" -eq 1 ]]; then
+  php artisan up
+  [[ "$(php artisan tinker --execute='echo app()->isDownForMaintenance() ? "down" : "up";')" == "up" ]] || {
+    echo "ERROR: the new release is still in maintenance mode after up; the site is not serving." >&2
+    exit 1
+  }
+fi
 
 # Ensure public API and SPA both respond through the activated Nginx root.
 health="$(curl --fail --silent --show-error --max-time 20 https://caneguard.online/api/health)"
@@ -150,6 +191,7 @@ if grep -q '__CSP_NONCE__' <<<"$root_shell"; then
   echo "SPA shell served without a CSP nonce" >&2
   exit 1
 fi
+php artisan auth:rollback-barrier off
 successful=1
 echo "PASS: Active release $release_id"
 echo "Rollback reference: $old"

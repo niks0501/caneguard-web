@@ -18,6 +18,9 @@ class SecurityAudit extends Model
 {
     public const OUTCOME_SUCCESS = 'success';
 
+    /** Successful records of these actions prove onboarding; they are kept past retention until the account is marked. */
+    public const ONBOARDING_EVIDENCE_ACTIONS = [self::ACTION_PASSWORD_RESET, self::ACTION_PASSWORD_CHANGE, self::ACTION_MOBILE_LOGIN];
+
     public const OUTCOME_FAILURE = 'failure';
 
     public const ACTION_REGISTRATION = 'registration';
@@ -53,6 +56,8 @@ class SecurityAudit extends Model
     public const ACTION_SCHEDULER_CRON_OBSERVED = 'scheduler_cron_observed';
 
     public const ACTION_PRUNE_RUN = 'prune_run';
+
+    public const ACTION_OPERATOR_LINK = 'operator_link_issued';
 
     public $timestamps = false;
 

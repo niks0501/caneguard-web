@@ -25,7 +25,7 @@ class ResetPasswordController extends Controller
             $request->validated(),
             function (User $user, string $password) use ($audits, $revoker, &$resetUser): void {
                 $newlyVerified = ! $user->hasVerifiedEmail();
-                $user->forceFill(['password' => $password]);
+                $user->forceFill(['password' => $password, 'onboarded_at' => $user->onboarded_at ?? now()]);
                 if ($newlyVerified) {
                     // Completing a mailed reset proves control of the address.
                     $user->markEmailAsVerified();
