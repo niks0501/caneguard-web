@@ -113,10 +113,12 @@ function FieldRow({ account, onNotice, onSaved }: { account: FieldAccount; onNot
     <td data-label="Email">{account.email}</td>
     <td data-label="Status">{!account.is_active ? "Disabled" : invitePending ? "Invite pending" : account.email_verified === false ? "Email unverified. Use Forgot Password." : account.membership_state === "not_issued" ? "Not admitted" : "Active"}</td>
     <td data-label="Action">
-      <Link className="accounts-open" to={routes.accountDetail(account.uuid)} aria-label={`History for ${account.name}`}>History</Link>
+      <div className="accounts-row-actions">
+      <Link className="accounts-open button button--secondary" to={routes.accountDetail(account.uuid)} aria-label={`History for ${account.name}`}>History</Link>
       {invitePending ? <Button variant="secondary" disabled={resending} aria-label={`Resend set-password link to ${account.name}`} onClick={() => void resend()}>{resending ? "Sending…" : "Resend link"}</Button> : null}
+      {action ? <Button disabled={pending} aria-label={`${verb} ${account.name}`} onClick={() => { onNotice(""); setError(""); setPassword(""); setOpen(true); }}>{verb}</Button> : <span>{account.denial_reasons.join(" ")}</span>}
+      </div>
       {action ? <>
-        <Button disabled={pending} aria-label={`${verb} ${account.name}`} onClick={() => { onNotice(""); setError(""); setPassword(""); setOpen(true); }}>{verb}</Button>
         <Modal id={id} title={`${verb} field account`} open={open} onClose={close} disabled={pending}>
           <form className="settings-form" onSubmit={submit}>
             <p><strong>{account.name}</strong> · {account.email}</p>
@@ -135,7 +137,7 @@ function FieldRow({ account, onNotice, onSaved }: { account: FieldAccount; onNot
             </div>
           </form>
         </Modal>
-      </> : <span>{account.denial_reasons.join(" ")}</span>}
+      </> : null}
     </td>
   </tr>;
 }
