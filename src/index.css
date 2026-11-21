@@ -8816,9 +8816,9 @@ button.monitoring-calendar__day-number:focus-visible {
 .accounts-filters select, .accounts-editor select { width: 100%; min-height: 44px; padding: var(--space-2); border: 1px solid var(--color-border-strong); background: var(--color-surface); color: var(--color-text); font: inherit; }
 .accounts-scope { color: var(--color-secondary-text); margin-block: var(--space-4); }
 .accounts-field { margin-block: var(--space-6); }
-.accounts-table { width: 100%; table-layout: fixed; }
-.accounts-table th:first-child { width: 24%; }
-.accounts-table th:last-child { width: 18%; }
+.accounts-table { width: 100%; min-width: 0; table-layout: fixed; }
+.accounts-table th:first-child { width: 20%; }
+.accounts-table th:last-child { width: 34%; }
 .accounts-table select { width: 100%; min-height: var(--control-height); padding: var(--space-2); border: 1px solid var(--color-border-strong); background: var(--color-surface); color: var(--color-text); font: inherit; }
 .accounts-table select:disabled { opacity: 0.65; cursor: not-allowed; }
 .route-notice { margin: var(--space-5); color: var(--color-secondary-text); }
@@ -8838,6 +8838,10 @@ button.monitoring-calendar__day-number:focus-visible {
 .accounts-keys label { display: flex; align-items: center; gap: var(--space-2); min-height: 44px; cursor: pointer; }
 .accounts-keys input { width: 22px; height: 22px; accent-color: var(--color-primary-fill); }
 .accounts-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-block: var(--space-4); }
+.accounts-row-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; gap: var(--space-2); max-width: 18rem; }
+.accounts-row-actions > .button, .accounts-row-actions > a.button { width: 100%; justify-content: center; min-height: var(--control-height); white-space: nowrap; text-decoration: none; }
+.accounts-row-actions > .button:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.accounts-row-actions > span { color: var(--color-secondary-text); }
 .accounts-timeline { list-style: none; margin: 0; padding: 0; }
 .accounts-timeline > li { padding-block: var(--space-4); border-top: 1px solid var(--color-border); }
 .accounts-timeline header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-3); }
@@ -8855,6 +8859,7 @@ button.monitoring-calendar__day-number:focus-visible {
   .accounts-table td::before { content: attr(data-label); display: block; color: var(--color-secondary-text); font-weight: 600; }
   .accounts-detail, .accounts-editor, .accounts-history { padding: var(--space-4); }
   .accounts-actions .button { width: 100%; }
+  .accounts-row-actions { max-width: none; padding-top: var(--space-1); }
 }
 
 /* ---------------------------------------------------------------------------
