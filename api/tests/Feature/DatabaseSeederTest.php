@@ -9,6 +9,7 @@ use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Carbon\CarbonImmutable;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -53,7 +54,7 @@ class DatabaseSeederTest extends TestCase
         $this->seed(DatabaseSeeder::class);
 
         $field = User::query()->where('email', 'field@caneguard.test')->sole();
-        $this->assertTrue(app(\App\Security\DistrictAccess::class)->inspector($field));
+        $this->assertTrue(app(DistrictAccess::class)->inspector($field));
     }
 
     public function test_full_seed_rerun_preserves_identities_and_repairs_district_stamps(): void
