@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Throwable;
 
 final class MobileMapTileController extends Controller
@@ -54,13 +56,14 @@ final class MobileMapTileController extends Controller
         $now = now()->getTimestamp();
 
         /** @var array{body: string, expires_at: int, upstream_etag: ?string}|null $entry */
-        $entry = Cache::get($cacheKey);
+        $entry = $this->cachedEntry($cacheKey);
         $stale = false;
 
         if ($entry === null || $entry['expires_at'] <= $now) {
             try {
                 $entry = $this->refresh($cacheKey, $zoom, $column, $row, $entry, $now);
             } catch (Throwable $exception) {
+                $this->logFailure($exception, $zoom, $column, $row);
                 if ($entry === null) {
                     return $exception instanceof ConnectionException
                         ? $this->upstreamError(504, 'MAP_TILE_UPSTREAM_TIMEOUT')
@@ -146,7 +149,7 @@ final class MobileMapTileController extends Controller
             $freshness = $this->freshness($response->header('Cache-Control'), $response->header('Expires'), $response->header('Age'), $now);
             $entry = $previous;
             $entry['expires_at'] = $now + ($freshness ?? self::MIN_RECHECK_SECONDS);
-            Cache::put($cacheKey, $entry, self::RETENTION_SECONDS);
+            $this->storeEntry($cacheKey, $entry);
 
             return $entry;
         }
@@ -169,10 +172,69 @@ final class MobileMapTileController extends Controller
 
         // `no-store` upstream: serve this response but keep nothing.
         if ($freshness !== null) {
-            Cache::put($cacheKey, $entry, self::RETENTION_SECONDS);
+            $this->storeEntry($cacheKey, $entry);
         }
 
         return $entry;
+    }
+
+    /**
+     * A broken cache store must never fail a tile response: treat a failed
+     * read as a miss and a failed write as "not stored".
+     *
+     * @return array{body: string, expires_at: int, upstream_etag: ?string}|null
+     */
+    private function cachedEntry(string $cacheKey): ?array
+    {
+        try {
+            $entry = Cache::get($cacheKey);
+        } catch (Throwable $exception) {
+            $this->logFailure($exception, null, null, null, 'cache read');
+
+            return null;
+        }
+
+        return is_array($entry)
+            && is_string($entry['body'] ?? null)
+            && is_int($entry['expires_at'] ?? null)
+            ? $entry
+            : null;
+    }
+
+    /**
+     * @param  array{body: string, expires_at: int, upstream_etag: ?string}  $entry
+     */
+    private function storeEntry(string $cacheKey, array $entry): void
+    {
+        try {
+            Cache::put($cacheKey, $entry, self::RETENTION_SECONDS);
+        } catch (Throwable $exception) {
+            $this->logFailure($exception, null, null, null, 'cache write');
+        }
+    }
+
+    /**
+     * Records why a tile could not be served. The proxy otherwise reports only
+     * a generic 502/504, which made a blank map impossible to diagnose. Only the
+     * exception type, upstream status and a short message are logged: never
+     * request headers, tokens or the caller's identity.
+     */
+    private function logFailure(
+        Throwable $exception,
+        ?int $zoom,
+        ?int $column,
+        ?int $row,
+        string $stage = 'upstream fetch',
+    ): void {
+        Log::warning('Mobile map tile request failed.', [
+            'stage' => $stage,
+            'exception' => $exception::class,
+            'upstream_status' => $exception instanceof RequestException
+                ? $exception->response->status()
+                : null,
+            'message' => Str::limit($exception->getMessage(), 200),
+            'tile' => $zoom === null ? null : "$zoom/$column/$row",
+        ]);
     }
 
     /**

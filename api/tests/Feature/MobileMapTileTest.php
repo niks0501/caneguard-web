@@ -8,6 +8,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class MobileMapTileTest extends TestCase
@@ -234,6 +235,52 @@ class MobileMapTileTest extends TestCase
             ->withHeaders(['If-None-Match' => $etag])
             ->get('/api/v1/mobile/map-tiles/15/100/100.png')
             ->assertStatus(304);
+    }
+
+    public function test_upstream_failures_are_logged_without_secrets_or_identity(): void
+    {
+        Log::spy();
+        Http::fake(['https://tile.openstreetmap.org/*' => Http::response('blocked', 403)]);
+        $token = $this->fieldReporterToken();
+
+        $this->withToken($token)
+            ->get('/api/v1/mobile/map-tiles/15/100/100.png')
+            ->assertStatus(502);
+
+        Log::shouldHaveReceived('warning')->withArgs(function (string $message, array $context) use ($token): bool {
+            return $message === 'Mobile map tile request failed.'
+                && $context['stage'] === 'upstream fetch'
+                && $context['upstream_status'] === 403
+                && $context['tile'] === '15/100/100'
+                && ! str_contains(json_encode($context), $token);
+        })->once();
+    }
+
+    public function test_a_broken_cache_store_never_fails_a_tile_response(): void
+    {
+        $png = "\x89PNG\r\n\x1a\nfixture";
+        Http::fake(['https://tile.openstreetmap.org/*' => Http::response($png, 200)]);
+        Log::spy();
+        $token = $this->fieldReporterToken();
+        Cache::partialMock()
+            ->shouldReceive('get')
+            ->with('mobile-map-tile:v2:15:100:100')
+            ->andThrow(new \RuntimeException('cache unavailable'));
+        Cache::shouldReceive('put')
+            ->with('mobile-map-tile:v2:15:100:100', \Mockery::any(), \Mockery::any())
+            ->andThrow(new \RuntimeException('cache unavailable'));
+
+        $response = $this->withToken($token)
+            ->get('/api/v1/mobile/map-tiles/15/100/100.png')
+            ->assertOk();
+
+        $this->assertSame($png, $response->getContent());
+        Log::shouldHaveReceived('warning')->withArgs(
+            fn (string $message, array $context): bool => $context['stage'] === 'cache read',
+        )->once();
+        Log::shouldHaveReceived('warning')->withArgs(
+            fn (string $message, array $context): bool => $context['stage'] === 'cache write',
+        )->once();
     }
 
     protected function tearDown(): void
