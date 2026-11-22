@@ -33,6 +33,24 @@ $serveSpa = static function (Request $request) {
 };
 Route::get('/', $serveSpa);
 
+// Registered before the SPA fallback so Android can verify App Links for the
+// mobile auth links (/reset-password, /verify-email).
+Route::get('/.well-known/assetlinks.json', function () {
+    $fingerprints = (array) config('caneguard.android_app_links.cert_fingerprints');
+    if ($fingerprints === []) {
+        abort(404);
+    }
+
+    return response()->json([[
+        'relation' => ['delegate_permission/common.handle_all_urls'],
+        'target' => [
+            'namespace' => 'android_app',
+            'package_name' => (string) config('caneguard.android_app_links.package_name'),
+            'sha256_cert_fingerprints' => $fingerprints,
+        ],
+    ]]);
+});
+
 Route::post('/register', RegisterController::class)
     ->middleware(['throttle:register', EnsurePublicRegistrationEnabled::class]);
 Route::post('/login', LoginController::class)

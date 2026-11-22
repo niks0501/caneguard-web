@@ -9,6 +9,7 @@ use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
 use App\Models\User;
+use App\Security\DistrictAccess;
 use Carbon\CarbonImmutable;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -38,6 +39,22 @@ class DatabaseSeederTest extends TestCase
         $this->assertDatabaseCount('users', 0);
         $this->assertDatabaseCount('reports', 0);
         $this->assertDatabaseCount('districts', 0);
+    }
+
+    public function test_demo_field_reporter_is_seeded_with_pilot_inspector_access(): void
+    {
+        Storage::fake('local');
+        config([
+            'caneguard.demo_users.field_reporter_password' => 'field-test-password',
+            'caneguard.demo_users.reviewer_password' => 'reviewer-test-password',
+            'caneguard.demo_users.admin_password' => 'admin-test-password',
+            'caneguard.pilot_district_code' => 'demo-pilot',
+        ]);
+
+        $this->seed(DatabaseSeeder::class);
+
+        $field = User::query()->where('email', 'field@caneguard.test')->sole();
+        $this->assertTrue(app(DistrictAccess::class)->inspector($field));
     }
 
     public function test_full_seed_rerun_preserves_identities_and_repairs_district_stamps(): void

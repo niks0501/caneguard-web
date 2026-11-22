@@ -72,6 +72,9 @@ class FieldInspectorAdmissionTest extends TestCase
         $this->seed(DatabaseSeeder::class);
         $field = User::query()->where('email', 'field@caneguard.test')->sole();
         $admin = User::query()->where('email', 'admin@caneguard.test')->sole();
+        // The demo seed pre-admits the field reporter; start from the production state
+        // (certified account, no membership) to exercise the office admission flow.
+        DistrictMembership::query()->where('user_id', $field->id)->delete();
 
         $before = $this->mobileLogin();
         $this->withToken($before)->getJson('/api/v1/mobile/assignments')->assertForbidden();

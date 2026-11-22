@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\District;
 use App\Models\DistrictMembership;
+use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use LogicException;
@@ -39,7 +40,9 @@ class DatabaseSeeder extends Seeder
         );
 
         foreach ($seededUsers as $seededUser) {
-            if ($seededUser->isOfficeUser()) {
+            // Office users and the demo inspector both need the pilot membership
+            // that DistrictAccess requires for mobile writes.
+            if ($seededUser->isOfficeUser() || $seededUser->role === User::ROLE_FIELD_REPORTER) {
                 DistrictMembership::query()->firstOrCreate([
                     'user_id' => $seededUser->id,
                     'district_id' => $pilotDistrict->id,
