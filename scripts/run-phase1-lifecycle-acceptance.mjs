@@ -200,23 +200,18 @@ async function main() {
       }
 
       const form = await buildReportForm(tempRoot);
-      const upload = await requestJson(`${apiBaseUrl}/api/v2/mobile/reports`, {
+      const upload = await requestJson(`${apiBaseUrl}/api/v3/mobile/reports`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${mobileToken}` },
         body: form,
       });
       assertResponse(upload, [200, 201], 'Mobile report upload');
       report = upload.body?.data;
-      assertLifecycle(report?.lifecycle, {
-        case_state: 'open',
-        verification_outcome: 'not_determined',
-        field_validation_state: 'unassigned',
-        referral_state: 'not_referred',
-      }, 'submitted report');
+      // The upload reply carries no lifecycle; it is asserted from the case view below.
       if (report?.identity?.client_uuid !== REPORT_CLIENT_UUID) {
         throw new Phase1AcceptanceError('Mobile report upload did not preserve client_uuid.');
       }
-      return `Created ${report.identity.reference_code} with an open, unverified lifecycle.`;
+      return `Created ${report.identity.reference_code}.`;
     });
 
     await runStep(steps, 'Reviewer assignment to the field reporter', async () => {
@@ -227,6 +222,12 @@ async function main() {
         `/api/v1/reports/${report.identity.uuid}`,
       );
       assertResponse(current, 200, 'Current report before assignment');
+      assertLifecycle(current.body?.data?.lifecycle, {
+        case_state: 'open',
+        verification_outcome: 'not_determined',
+        field_validation_state: 'unassigned',
+        referral_state: 'not_referred',
+      }, 'submitted report');
       const assigned = await webPatch(
         apiBaseUrl,
         reviewerCookies,
@@ -532,6 +533,8 @@ async function startLocalApi(tempRoot) {
     BROADCAST_CONNECTION: 'log',
     MAIL_MAILER: 'array',
     LOG_CHANNEL: 'stderr',
+    CANEGUARD_PILOT_DISTRICT_CODE: 'phase1-acceptance',
+    CANEGUARD_PILOT_DISTRICT_NAME: 'Phase 1 Acceptance District',
     CANEGUARD_FIELD_PASSWORD: FIELD_PASSWORD,
     CANEGUARD_REVIEWER_PASSWORD: REVIEWER_PASSWORD,
     CANEGUARD_ADMIN_PASSWORD: ADMIN_PASSWORD,
@@ -808,8 +811,12 @@ function runProcess(command, args, cwd, env, label) {
     throw new Phase1AcceptanceError(`${label} could not start: ${result.error.message}`);
   }
   if (result.status !== 0) {
-    const output = `${result.stdout ?? ''}${result.stderr ?? ''}`.slice(-4000);
-    throw new Phase1AcceptanceError(`${label} failed with exit code ${result.status}: ${output}`);
+    const full = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+    const lines = full.split('\n').map((line) => line.trim()).filter(Boolean);
+    const firstError = lines.find((line) => /exception|error/i.test(line)) ?? lines[0] ?? '';
+    throw new Phase1AcceptanceError(
+      `${label} failed with exit code ${result.status}. First error: ${firstError}\n${full.slice(-4000)}`,
+    );
   }
 }
 

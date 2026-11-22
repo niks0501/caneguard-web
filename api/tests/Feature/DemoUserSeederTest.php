@@ -16,7 +16,7 @@ class DemoUserSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_fresh_demo_seed_restores_office_login_without_admitting_the_field_reporter(): void
+    public function test_fresh_demo_seed_restores_office_login_with_the_field_reporter_as_a_pilot_inspector_only(): void
     {
         config([
             'caneguard.demo_users.field_reporter_password' => 'field-test-password',
@@ -56,7 +56,12 @@ class DemoUserSeederTest extends TestCase
         $fieldReporter = User::query()->where('email', 'field@caneguard.test')->sole();
         $this->assertSame(User::ROLE_FIELD_REPORTER, $fieldReporter->role);
         $this->assertFalse($access->office($fieldReporter));
-        $this->assertDatabaseMissing('district_memberships', ['user_id' => $fieldReporter->id]);
+        $this->assertDatabaseHas('district_memberships', [
+            'user_id' => $fieldReporter->id,
+            'district_id' => $district->id,
+            'revoked_at' => null,
+        ]);
+        $this->assertTrue($access->inspector($fieldReporter));
         $this->postJson('/login', [
             'email' => $fieldReporter->email,
             'password' => 'field-test-password',

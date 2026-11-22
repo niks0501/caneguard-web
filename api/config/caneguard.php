@@ -90,6 +90,15 @@ return [
         'max_side_px' => 10000,
         'min_canopy_coverage_percent' => 10,
     ],
+    // Android App Links: SHA-256 signing-certificate fingerprints (comma separated)
+    // served at /.well-known/assetlinks.json. Blank serves nothing (404).
+    'android_app_links' => [
+        'package_name' => env('CANEGUARD_ANDROID_PACKAGE_NAME', 'com.niks0501.caneguard'),
+        'cert_fingerprints' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('CANEGUARD_ANDROID_CERT_FINGERPRINTS', '')),
+        ))),
+    ],
     'auth' => [
         'verification_url' => env(
             'CANEGUARD_VERIFICATION_URL',
