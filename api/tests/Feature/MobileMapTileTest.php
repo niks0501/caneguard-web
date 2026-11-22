@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -43,7 +45,7 @@ class MobileMapTileTest extends TestCase
             ->assertHeader('Content-Type', 'image/png')
             ->assertHeader(
                 'Cache-Control',
-                'immutable, max-age=86400, public',
+                'max-age=604800, public',
             );
         $this->assertSame($png, $first->getContent());
 
@@ -126,6 +128,118 @@ class MobileMapTileTest extends TestCase
             'upstream connection details',
             $response->getContent(),
         );
+    }
+
+    public function test_upstream_freshness_headers_set_how_long_the_tile_is_cached(): void
+    {
+        Carbon::setTestNow('2026-11-22 08:00:00');
+        $png = "\x89PNG\r\n\x1a\nfixture";
+        Http::fake([
+            'https://tile.openstreetmap.org/*' => Http::response($png, 200, [
+                'Cache-Control' => 'public, max-age=3600',
+                'Age' => '600',
+            ]),
+        ]);
+        $token = $this->fieldReporterToken();
+
+        $this->withToken($token)
+            ->get('/api/v1/mobile/map-tiles/15/100/100.png')
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'max-age=3000, public');
+
+        Carbon::setTestNow('2026-11-22 08:10:00');
+        $this->withToken($token)
+            ->get('/api/v1/mobile/map-tiles/15/100/100.png')
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'max-age=2400, public');
+        Http::assertSentCount(1);
+    }
+
+    public function test_expired_tiles_are_revalidated_upstream_and_renewed_on_304(): void
+    {
+        Carbon::setTestNow('2026-11-22 08:00:00');
+        $png = "\x89PNG\r\n\x1a\nfixture";
+        Http::fake([
+            'https://tile.openstreetmap.org/*' => Http::sequence()
+                ->push($png, 200, ['Cache-Control' => 'max-age=3600', 'ETag' => '"up1"'])
+                ->push('', 304, ['Cache-Control' => 'max-age=3600']),
+        ]);
+        $token = $this->fieldReporterToken();
+
+        $this->withToken($token)->get('/api/v1/mobile/map-tiles/15/100/100.png')->assertOk();
+
+        Carbon::setTestNow('2026-11-22 09:30:00');
+        $response = $this->withToken($token)
+            ->get('/api/v1/mobile/map-tiles/15/100/100.png')
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'max-age=3600, public');
+        $this->assertSame($png, $response->getContent());
+
+        Http::assertSentCount(2);
+        Http::assertSent(fn ($request): bool => $request->header('If-None-Match') === ['"up1"']);
+    }
+
+    public function test_expired_tile_is_served_when_the_upstream_is_down(): void
+    {
+        Carbon::setTestNow('2026-11-22 08:00:00');
+        $png = "\x89PNG\r\n\x1a\nfixture";
+        Http::fake([
+            'https://tile.openstreetmap.org/*' => Http::sequence()
+                ->push($png, 200, ['Cache-Control' => 'max-age=3600'])
+                ->push('down', 503),
+        ]);
+        $token = $this->fieldReporterToken();
+
+        $this->withToken($token)->get('/api/v1/mobile/map-tiles/15/100/100.png')->assertOk();
+
+        Carbon::setTestNow('2026-11-22 10:00:00');
+        $response = $this->withToken($token)
+            ->get('/api/v1/mobile/map-tiles/15/100/100.png')
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'max-age=0, public');
+        $this->assertSame($png, $response->getContent());
+    }
+
+    public function test_no_store_tiles_and_non_png_bodies_are_never_cached(): void
+    {
+        $png = "\x89PNG\r\n\x1a\nfixture";
+        Http::fake([
+            'https://tile.openstreetmap.org/*' => Http::sequence()
+                ->push($png, 200, ['Cache-Control' => 'no-store'])
+                ->push('<html>blocked</html>', 200),
+        ]);
+        $token = $this->fieldReporterToken();
+
+        $this->withToken($token)->get('/api/v1/mobile/map-tiles/15/100/100.png')->assertOk();
+        $this->assertNull(Cache::get('mobile-map-tile:v2:15:100:100'));
+
+        $this->withToken($token)
+            ->get('/api/v1/mobile/map-tiles/15/100/100.png')
+            ->assertStatus(502);
+        $this->assertNull(Cache::get('mobile-map-tile:v2:15:100:100'));
+    }
+
+    public function test_matching_if_none_match_returns_304_without_a_body(): void
+    {
+        $png = "\x89PNG\r\n\x1a\nfixture";
+        Http::fake(['https://tile.openstreetmap.org/*' => Http::response($png, 200)]);
+        $token = $this->fieldReporterToken();
+
+        $etag = $this->withToken($token)
+            ->get('/api/v1/mobile/map-tiles/15/100/100.png')
+            ->assertOk()
+            ->headers->get('ETag');
+
+        $this->withToken($token)
+            ->withHeaders(['If-None-Match' => $etag])
+            ->get('/api/v1/mobile/map-tiles/15/100/100.png')
+            ->assertStatus(304);
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     private function fieldReporterToken(): string
