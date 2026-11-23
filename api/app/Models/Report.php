@@ -86,6 +86,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'review_claimed_by_id',
     'review_claimed_at',
     'review_claim_expires_at',
+    'review_handoff_note',
+    'review_handoff_by_id',
+    'review_handoff_at',
     'canonical_report_id',
 ])]
 class Report extends Model
@@ -655,6 +658,32 @@ class Report extends Model
         return $this->belongsTo(User::class, 'review_claimed_by_id');
     }
 
+    public function reviewHandoffBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'review_handoff_by_id');
+    }
+
+    /**
+     * The note a reviewer left when they stepped away, until the next review
+     * is saved.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function reviewHandoffPayload(): ?array
+    {
+        if ($this->review_handoff_at === null) {
+            return null;
+        }
+
+        $author = $this->reviewHandoffBy;
+
+        return [
+            'note' => $this->review_handoff_note,
+            'by' => $author ? ['uuid' => $author->uuid, 'name' => $author->name] : null,
+            'at' => $this->review_handoff_at->utc()->toISOString(),
+        ];
+    }
+
     /** True while someone other than $user holds an unexpired review claim. */
     public function reviewClaimedByAnother(User $user): bool
     {
@@ -891,6 +920,7 @@ class Report extends Model
             'lock_version' => 'integer',
             'review_claimed_at' => 'immutable_datetime',
             'review_claim_expires_at' => 'immutable_datetime',
+            'review_handoff_at' => 'immutable_datetime',
         ];
     }
 }

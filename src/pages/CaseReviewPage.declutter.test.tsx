@@ -21,7 +21,7 @@ import {
 import { CaseReviewPage } from "./CaseReviewPage";
 
 vi.mock("../hooks/useReviewClaim", () => ({
-  useReviewClaim: () => ({ refused: false, takeOver: () => Promise.resolve() }),
+  useReviewClaim: () => ({ refused: false, takeOver: () => Promise.resolve(), release: () => Promise.resolve() }),
 }));
 vi.mock("../hooks/useReports", () => ({
   useAdvisories: vi.fn(),

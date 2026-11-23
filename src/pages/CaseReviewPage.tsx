@@ -11,7 +11,7 @@ import {
   Map as MapIcon,
   MoreHorizontal,
 } from "lucide-react";
-import { Link, useLocation, useParams } from "react-router";
+import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { ZodError } from "zod";
 import { routes } from "../app/routes";
 import { ApiError } from "../api/ApiError";
@@ -22,6 +22,7 @@ import { AerialCheckCard } from "../components/reports/AerialCheckCard";
 import { AffectedFieldLinkage } from "../components/reports/AffectedFieldLinkage";
 import { CollapsedTool, EvidenceTabs, type EvidenceTab } from "../components/reports/EvidenceTabs";
 import { ReviewDecisionForm } from "../components/reports/ReviewDecisionForm";
+import { ReviewHandoffPanel } from "../components/reports/ReviewHandoffPanel";
 import { returnLinkLabel, reviewQueueContext } from "../components/reports/reviewQueueContext";
 import { OfflineHandoffNotes } from "../components/reports/OfflineHandoffNotes";
 import { HistoricalReferralPanel } from "../components/reports/HistoricalReferralPanel";
@@ -470,6 +471,7 @@ function CaseReviewContent() {
   const reviewClaim = useReviewClaim(report?.uuid, report !== undefined && report !== null);
   const claimHolder = report?.reviewClaim && !report.reviewClaim.heldByMe ? report.reviewClaim : null;
   const reviewLocked = reviewClaim.refused;
+  const navigate = useNavigate();
   const possibleMatches = possibleMatchesQuery.data?.matches ?? [];
   const lifecycle = report ? report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus) : undefined;
   const workflowStatus = report ? deriveWorkflowStatus(report) : undefined;
@@ -1072,6 +1074,24 @@ function CaseReviewContent() {
               Take over
             </Button>
           ) : null}
+        </div>
+      ) : null}
+
+      {!reviewLocked ? (
+        <div className="review-handoff">
+          {report.reviewHandoff ? (
+            <div className="detail-refresh-warning" role="status" data-testid="review-handoff-banner">
+              <span>
+                {`${report.reviewHandoff.by?.name ?? "A reviewer"} stepped away at ${formatClockTime(report.reviewHandoff.at)}${report.reviewHandoff.note ? `: ${report.reviewHandoff.note}` : "."}`}
+              </span>
+            </div>
+          ) : null}
+          <ReviewHandoffPanel
+            onRelease={async (note) => {
+              await reviewClaim.release(note);
+              navigate(queueContext?.returnTo ?? routes.reports);
+            }}
+          />
         </div>
       ) : null}
 

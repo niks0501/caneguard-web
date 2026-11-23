@@ -51,5 +51,13 @@ export function useReviewClaim(reportId: string | undefined, enabled: boolean) {
     };
   }, [reportId, enabled, claim]);
 
-  return { refused, takeOver: () => claim(true) };
+  /** Step away on purpose: free the case now, optionally leaving a note. */
+  const release = useCallback(async (note?: string) => {
+    if (!reportId) return;
+    await reportsRepository.releaseReview(reportId, note);
+    // Released: the unmount cleanup must not release (or overwrite) again.
+    held.current = false;
+  }, [reportId]);
+
+  return { refused, takeOver: () => claim(true), release };
 }

@@ -202,9 +202,10 @@ export class ApiReportsRepository implements ReportsRepository {
     }
   }
 
-  async releaseReview(reportId: string): Promise<void> {
+  async releaseReview(reportId: string, note?: string): Promise<void> {
     await this.client.delete(
       `/api/v1/reports/${encodeURIComponent(reportId)}/review-claim`,
+      note?.trim() ? { data: { note: note.trim() } } : undefined,
     );
   }
 

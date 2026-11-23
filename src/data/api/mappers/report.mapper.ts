@@ -484,6 +484,7 @@ export function mapReportDetail(
           heldByMe: dto.review_claim.held_by_me,
         }
       : null,
+    reviewHandoff: dto.review_handoff ?? null,
     updatedAt: dto.updated_at,
   };
 }

@@ -72,6 +72,17 @@ describe("useReviewClaim", () => {
     expect(result.current.refused).toBe(false);
   });
 
+  it("steps away with a note and does not release a second time on leave", async () => {
+    const { result, unmount } = setup();
+    await act(async () => {});
+
+    await act(async () => { await result.current.release("Pick up at the advisory."); });
+    expect(reportsRepository.releaseReview).toHaveBeenCalledWith("r1", "Pick up at the advisory.");
+
+    unmount();
+    expect(reportsRepository.releaseReview).toHaveBeenCalledTimes(1);
+  });
+
   it("does nothing until enabled", async () => {
     setup("r1", false);
     await act(async () => {});

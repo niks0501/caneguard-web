@@ -217,7 +217,7 @@ beforeEach(() => {
   vi.mocked(useUpdateReportAffectedFields).mockReturnValue(mutationResult() as unknown as ReturnType<typeof useUpdateReportAffectedFields>);
   vi.mocked(usePossibleRecentMatches).mockReturnValue(possibleMatchesResult());
   vi.mocked(useReport).mockReturnValue(queryResult());
-  vi.mocked(useReviewClaim).mockReturnValue({ refused: false, takeOver: () => Promise.resolve() });
+  vi.mocked(useReviewClaim).mockReturnValue({ refused: false, takeOver: () => Promise.resolve(), release: () => Promise.resolve() });
   vi.mocked(useReports).mockReturnValue(reportsListResult());
   vi.mocked(useLinkDuplicateReport).mockReturnValue(duplicateMutationResult());
   vi.mocked(useUnlinkDuplicateReport).mockReturnValue(duplicateUnlinkMutationResult());
@@ -226,7 +226,7 @@ beforeEach(() => {
 
 describe("CaseReviewPage", () => {
   it("names the other reviewer and makes the decision form inert while they hold the case", () => {
-    vi.mocked(useReviewClaim).mockReturnValue({ refused: true, takeOver: () => Promise.resolve() });
+    vi.mocked(useReviewClaim).mockReturnValue({ refused: true, takeOver: () => Promise.resolve(), release: () => Promise.resolve() });
     vi.mocked(useReport).mockReturnValue(queryResult({ data: { ...report, reviewClaim: {
       claimedBy: { uuid: "u2", name: "Maria Reviewer" }, claimedAt: "2026-11-23T06:14:00.000Z",
       expiresAt: "2026-11-23T06:19:00.000Z", heldByMe: false,
@@ -235,6 +235,35 @@ describe("CaseReviewPage", () => {
     expect(screen.getByTestId("review-claim-banner")).toHaveTextContent("Being reviewed by Maria Reviewer since 2:14 PM");
     expect(document.getElementById("review-decision")).toHaveAttribute("inert");
     expect(screen.queryByRole("button", { name: "Take over" })).not.toBeInTheDocument();
+  });
+
+  it("shows the previous reviewer's handoff note and lets the holder step away with their own", async () => {
+    const release = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useReviewClaim).mockReturnValue({ refused: false, takeOver: () => Promise.resolve(), release });
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: { ...report, reviewHandoff: {
+      note: "Photos checked.", by: { uuid: "u2", name: "Maria Reviewer" }, at: "2026-11-23T06:14:00.000Z",
+    } } }));
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={[{ pathname: `/reports/${report.uuid}`, state: { reviewQueue: {
+      returnTo: "/reports", filters: {}, remainingIds: [], reviewedIds: [],
+    } } }]}><Routes>
+      <Route path={`/reports/${report.uuid}`} element={<CaseReviewPage />} />
+      <Route path="/reports" element={<output data-testid="left-case">queue</output>} />
+    </Routes></MemoryRouter>);
+
+    expect(screen.getByTestId("review-handoff-banner")).toHaveTextContent("Maria Reviewer stepped away at 2:14 PM: Photos checked.");
+    await user.click(screen.getByRole("button", { name: "Step away" }));
+    await user.type(screen.getByLabelText("Note for the next reviewer"), "Waiting on the field contact.");
+    await user.click(screen.getByRole("button", { name: "Release case" }));
+
+    expect(release).toHaveBeenCalledWith("Waiting on the field contact.");
+    expect(await screen.findByTestId("left-case")).toBeInTheDocument();
+  });
+
+  it("offers no step-away control to a reviewer who is locked out", () => {
+    vi.mocked(useReviewClaim).mockReturnValue({ refused: true, takeOver: () => Promise.resolve(), release: () => Promise.resolve() });
+    renderPage();
+    expect(screen.queryByRole("button", { name: "Step away" })).not.toBeInTheDocument();
   });
 
   it("leaves the decision form usable when nobody else holds the case", () => {

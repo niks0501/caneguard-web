@@ -37,7 +37,8 @@ class ReportReviewClaimController extends Controller
     public function destroy(Request $request, Report $report, ManageReviewClaim $claims): JsonResponse
     {
         $this->authorize('review', $report);
-        $claims->release($report, $request->user());
+        $data = $request->validate(['note' => ['nullable', 'string', 'max:500']]);
+        $claims->release($report, $request->user(), $data['note'] ?? null);
 
         return response()->json(['data' => null]);
     }

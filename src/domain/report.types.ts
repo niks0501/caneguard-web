@@ -402,6 +402,8 @@ export interface DiseaseReport {
   reviewVersion?: number;
   /** Active review lease; absent or null when nobody is reviewing the case. */
   reviewClaim?: ReviewClaim | null;
+  /** Note left by a reviewer who stepped away, until the next review is saved. */
+  reviewHandoff?: ReviewHandoff | null;
   updatedAt?: string;
   metadataCorrectionAudits?: ReportAudit[];
   canonicalLinkage?: CanonicalCaseLink;
@@ -512,4 +514,10 @@ export interface ReviewClaim {
   claimedAt: string | null;
   expiresAt: string;
   heldByMe: boolean;
+}
+
+export interface ReviewHandoff {
+  note: string | null;
+  by: { uuid: string; name: string } | null;
+  at: string;
 }

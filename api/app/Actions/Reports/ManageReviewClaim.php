@@ -57,18 +57,31 @@ class ManageReviewClaim
         });
     }
 
-    /** Release only the caller's own claim; releasing someone else's is a no-op. */
-    public function release(Report $report, User $actor): Report
+    /**
+     * Release only the caller's own claim; releasing someone else's is a no-op.
+     * A note, when given, is kept for whoever continues the case. Leaving
+     * without one (closing the tab) keeps any earlier handoff note.
+     */
+    public function release(Report $report, User $actor, ?string $note = null): Report
     {
-        return DB::transaction(function () use ($report, $actor): Report {
+        return DB::transaction(function () use ($report, $actor, $note): Report {
             $locked = Report::query()->lockForUpdate()->findOrFail($report->getKey());
 
             if ((int) $locked->review_claimed_by_id === (int) $actor->getKey()) {
-                $locked->forceFill([
+                $update = [
                     'review_claimed_by_id' => null,
                     'review_claimed_at' => null,
                     'review_claim_expires_at' => null,
-                ])->saveQuietly();
+                ];
+                $note = trim((string) $note);
+                if ($note !== '') {
+                    $update += [
+                        'review_handoff_note' => $note,
+                        'review_handoff_by_id' => $actor->getKey(),
+                        'review_handoff_at' => now()->utc(),
+                    ];
+                }
+                $locked->forceFill($update)->saveQuietly();
             }
 
             return $locked;

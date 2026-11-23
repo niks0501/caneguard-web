@@ -554,6 +554,11 @@ export const reportDetailSchema = z.object({
     expires_at: z.iso.datetime({ offset: true }),
     held_by_me: z.boolean(),
   }).nullable().optional(),
+  review_handoff: z.object({
+    note: z.string().nullable(),
+    by: z.object({ uuid: z.string(), name: z.string() }).nullable(),
+    at: z.iso.datetime({ offset: true }),
+  }).nullable().optional(),
   updated_at: z.iso.datetime({ offset: true }),
 });
 

@@ -28,8 +28,11 @@ export interface ReportsRepository {
    * it; the caller re-reads the case to learn who. Admins may pass takeover.
    */
   claimReview(reportId: string, options?: { takeover?: boolean }): Promise<boolean>;
-  /** Release the caller's own lease; a no-op for anyone else's. */
-  releaseReview(reportId: string): Promise<void>;
+  /**
+   * Release the caller's own lease; a no-op for anyone else's. A note is kept
+   * for whoever continues the case.
+   */
+  releaseReview(reportId: string, note?: string): Promise<void>;
   getPossibleRecentMatches(reportId: string): Promise<PossibleRecentMatches>;
   updateReview(
     reportId: string,

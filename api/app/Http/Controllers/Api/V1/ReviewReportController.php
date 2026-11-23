@@ -183,6 +183,10 @@ class ReviewReportController extends Controller
             $reviewUpdate['first_reviewed_at'] = $locked->first_reviewed_at
                 ?? $reviewUpdate['reviewed_at'];
             $reviewUpdate['lock_version'] = $locked->lock_version + 1;
+            // A saved review picks the case up where the handoff left it.
+            $reviewUpdate['review_handoff_note'] = null;
+            $reviewUpdate['review_handoff_by_id'] = null;
+            $reviewUpdate['review_handoff_at'] = null;
 
             $this->applyMetadataCorrections(
                 $locked,
