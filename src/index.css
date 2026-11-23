@@ -1989,6 +1989,29 @@ blockquote {
   text-align: right;
 }
 
+.review-handoff {
+  display: grid;
+  gap: 9px;
+  justify-items: start;
+  margin: 0 0 12px;
+}
+
+.review-handoff-panel {
+  display: grid;
+  gap: 9px;
+  width: min(100%, 32rem);
+}
+
+.review-handoff-panel label {
+  display: grid;
+  gap: 6px;
+}
+
+.review-handoff-panel__actions {
+  display: flex;
+  gap: 9px;
+}
+
 .review-conflict {
   display: grid;
   gap: 9px;

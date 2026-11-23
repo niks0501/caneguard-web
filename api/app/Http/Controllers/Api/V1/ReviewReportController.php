@@ -40,6 +40,10 @@ class ReviewReportController extends Controller
                 ->lockForUpdate()
                 ->findOrFail($report->getKey());
 
+            // 423 is distinct from the 409 version conflict: the case is
+            // not stale, another reviewer holds it right now.
+            abort_if($locked->reviewClaimedByAnother($request->user()), 423, 'This case is being reviewed by another reviewer.');
+
             abort_unless(
                 $locked->lock_version === $data['expected_version'],
                 409,
@@ -179,6 +183,10 @@ class ReviewReportController extends Controller
             $reviewUpdate['first_reviewed_at'] = $locked->first_reviewed_at
                 ?? $reviewUpdate['reviewed_at'];
             $reviewUpdate['lock_version'] = $locked->lock_version + 1;
+            // A saved review picks the case up where the handoff left it.
+            $reviewUpdate['review_handoff_note'] = null;
+            $reviewUpdate['review_handoff_by_id'] = null;
+            $reviewUpdate['review_handoff_at'] = null;
 
             $this->applyMetadataCorrections(
                 $locked,

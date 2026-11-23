@@ -188,6 +188,27 @@ export class ApiReportsRepository implements ReportsRepository {
     return { firstReviewedAt: parsed.data.first_reviewed_at };
   }
 
+  async claimReview(reportId: string, options: { takeover?: boolean } = {}): Promise<boolean> {
+    try {
+      await this.client.post(
+        `/api/v1/reports/${encodeURIComponent(reportId)}/review-claim`,
+        options.takeover ? { takeover: true } : {},
+      );
+      return true;
+    } catch (error) {
+      // 423 Locked: another reviewer holds the case right now.
+      if (error instanceof ApiError && error.status === 423) return false;
+      throw error;
+    }
+  }
+
+  async releaseReview(reportId: string, note?: string): Promise<void> {
+    await this.client.delete(
+      `/api/v1/reports/${encodeURIComponent(reportId)}/review-claim`,
+      note?.trim() ? { data: { note: note.trim() } } : undefined,
+    );
+  }
+
   async getPossibleRecentMatches(
     reportId: string,
   ): Promise<PossibleRecentMatches> {

@@ -476,6 +476,15 @@ export function mapReportDetail(
       createdAt: event.created_at,
     })),
     reviewVersion: dto.version,
+    reviewClaim: dto.review_claim
+      ? {
+          claimedBy: dto.review_claim.claimed_by,
+          claimedAt: dto.review_claim.claimed_at,
+          expiresAt: dto.review_claim.expires_at,
+          heldByMe: dto.review_claim.held_by_me,
+        }
+      : null,
+    reviewHandoff: dto.review_handoff ?? null,
     updatedAt: dto.updated_at,
   };
 }
