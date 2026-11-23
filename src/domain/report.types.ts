@@ -400,6 +400,8 @@ export interface DiseaseReport {
   reviewedBy?: string;
   reviewedAt?: string;
   reviewVersion?: number;
+  /** Active review lease; absent or null when nobody is reviewing the case. */
+  reviewClaim?: ReviewClaim | null;
   updatedAt?: string;
   metadataCorrectionAudits?: ReportAudit[];
   canonicalLinkage?: CanonicalCaseLink;
@@ -502,4 +504,12 @@ export interface AerialAnalysis {
   modelVersion: string;
   uploadedBy: { uuid: string; name: string };
   createdAt: string;
+}
+
+/** A short review lease that tells other reviewers who is working on a case. */
+export interface ReviewClaim {
+  claimedBy: { uuid: string; name: string } | null;
+  claimedAt: string | null;
+  expiresAt: string;
+  heldByMe: boolean;
 }

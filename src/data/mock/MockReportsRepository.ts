@@ -237,6 +237,12 @@ export class MockReportsRepository implements ReportsRepository {
     return report ? cloneMockReport(report) : null;
   }
 
+  async claimReview(): Promise<boolean> {
+    return true;
+  }
+
+  async releaseReview(): Promise<void> {}
+
   async openCase(reportId: string): Promise<{ firstReviewedAt: string | null }> {
     const report = this.reports.find((item) => item.uuid === reportId);
     if (!report) throw new Error(`Report ${reportId} was not found.`);

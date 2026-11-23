@@ -548,6 +548,12 @@ export const reportDetailSchema = z.object({
   consults: z.array(reportConsultSchema).optional(),
   review_events: z.array(reportReviewEventSchema).optional(),
   version: z.number().int().nonnegative(),
+  review_claim: z.object({
+    claimed_by: z.object({ uuid: z.string(), name: z.string() }).nullable(),
+    claimed_at: z.iso.datetime({ offset: true }).nullable(),
+    expires_at: z.iso.datetime({ offset: true }),
+    held_by_me: z.boolean(),
+  }).nullable().optional(),
   updated_at: z.iso.datetime({ offset: true }),
 });
 

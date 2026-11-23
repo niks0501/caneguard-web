@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import "../styles/report-evidence-review.css";
 import {
   ArrowLeft,
@@ -67,7 +67,9 @@ import {
   useReport,
   useUpdateReportReview,
 } from "../hooks/useReports";
-import { formatCalendarDate, formatDate, formatDateTime } from "../lib/formatters";
+import { formatCalendarDate, formatClockTime, formatDate, formatDateTime } from "../lib/formatters";
+import { AuthContext } from "../auth/auth.context";
+import { useReviewClaim } from "../hooks/useReviewClaim";
 
 type MetadataDraft = {
   barangay: string;
@@ -464,6 +466,10 @@ function CaseReviewContent() {
   const { mutate: openCase } = openCaseMutation;
   const openedCaseIds = useRef<Set<string>>(new Set());
   const report = reportQuery.data;
+  const isAdmin = use(AuthContext)?.user?.role === "admin";
+  const reviewClaim = useReviewClaim(report?.uuid, report !== undefined && report !== null);
+  const claimHolder = report?.reviewClaim && !report.reviewClaim.heldByMe ? report.reviewClaim : null;
+  const reviewLocked = reviewClaim.refused;
   const possibleMatches = possibleMatchesQuery.data?.matches ?? [];
   const lifecycle = report ? report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus) : undefined;
   const workflowStatus = report ? deriveWorkflowStatus(report) : undefined;
@@ -1054,6 +1060,21 @@ function CaseReviewContent() {
         </div>
       ) : null}
 
+      {reviewLocked ? (
+        <div className="detail-refresh-warning" role="status" data-testid="review-claim-banner">
+          <span>
+            {claimHolder?.claimedBy
+              ? `Being reviewed by ${claimHolder.claimedBy.name}${claimHolder.claimedAt ? ` since ${formatClockTime(claimHolder.claimedAt)}` : ""}. This case is read-only until they finish.`
+              : "Another reviewer is reviewing this case. It is read-only until they finish."}
+          </span>
+          {isAdmin ? (
+            <Button type="button" variant="secondary" onClick={() => void reviewClaim.takeOver()}>
+              Take over
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
       {/* 1. Case cautions */}
       <section className="review-status-chips" aria-label="Case cautions">
         {cautions.length > 0 ? (
@@ -1102,7 +1123,7 @@ function CaseReviewContent() {
                   </section>
                 ) : null}
 
-        <ReviewDecisionForm key={report.uuid} report={report} onRefresh={() => reportQuery.refetch()} />
+        <ReviewDecisionForm key={report.uuid} report={report} locked={reviewLocked} onRefresh={() => reportQuery.refetch()} />
 
         <HistoricalReferralPanel report={report} />
         <OfflineHandoffNotes report={report} />

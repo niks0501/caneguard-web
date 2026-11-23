@@ -40,6 +40,7 @@ use App\Http\Controllers\Api\V1\ReportExportController;
 use App\Http\Controllers\Api\V1\ReportHandoffNoteController;
 use App\Http\Controllers\Api\V1\ReportImageController;
 use App\Http\Controllers\Api\V1\ReportPossibleMatchesController;
+use App\Http\Controllers\Api\V1\ReportReviewClaimController;
 use App\Http\Controllers\Api\V1\ReviewReportController;
 use App\Http\Controllers\Api\V1\UpdateReportAffectedFieldsController;
 use App\Http\Controllers\Api\V1\WebAccountsController;
@@ -184,6 +185,10 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'access.identity', 'verified'])
         Route::put('/reports/{report}/affected-fields', UpdateReportAffectedFieldsController::class)
             ->name('api.v1.reports.affected-fields.update');
         Route::patch('/reports/{report}/review', ReviewReportController::class);
+        Route::post('/reports/{report}/review-claim', [ReportReviewClaimController::class, 'store'])
+            ->name('api.v1.reports.review-claim.store');
+        Route::delete('/reports/{report}/review-claim', [ReportReviewClaimController::class, 'destroy'])
+            ->name('api.v1.reports.review-claim.destroy');
         Route::post('/reports/{report}/open', OpenReportController::class)
             ->name('api.v1.reports.open');
         Route::post('/reports/{report}/handoff-notes', ReportHandoffNoteController::class);

@@ -52,8 +52,10 @@ const actions: { value: NextAction; label: string; consequence: string; icon: Lu
   { value: "close", icon: CircleCheckBig, label: "No Further Action", consequence: "The case is closed." },
 ];
 
-export function ReviewDecisionForm({ report, onRefresh }: {
+export function ReviewDecisionForm({ report, onRefresh, locked = false }: {
   report: DiseaseReport;
+  /** Another reviewer holds the case: keep the form visible but inert. */
+  locked?: boolean;
   onRefresh: () => Promise<{ data?: DiseaseReport | null; isError?: boolean }> | void;
 }) {
   const [reconciledReport, setReconciledReport] = useState<DiseaseReport | null>(null);
@@ -435,7 +437,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
     finally { setNextPending(false); }
   };
 
-  return <form ref={formRef} id="review-decision" data-state={formState} data-error-kind={formErrorKind} tabIndex={-1} aria-label="Report Evidence Review" className="review-decision-flow" noValidate onSubmit={(event) => { event.preventDefault(); if (step === "review") void confirm(); }}>
+  return <form ref={formRef} id="review-decision" inert={locked || undefined} data-locked={locked || undefined} data-state={formState} data-error-kind={formErrorKind} tabIndex={-1} aria-label="Report Evidence Review" className="review-decision-flow" noValidate onSubmit={(event) => { event.preventDefault(); if (step === "review") void confirm(); }}>
     {step === "action" ? <>
     <section className="review-card" aria-labelledby="choose-action-heading">
       <h2 id="choose-action-heading" ref={headingRef} tabIndex={-1}>Choose Action</h2>
@@ -570,7 +572,7 @@ export function ReviewDecisionForm({ report, onRefresh }: {
           notes: "latest", inspector: "latest", targetDate: "latest",
         })}
       /> : null}
-      {apiError && !conflict ? <div role="alert" className="form-error">{apiError.status === 429 ? "Too many review attempts were received. Wait a moment before trying again." : apiError.status === 403 ? "Your account no longer has permission to review this report." : apiError.status === 422 ? Object.values(apiError.errors ?? {}).flat().join(" ") || "The server rejected this review. Check the selected action and notes before trying again." : "The review service is unavailable. No review change was confirmed."}</div> : null}
+      {apiError && !conflict ? <div role="alert" className="form-error">{apiError.status === 429 ? "Too many review attempts were received. Wait a moment before trying again." : apiError.status === 403 ? "Your account no longer has permission to review this report." : apiError.status === 423 ? "Another reviewer is reviewing this case. Your review was not saved." : apiError.status === 422 ? Object.values(apiError.errors ?? {}).flat().join(" ") || "The server rejected this review. Check the selected action and notes before trying again." : "The review service is unavailable. No review change was confirmed."}</div> : null}
       {mutation.error instanceof ZodError ? <p role="alert" className="form-error">The server returned an unexpected response. Refresh the report before trying again.</p> : mutation.isError && !apiError ? <p role="alert" className="form-error">The review service is unavailable. No review change was confirmed.</p> : null}
       {saved ? <div className="review-save-success" role="status"><p>{report.referenceCode} — Review confirmed.</p>
         {receipt ? <p>{receipt}</p> : null}

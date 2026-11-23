@@ -338,6 +338,7 @@ class ReportResource extends JsonResource
                 ])->values(),
             ),
             'version' => $this->lock_version,
+            'review_claim' => $this->resource->reviewClaimPayload($request->user()),
             'updated_at' => $this->updated_at->utc()->toISOString(),
         ];
     }
