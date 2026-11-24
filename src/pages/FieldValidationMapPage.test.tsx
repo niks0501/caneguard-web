@@ -284,7 +284,7 @@ describe("FieldValidationMapPage selection workflows", () => {
     expect(within(sidebar).getAllByText("CG-2026-0001").length).toBeGreaterThan(0);
     expect(within(sidebar).getAllByText(/Balaytigui/).length).toBeGreaterThan(0);
     expect(within(sidebar).getByText("Rust")).toBeInTheDocument();
-    expect(within(sidebar).getByText(/decision support, not a confirmed diagnosis/i)).toBeInTheDocument();
+    expect(within(sidebar).queryByText(/decision support, not a confirmed diagnosis/i)).not.toBeInTheDocument();
     expect(within(sidebar).getByText("Field visit assigned", { exact: true })).toBeInTheDocument();
     expect(within(sidebar).getByRole("list", { name: "Case progress" })).toBeInTheDocument();
     expect(within(sidebar).getByRole("link", { name: "Open Case" })).toHaveAttribute("href", "/reports/report-1");

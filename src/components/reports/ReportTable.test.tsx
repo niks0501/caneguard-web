@@ -151,20 +151,10 @@ describe("ReportTable - six queue columns", () => {
     expect(within(row).queryByText("Note")).not.toBeInTheDocument();
   });
 
-  it("renders exactly one decision-support line directly under the table", () => {
-    renderTable([report({ reviewStatus: "submitted_unverified" }), report({ uuid: "00000000-0000-4000-8000-000000000002", referenceCode: "CG-2026-0002" })]);
+  it("does not repeat a decision-support line under the table", () => {
+    renderTable([report({ reviewStatus: "submitted_unverified" })]);
 
-    const line = screen.getByText(
-      "Possible Condition is decision support, not a confirmed diagnosis.",
-    );
-    expect(
-      screen.getAllByText(
-        "Possible Condition is decision support, not a confirmed diagnosis.",
-      ),
-    ).toHaveLength(1);
-    expect(
-      screen.getByRole("table").closest(".table-scroll")?.nextElementSibling,
-    ).toBe(line);
+    expect(screen.queryByText("Possible Condition is decision support, not a confirmed diagnosis.")).not.toBeInTheDocument();
   });
 
   it("falls back to 'No farm reference'", () => {
