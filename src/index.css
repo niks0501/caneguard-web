@@ -10914,3 +10914,344 @@ input[type="checkbox"] {
     display: flex;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Modern filters and the Reports page.
+   Fields share one rounded, quiet control with a clear hover and focus state;
+   the Reports page gets real spacing between its three zones: report type,
+   settings and preview.
+   ------------------------------------------------------------------------ */
+
+/* Soft surfaces are cut from the cream page and its warm border, so they sit
+   on the page instead of reading as a separate mint layer. Green stays the
+   accent for selected and active states only. */
+:root {
+  --surface-warm: color-mix(in srgb, var(--color-page) 78%, var(--color-border));
+  --surface-warm-hover: color-mix(in srgb, var(--color-page) 62%, var(--color-border));
+}
+
+.filter-bar {
+  padding: var(--space-3) var(--space-4);
+  gap: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.select-filter,
+.search-input {
+  min-height: var(--control-height-large);
+  padding-inline: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.select-filter:hover,
+.search-input:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+}
+
+.select-filter:focus-within,
+.search-input:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+
+.select-filter:has(:focus-visible),
+.search-input:has(:focus-visible) {
+  box-shadow: var(--focus-ring);
+}
+
+.select-filter > span,
+.select-filter__label {
+  margin-bottom: 1px;
+  font-weight: 600;
+}
+
+.select-filter input[type="date"],
+.select-filter input[type="week"],
+.select-filter input[type="month"] {
+  min-height: 24px;
+}
+
+.filter-chips {
+  gap: var(--space-2);
+  padding: var(--space-2) 0 0;
+}
+
+.filter-chip {
+  min-height: 30px;
+  padding: 0 var(--space-3);
+  font-weight: 600;
+  background: var(--surface-warm);
+  border-color: var(--color-border);
+}
+
+.filter-chip:hover {
+  border-color: var(--color-primary);
+}
+
+/* Queue tabs read as one segmented control instead of loose underlined links. */
+.queue-tabs {
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface-warm);
+  border-radius: var(--radius-md);
+}
+
+.queue-tabs__tab {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.queue-tabs__tab:hover {
+  background: var(--surface-warm-hover);
+}
+
+.queue-tabs__tab[aria-selected="true"] {
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px rgba(29, 39, 32, 0.14);
+}
+
+/* The Filters side panel: roomier, with a sticky title. */
+.queue-filters-panel {
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+
+.queue-filters-panel__header {
+  padding: var(--space-4) var(--space-5);
+}
+
+.queue-filters-panel__body {
+  padding: var(--space-5);
+}
+
+.queue-filters-panel__fields {
+  gap: var(--space-3);
+}
+
+.field-validation-filter-bar {
+  align-items: end;
+  gap: var(--space-3);
+}
+
+.field-validation-filter-bar__more summary {
+  padding: 0 var(--space-3);
+  background: var(--surface-warm);
+  border-radius: var(--radius-md);
+}
+
+/* Reports page ------------------------------------------------------------ */
+
+.reports-page {
+  display: grid;
+  gap: var(--space-6);
+  align-content: start;
+}
+
+.reports-page > .page-header {
+  margin-bottom: 0;
+}
+
+.report-entries {
+  gap: var(--space-4);
+}
+
+.report-entries__item {
+  min-height: 64px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+}
+
+.report-builder__page-section,
+.report-builder__official {
+  gap: var(--space-6);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-surface);
+}
+
+.report-builder__page-section > h2,
+.report-builder__official > h2 {
+  font-family: var(--font-heading);
+  color: var(--color-primary-dark);
+  letter-spacing: -0.02em;
+}
+
+/* Fields sit on the section itself; no boxes inside the box. */
+.report-builder__page-section .report-builder__controls,
+.report-builder__more .report-builder__controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: var(--space-4);
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.report-builder__controls label,
+.report-builder__official label {
+  display: grid;
+  gap: 6px;
+  max-width: none;
+  color: var(--color-secondary-text);
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+
+.report-builder__controls input:not([type="checkbox"]),
+.report-builder__controls select,
+.report-builder__official input {
+  min-height: var(--control-height);
+  width: 100%;
+  padding: 0 var(--space-3);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.report-builder__official input {
+  max-width: 260px;
+}
+
+.report-builder__controls input:not([type="checkbox"]):hover,
+.report-builder__controls select:hover,
+.report-builder__official input:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+}
+
+.report-builder__controls input:not([type="checkbox"]):focus-visible,
+.report-builder__controls select:focus-visible,
+.report-builder__official input:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
+}
+
+.report-builder__page-section .report-builder__more {
+  padding: 0;
+  border: 0;
+}
+
+.report-builder__more > summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  color: var(--color-primary-dark);
+  background: var(--surface-warm);
+  border-radius: var(--radius-md);
+}
+
+.report-builder__more[open] > summary {
+  margin-bottom: var(--space-4);
+}
+
+.report-builder__page-section .report-builder__scope {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-warm);
+  border: 0;
+  border-radius: var(--radius-md);
+}
+
+.report-builder__scope p {
+  margin: 0;
+  color: var(--color-primary-dark);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+}
+
+.report-builder__page-section .report-builder__actions {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: var(--space-3);
+}
+
+.report-builder__page-section .report-builder__preview {
+  padding: var(--space-5);
+  background: var(--surface-warm);
+  border-radius: var(--radius-lg);
+}
+
+.report-builder__page-section .report-builder__preview iframe {
+  min-height: min(72vh, 760px);
+  border-radius: var(--radius-md);
+}
+
+.report-builder__official .report-builder__weekly {
+  display: grid;
+  gap: var(--space-4);
+  border: 0;
+  background: transparent;
+}
+
+.report-builder__weekly h3,
+.report-builder__weekly > p {
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .reports-page {
+    gap: var(--space-5);
+  }
+
+  .report-builder__page-section,
+  .report-builder__official {
+    gap: var(--space-5);
+    padding: var(--space-4);
+  }
+
+  .report-builder__page-section .report-builder__controls,
+  .report-builder__more .report-builder__controls {
+    grid-template-columns: 1fr;
+  }
+
+  .report-builder__official input {
+    max-width: none;
+  }
+
+  .queue-filters-panel {
+    border-radius: 0;
+  }
+}
+
+.report-entries__item svg {
+  background: var(--surface-warm);
+}
+
+.report-entries__item[aria-pressed="true"] {
+  background: var(--color-surface);
+}
+
+.report-entries__item[aria-pressed="true"] svg {
+  background: var(--color-primary);
+}
+
+/* On a dark card the tone is lifted from the card, not cut from the page. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface-warm: var(--color-surface-soft);
+    --surface-warm-hover: color-mix(in srgb, var(--color-surface-soft) 80%, var(--color-text));
+  }
+}
+
+:root[data-theme="dark"] {
+  --surface-warm: var(--color-surface-soft);
+  --surface-warm-hover: color-mix(in srgb, var(--color-surface-soft) 80%, var(--color-text));
+}

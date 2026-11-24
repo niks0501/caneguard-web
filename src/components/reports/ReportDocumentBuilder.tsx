@@ -336,7 +336,7 @@ export function ReportDocumentBuilder({
 
       <div className="report-builder__scope" aria-label="Printable report scope">
         <p>
-          <strong>Scope:</strong> {printableScopeSummary(state.filters, periodLabel(state))} · all matching cases in this period
+          {printableScopeSummary(state.filters, periodLabel(state))}
         </p>
         {scope.removed.length > 0 ? (
           <p role="status">Not carried into this document: {scope.removed.join(", ")}.</p>
