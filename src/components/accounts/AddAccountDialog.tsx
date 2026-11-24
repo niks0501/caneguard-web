@@ -4,6 +4,7 @@ import { ApiError } from "../../api/ApiError";
 import { createAccount, newAccountRoles } from "../../services/accountsAdmin.api";
 import type { NewAccountRole } from "../../services/accountsAdmin.api";
 import { Button } from "../ui/Button";
+import { PasswordInput } from "../ui/FormControls";
 import { Modal } from "../ui/Modal";
 
 const emptyForm = { name: "", email: "", role: "reviewer" as NewAccountRole, password: "" };
@@ -68,7 +69,7 @@ export function AddAccountDialog({ onCreated }: { onCreated: (notice: string) =>
           </select>
         </label>
         <label className="settings-field"><span>Your current password</span>
-          <input type="password" autoComplete="current-password" value={form.password} required maxLength={255} disabled={pending} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} onChange={event => update({ password: event.target.value })} />
+          <PasswordInput autoComplete="current-password" value={form.password} required maxLength={255} disabled={pending} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} onChange={event => update({ password: event.target.value })} />
         </label>
         <div className="accounts-actions">
           <Button type="button" variant="secondary" disabled={pending} onClick={close}>Cancel</Button>

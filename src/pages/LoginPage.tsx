@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Eye, EyeOff, LockKeyhole } from "lucide-react";
+import { LockKeyhole } from "lucide-react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router";
 import caneGuardLogoFlat from "../assets/brand/CaneGuard_logo_flat.svg";
 import caneGuardLogoFlatOnDark from "../assets/brand/CaneGuard_logo_flat_onDark.svg";
@@ -9,6 +9,7 @@ import { routes } from "../app/routes";
 import { WebRoleError } from "../auth/auth.api";
 import { useAuth } from "../auth/useAuth";
 import { Button } from "../components/ui/Button";
+import { PasswordInput } from "../components/ui/FormControls";
 import { LoadingState } from "../components/ui/States";
 import { useTheme } from "../theme/useTheme";
 
@@ -42,7 +43,6 @@ export function LoginPage() {
   }, []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [requiresVerification, setRequiresVerification] = useState(false);
@@ -192,25 +192,15 @@ export function LoginPage() {
           </label>
           <label htmlFor="password">
             <span>Password</span>
-            <span className="password-input">
-              <LockKeyhole aria-hidden="true" />
-              <input
-                autoComplete="current-password"
-                id="password"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-              />
-              <button
-                type="button"
-                aria-label={showPassword ? "Hide password" : "Show password"}
-                onClick={() => setShowPassword((current) => !current)}
-              >
-                {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
-              </button>
-            </span>
+            <PasswordInput
+              icon={<LockKeyhole aria-hidden="true" />}
+              autoComplete="current-password"
+              id="password"
+              name="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
           </label>
           <div className="login-form__actions">
             <Link className="auth-inline-link" to={routes.forgotPassword}>

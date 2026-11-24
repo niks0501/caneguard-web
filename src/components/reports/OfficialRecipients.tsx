@@ -6,6 +6,7 @@ import { toApiError } from "../../api/ApiError";
 import { env } from "../../config/env";
 import { formatDateTime } from "../../lib/formatters";
 import { Button } from "../ui/Button";
+import { PasswordInput } from "../ui/FormControls";
 
 const schema = z.object({
   data: z.array(z.object({
@@ -40,7 +41,7 @@ function RecipientForm({ onSave, busy }: { onSave: (input: RecipientInput) => vo
   }}>
     <label className="settings-field"><span>Recipient emails</span><textarea value={text} rows={3} required onChange={(event) => setText(event.target.value)} /></label>
     <label className="settings-field"><span>Office decision reference</span><input value={reference} maxLength={160} required onChange={(event) => setReference(event.target.value)} /></label>
-    <label className="settings-field"><span>Current password</span><input type="password" autoComplete="current-password" value={password} required onChange={(event) => setPassword(event.target.value)} /></label>
+    <label className="settings-field"><span>Current password</span><PasswordInput autoComplete="current-password" value={password} required onChange={(event) => setPassword(event.target.value)} /></label>
     {problem ? <p role="alert">{problem}</p> : null}
     <div className="settings-form__actions"><Button type="submit" disabled={busy}>{busy ? "Replacing recipients..." : "Replace recipients"}</Button></div>
   </form>;

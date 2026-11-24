@@ -6,6 +6,7 @@ import { resetPasswordRequest } from "../auth/auth.api";
 import type { PasswordResetCredentials } from "../auth/auth.types";
 import { routes } from "../app/routes";
 import { Button } from "../components/ui/Button";
+import { PasswordInput } from "../components/ui/FormControls";
 import { AuthPageFrame } from "./AuthPageFrame";
 
 export function ResetPasswordPage() {
@@ -90,10 +91,9 @@ export function ResetPasswordPage() {
           </label>
           <label>
             <span>New password</span>
-            <input
+            <PasswordInput
               autoComplete="new-password"
               name="password"
-              type="password"
               value={form.password}
               minLength={15}
               maxLength={128}
@@ -103,10 +103,9 @@ export function ResetPasswordPage() {
           </label>
           <label>
             <span>Confirm password</span>
-            <input
+            <PasswordInput
               autoComplete="new-password"
               name="password_confirmation"
-              type="password"
               value={form.password_confirmation ?? ""}
               minLength={15}
               maxLength={128}

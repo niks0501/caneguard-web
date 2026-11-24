@@ -15,6 +15,7 @@ import { ApiError } from "../api/ApiError";
 import { useAuth } from "../auth/useAuth";
 import { DetailField, PageContent, PageHeader } from "../components/layout/Page";
 import { Button } from "../components/ui/Button";
+import { PasswordInput } from "../components/ui/FormControls";
 import { LoadingState } from "../components/ui/States";
 import { formatDateTime } from "../lib/formatters";
 import { ThemeChoice } from "../theme/ThemeChoice";
@@ -251,8 +252,7 @@ export function SettingsPage() {
             <form onSubmit={handlePasswordSubmit} className="settings-form">
               <label className="settings-field">
                 <span>Current password</span>
-                <input
-                  type="password"
+                <PasswordInput
                   autoComplete="current-password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
@@ -263,8 +263,7 @@ export function SettingsPage() {
               <div className="settings-field-row">
                 <label className="settings-field">
                   <span>New password</span>
-                  <input
-                    type="password"
+                  <PasswordInput
                     autoComplete="new-password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
@@ -275,8 +274,7 @@ export function SettingsPage() {
 
                 <label className="settings-field">
                   <span>Confirm new password</span>
-                  <input
-                    type="password"
+                  <PasswordInput
                     autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
@@ -325,8 +323,7 @@ export function SettingsPage() {
               <div className="settings-field-row">
                 <label className="settings-field">
                   <span>Current password (for verification)</span>
-                  <input
-                    type="password"
+                  <PasswordInput
                     autoComplete="current-password"
                     value={emailPassword}
                     onChange={(e) => setEmailPassword(e.target.value)}
