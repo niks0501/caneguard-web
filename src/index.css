@@ -11247,11 +11247,11 @@ input[type="checkbox"] {
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --surface-warm: var(--color-surface-soft);
-    --surface-warm-hover: color-mix(in srgb, var(--color-surface-soft) 80%, var(--color-text));
+    --surface-warm-hover: var(--color-surface-tint);
   }
 }
 
 :root[data-theme="dark"] {
   --surface-warm: var(--color-surface-soft);
-  --surface-warm-hover: color-mix(in srgb, var(--color-surface-soft) 80%, var(--color-text));
+  --surface-warm-hover: var(--color-surface-tint);
 }
