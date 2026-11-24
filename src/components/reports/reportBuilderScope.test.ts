@@ -33,6 +33,6 @@ describe("printable report scope", () => {
     const scope = printableScopeFromReportFilters({ staffClassifiedCondition: "downy_mildew" });
 
     expect(scope.filters.authority_classified_condition).toBe("");
-    expect(scope.removed).toContain("Staff condition: Downy mildew");
+    expect(scope.removed).toContain("Staff condition: Outside current scope");
   });
 });

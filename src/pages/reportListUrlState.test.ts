@@ -5,6 +5,14 @@ import {
 } from "./reportListUrlState";
 
 describe("parseReportListUrl", () => {
+  it("rejects the out-of-scope Downy mildew staff condition", () => {
+    const state = parseReportListUrl(
+      new URLSearchParams({ authority_classified_condition: "downy_mildew" }),
+    );
+    expect(state.invalid).toBe(true);
+    expect(state.filters.staffClassifiedCondition).toBeUndefined();
+  });
+
   it("maps canonical URL state to repository filters", () => {
     const state = parseReportListUrl(
       new URLSearchParams({

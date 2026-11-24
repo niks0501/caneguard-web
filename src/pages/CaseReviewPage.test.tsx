@@ -916,7 +916,7 @@ describe("CaseReviewPage", () => {
     }));
   });
 
-  it("offers every active condition but not legacy Downy mildew", async () => {
+  it("offers every active condition but not the legacy value", async () => {
     const user = userEvent.setup();
     renderPage();
 
@@ -942,10 +942,10 @@ describe("CaseReviewPage", () => {
       "Mixed or Multiple Visible Concerns",
       "Unable to Classify",
     ]);
-    expect(within(select).queryByRole("option", { name: "Downy mildew" })).not.toBeInTheDocument();
+    expect(within(select).queryByRole("option", { name: "Outside current scope" })).not.toBeInTheDocument();
   });
 
-  it("keeps a historical Downy mildew classification readable and preservable", async () => {
+  it("keeps a historical downy-mildew classification readable and preservable", async () => {
     const user = userEvent.setup();
     const historicalReport = {
       ...report,
@@ -962,7 +962,7 @@ describe("CaseReviewPage", () => {
     expect(select).toHaveValue("downy_mildew");
     expect(
       within(select).getByRole("option", {
-        name: /Downy mildew \(legacy record; not offered for new review\)/,
+        name: /Outside current scope \(legacy record; not offered for new review\)/,
       }),
     ).toBeInTheDocument();
     await user.click(within(modal).getByRole("button", { name: "Next" }));

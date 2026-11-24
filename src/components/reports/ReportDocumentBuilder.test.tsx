@@ -146,7 +146,7 @@ describe("ReportDocumentBuilder", () => {
     renderBuilder();
 
     const staff = screen.getByLabelText("Staff condition");
-    expect(within(staff).queryByRole("option", { name: "Downy mildew" })).not.toBeInTheDocument();
+    expect(within(staff).queryByRole("option", { name: "Outside current scope" })).not.toBeInTheDocument();
     expect(within(staff).getByRole("option", { name: "Sugarcane Smut" })).toBeInTheDocument();
   });
 

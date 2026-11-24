@@ -84,6 +84,6 @@ describe("PrintableReportsPage", () => {
 
     expect(screen.getByLabelText("Staff condition")).toHaveValue("");
     expect(screen.getByLabelText("Staff condition").querySelector('option[value="downy_mildew"]')).toBeNull();
-    expect(screen.getByLabelText("Printable report scope")).toHaveTextContent("Not carried into this document: Staff condition: Downy mildew.");
+    expect(screen.getByLabelText("Printable report scope")).toHaveTextContent("Not carried into this document: Staff condition: Outside current scope.");
   });
 });

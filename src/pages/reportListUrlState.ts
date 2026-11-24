@@ -37,7 +37,6 @@ const staffClassifiedConditionSchema = z.enum([
   "mosaic",
   "rust",
   "rssi",
-  "downy_mildew",
   "mixed_or_multiple",
   "unable_to_classify",
 ]);

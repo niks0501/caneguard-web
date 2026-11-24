@@ -37,6 +37,7 @@ import {
   NoResultsState,
 } from "../components/ui/States";
 import {
+  activeAuthorityClassifiedConditionLabels,
   authorityClassifiedConditionLabels,
   caseStateLabels,
   diseaseLabels,
@@ -579,7 +580,7 @@ export function SubmittedReportsPage({
               }
             >
               <option value="">Any staff classification</option>
-              {Object.entries(authorityClassifiedConditionLabels).map(([value, label]) => (
+              {Object.entries(activeAuthorityClassifiedConditionLabels).map(([value, label]) => (
                 <option value={value} key={value}>{label}</option>
               ))}
             </SelectFilter>
