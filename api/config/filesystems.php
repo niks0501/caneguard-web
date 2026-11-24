@@ -33,6 +33,14 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
+            // Flysystem defaults private directories to 0700, which locks the
+            // deploy user out of folders PHP-FPM creates and fails the release
+            // access preflight. Keep them group-accessible (setgid parents give
+            // them the shared group) while staying closed to everyone else.
+            'permissions' => [
+                'file' => ['public' => 0664, 'private' => 0660],
+                'dir' => ['public' => 0775, 'private' => 0770],
+            ],
             'serve' => false,
             'throw' => false,
             'report' => false,
