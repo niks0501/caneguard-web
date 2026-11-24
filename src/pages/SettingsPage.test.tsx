@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuth } from "../auth/useAuth";
 import * as accountApi from "../services/account.api";
@@ -11,6 +11,11 @@ import {
   setTheme,
 } from "../theme/themePreference";
 import { SettingsPage } from "./SettingsPage";
+import { AppearanceSettings } from "./settings/AppearanceSettings";
+import { DevicesSettings } from "./settings/DevicesSettings";
+import { EmailSettings } from "./settings/EmailSettings";
+import { PasswordSettings } from "./settings/PasswordSettings";
+import { ProfileSettings } from "./settings/ProfileSettings";
 
 vi.mock("../auth/useAuth", () => ({
   useAuth: vi.fn(),
@@ -23,7 +28,7 @@ vi.mock("../services/account.api", () => ({
   revokeMobileDevice: vi.fn(),
 }));
 
-function renderSettingsPage() {
+function renderSettingsPage(section = "profile") {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -33,8 +38,16 @@ function renderSettingsPage() {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <SettingsPage />
+      <MemoryRouter initialEntries={[`/settings/${section}`]}>
+        <Routes>
+          <Route path="settings" element={<SettingsPage />}>
+            <Route path="profile" element={<ProfileSettings />} />
+            <Route path="appearance" element={<AppearanceSettings />} />
+            <Route path="password" element={<PasswordSettings />} />
+            <Route path="email" element={<EmailSettings />} />
+            <Route path="devices" element={<DevicesSettings />} />
+          </Route>
+        </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -78,7 +91,7 @@ describe("SettingsPage", () => {
 
   it("keeps the Workspace sections for Admins only", async () => {
     renderSettingsPage();
-    expect(await screen.findByRole("link", { name: "Mobile devices" })).toHaveAttribute("href", "#devices");
+    expect(await screen.findByRole("link", { name: "Mobile devices" })).toHaveAttribute("href", "/settings/devices");
     expect(screen.queryByRole("link", { name: "Weekly reporting" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Official recipients" })).not.toBeInTheDocument();
   });
@@ -98,9 +111,9 @@ describe("SettingsPage", () => {
     } as unknown as ReturnType<typeof useAuth>);
     renderSettingsPage();
     for (const [name, anchor] of [
-      ["Weekly reporting", "#weekly-reporting"],
-      ["Aerial canopy check", "#aerial-analysis"],
-      ["Official recipients", "#official-recipients"],
+      ["Weekly reporting", "/settings/weekly-reporting"],
+      ["Aerial canopy check", "/settings/aerial-analysis"],
+      ["Official recipients", "/settings/official-recipients"],
     ]) {
       expect(await screen.findByRole("link", { name })).toHaveAttribute("href", anchor);
     }
@@ -109,7 +122,7 @@ describe("SettingsPage", () => {
   it("sets document title and renders account profile", async () => {
     renderSettingsPage();
 
-    expect(document.title).toBe("Account settings | CaneGuard");
+    expect(document.title).toBe("Profile | Settings | CaneGuard");
     expect(screen.getByRole("heading", { name: "Account settings" })).toBeInTheDocument();
     expect(screen.getByText("Maria Santos")).toBeInTheDocument();
     expect(screen.getByText("maria.santos@sra.gov.ph")).toBeInTheDocument();
@@ -119,7 +132,7 @@ describe("SettingsPage", () => {
 
   it("switches the workspace appearance from the Settings page and remembers it", async () => {
     const user = userEvent.setup();
-    renderSettingsPage();
+    renderSettingsPage("appearance");
 
     expect(screen.getByRole("heading", { name: "Appearance" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Paper" })).toBeChecked();
@@ -146,7 +159,7 @@ describe("SettingsPage", () => {
     });
     vi.spyOn(window, "confirm").mockReturnValue(true);
 
-    renderSettingsPage();
+    renderSettingsPage("devices");
 
     await waitFor(() => {
       expect(screen.getByText("Samsung Galaxy S21")).toBeInTheDocument();
@@ -168,7 +181,7 @@ describe("SettingsPage", () => {
       message: "Password updated successfully.",
     });
 
-    renderSettingsPage();
+    renderSettingsPage("password");
 
     const currentPwdInput = screen.getByLabelText("Current password");
     const newPwdInput = screen.getByLabelText("New password");
@@ -204,7 +217,7 @@ describe("SettingsPage", () => {
 
   it("holds new passwords to the server minimum of 15 characters", async () => {
     const user = userEvent.setup();
-    renderSettingsPage();
+    renderSettingsPage("password");
 
     const newPwdInput = screen.getByLabelText("New password");
     expect(newPwdInput).toHaveAttribute("minlength", "15");
@@ -220,7 +233,7 @@ describe("SettingsPage", () => {
 
   it("counts new passwords in characters, not UTF-16 units, against the 15 minimum", async () => {
     const user = userEvent.setup();
-    renderSettingsPage();
+    renderSettingsPage("password");
 
     const fourteenEmoji = "😀".repeat(14);
     const fifteenEmoji = "😀".repeat(15);
@@ -256,7 +269,7 @@ describe("SettingsPage", () => {
       }),
     );
 
-    renderSettingsPage();
+    renderSettingsPage("password");
 
     await user.type(screen.getByLabelText("Current password"), "An old reviewer passphrase");
     await user.type(screen.getByLabelText("New password"), "A replacement reviewer passphrase");
@@ -284,7 +297,7 @@ describe("SettingsPage", () => {
       message: "Email updated. Verify the new address before signing in again.",
     });
 
-    renderSettingsPage();
+    renderSettingsPage("email");
 
     const emailPwdInput = screen.getByLabelText("Current password (for verification)");
     const newEmailInput = screen.getByLabelText("New email address");
@@ -304,5 +317,21 @@ describe("SettingsPage", () => {
         screen.getByText("Email updated. Verify the new address before signing in again."),
       ).toBeInTheDocument();
     });
+  });
+
+  it("shows only the opened section and switches pages from the rail", async () => {
+    const user = userEvent.setup();
+    renderSettingsPage("password");
+
+    expect(screen.getByRole("heading", { name: "Change password" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Appearance" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Maria Santos")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Password" })).toHaveAttribute("aria-current", "page");
+
+    await user.click(screen.getByRole("link", { name: "Appearance" }));
+
+    expect(screen.getByRole("heading", { name: "Appearance" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Change password" })).not.toBeInTheDocument();
+    expect(document.title).toBe("Appearance | Settings | CaneGuard");
   });
 });

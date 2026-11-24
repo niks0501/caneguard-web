@@ -23,7 +23,7 @@ const sectionLabels: Array<[RegExp, string]> = [
   [/^\/reports$/, "Cases"],
   [/^\/monitoring$/, "Field visits"],
   [/^\/accounts$/, "User Management"],
-  [/^\/settings$/, "Settings"],
+  [/^\/settings(\/[^/]+)?$/, "Settings"],
   [/^\/report-approval$/, "Report Approval"],
 ];
 

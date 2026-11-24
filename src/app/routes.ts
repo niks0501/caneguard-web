@@ -22,6 +22,7 @@ export const routes = {
   accounts: "/accounts",
   accountDetail: (uuid: string) => `/accounts/${encodeURIComponent(uuid)}`,
   settings: "/settings",
+  settingsSection: (section: string) => `/settings/${section}`,
   reportApproval: "/report-approval",
   adminSettings: "/admin-settings",
 } as const;

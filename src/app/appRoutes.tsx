@@ -24,6 +24,14 @@ import { ForgotPasswordPage } from "../pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "../pages/ResetPasswordPage";
 import { VerifyEmailPage } from "../pages/VerifyEmailPage";
 import { SettingsPage } from "../pages/SettingsPage";
+import { AppearanceSettings } from "../pages/settings/AppearanceSettings";
+import { DevicesSettings } from "../pages/settings/DevicesSettings";
+import { EmailSettings } from "../pages/settings/EmailSettings";
+import { PasswordSettings } from "../pages/settings/PasswordSettings";
+import { ProfileSettings } from "../pages/settings/ProfileSettings";
+import { AerialAnalysisSettings } from "../components/reports/AerialAnalysisSettings";
+import { OfficialRecipients } from "../components/reports/OfficialRecipients";
+import { WeeklyReportingSettings } from "../components/reports/WeeklyReportingSettings";
 import { AppErrorFallback } from "./AppErrorBoundary";
 import { LegacyMapRedirect } from "./LegacyMapRedirect";
 import { routes } from "./routes";
@@ -65,7 +73,26 @@ export const appRoutes: RouteObject[] = [
                   { path: "todo", element: <TodoPage /> },
                   { path: "needs-assessment", element: <Navigate replace to={routes.todo} /> },
                   { path: "reports/:reportId", element: <CaseReviewPage /> },
-                  { path: "settings", element: <SettingsPage /> },
+                  {
+                    path: "settings",
+                    element: <SettingsPage />,
+                    children: [
+                      { index: true, element: <Navigate replace to={routes.settingsSection("profile")} /> },
+                      { path: "profile", element: <ProfileSettings /> },
+                      { path: "appearance", element: <AppearanceSettings /> },
+                      { path: "password", element: <PasswordSettings /> },
+                      { path: "email", element: <EmailSettings /> },
+                      { path: "devices", element: <DevicesSettings /> },
+                      {
+                        element: <RequireAdmin />,
+                        children: [
+                          { path: "weekly-reporting", element: <WeeklyReportingSettings /> },
+                          { path: "aerial-analysis", element: <AerialAnalysisSettings /> },
+                          { path: "official-recipients", element: <OfficialRecipients /> },
+                        ],
+                      },
+                    ],
+                  },
                   {
                     element: <RequireAdmin />,
                     children: [
