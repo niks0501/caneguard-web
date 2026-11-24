@@ -389,7 +389,9 @@ export function FieldValidationMapPage({ embedded = false }: { embedded?: boolea
                 <LoadingState message="Loading the Monitoring Map..." />
               )}
             </div>
-            {sidebar}
+            <div className="validation-workspace__aside" aria-hidden={sidebar ? undefined : true} inert={sidebar ? undefined : true}>
+              {sidebar}
+            </div>
           </div>
 
           {mapData ? (
