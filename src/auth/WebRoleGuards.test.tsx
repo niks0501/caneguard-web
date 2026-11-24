@@ -39,14 +39,14 @@ describe("role-only workspace guards", () => {
     expect(await screen.findByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("That section needs an Admin account.");
     expect(screen.queryByRole("heading", { name: "Administrative page" })).not.toBeInTheDocument();
-    for (const label of ["User Management", "Report Approval", "Admin Settings"]) {
+    for (const label of ["User Management", "Report Approval"]) {
       expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();
     }
   });
   it.each(["/accounts", "/report-approval", "/admin-settings"])("allows Admin %s without capability or service flags", async path => {
     renderRoute(path, adminAccount);
     expect(await screen.findByRole("heading", { name: "Administrative page" })).toBeInTheDocument();
-    for (const label of ["User Management", "Report Approval", "Admin Settings"]) {
+    for (const label of ["User Management", "Report Approval"]) {
       expect(screen.getByRole("link", { name: label })).toBeInTheDocument();
     }
   });

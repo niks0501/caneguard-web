@@ -14,7 +14,7 @@ const diseases = [["", "All five classes"], ["healthy", "Healthy"], ["rssi", "RS
 // Separate a closed delivery gate from a district that simply has no official recipient set yet.
 function sendUnavailableMessage(meta: ReportListMeta) {
   return meta.delivery_gate_open && !meta.recipients_configured
-    ? "No official recipients configured. Add them in Admin Settings."
+    ? "No official recipients configured. Add them in Settings."
     : "Office delivery gate closed.";
 }
 
