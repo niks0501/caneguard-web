@@ -340,7 +340,7 @@ a {
   align-items: center;
   justify-content: space-between;
   padding: 0 30px;
-  background: rgba(255, 255, 255, 0.94);
+  background: color-mix(in srgb, var(--color-surface) 94%, var(--color-page));
   border-bottom: 1px solid var(--color-border);
   backdrop-filter: blur(16px);
 }
@@ -10558,4 +10558,45 @@ button.monitoring-calendar__day-number:focus-visible {
   .resolved-summary__actions {
     display: none;
   }
+}
+
+/* Dark theme: third-party map chrome and states that draw their own colours. */
+@media screen {
+  :root[data-theme="dark"] .maplibregl-ctrl-group,
+  :root[data-theme="dark"] .maplibregl-ctrl-attrib {
+    color: var(--color-text);
+    background: var(--color-surface);
+    box-shadow: 0 0 0 1px var(--color-border);
+  }
+
+  :root[data-theme="dark"] .maplibregl-ctrl-group button + button {
+    border-top-color: var(--color-border);
+  }
+
+  :root[data-theme="dark"] .maplibregl-ctrl-icon,
+  :root[data-theme="dark"] .maplibregl-ctrl-attrib-button {
+    filter: invert(1);
+  }
+
+  :root[data-theme="dark"] .maplibregl-ctrl-attrib a {
+    color: var(--color-primary);
+  }
+
+  /* A dimmed fill on a dark surface loses its label: use the quiet surface. */
+  :root[data-theme="dark"] .button:disabled {
+    color: var(--color-secondary-text);
+    background: var(--color-surface-soft);
+    border-color: var(--color-border);
+    opacity: 1;
+  }
+}
+
+/* Headings that take focus programmatically are not controls: no focus box. */
+:is(h1, h2, h3)[tabindex="-1"]:focus {
+  outline: none;
+}
+
+input[type="radio"],
+input[type="checkbox"] {
+  accent-color: var(--color-primary-fill);
 }
