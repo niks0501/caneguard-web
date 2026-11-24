@@ -5,6 +5,7 @@ import { axiosClient } from "../../api/axiosClient";
 import { toApiError } from "../../api/ApiError";
 import { env } from "../../config/env";
 import { Button } from "../ui/Button";
+import { PasswordInput } from "../ui/FormControls";
 
 const schema = z.object({ data: z.object({ reminder_day: z.number().int().nullable(), reminder_time: z.string().nullable(), timezone: z.literal("Asia/Manila"), can_manage: z.boolean() }) });
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -38,7 +39,7 @@ function ScheduleForm({ initialDay, initialTime, onSave, busy }: { initialDay: n
       </div></fieldset>
     </div>
     <label className="settings-field"><span>Office decision reference</span><input value={reference} maxLength={160} required onChange={(event) => setReference(event.target.value)} /></label>
-    <label className="settings-field"><span>Current password</span><input type="password" autoComplete="current-password" value={password} required onChange={(event) => setPassword(event.target.value)} /></label>
+    <label className="settings-field"><span>Current password</span><PasswordInput autoComplete="current-password" value={password} required onChange={(event) => setPassword(event.target.value)} /></label>
     <div className="settings-form__actions"><Button type="submit" disabled={busy}>{busy ? "Saving schedule..." : "Save reporting schedule"}</Button></div>
   </form>;
 }

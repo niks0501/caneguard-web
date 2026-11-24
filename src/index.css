@@ -2217,6 +2217,14 @@ blockquote {
   padding-left: var(--space-7);
 }
 
+.password-input.password-input--bare {
+  width: 100%;
+}
+
+.password-input.password-input--bare input {
+  padding-left: var(--space-3);
+}
+
 .password-input button {
   position: absolute;
   right: var(--space-1);

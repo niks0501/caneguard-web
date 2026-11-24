@@ -7,6 +7,7 @@ import { useAuth } from "../../auth/useAuth";
 import { changeAccount, roleLabels } from "../../services/accountsAdmin.api";
 import type { Account } from "../../services/accountsAdmin.api";
 import { Button } from "../ui/Button";
+import { PasswordInput } from "../ui/FormControls";
 import { Modal } from "../ui/Modal";
 
 export function AccountAccessTable({ accounts, onSaved }: { accounts: Account[]; onSaved: () => Promise<void> }) {
@@ -88,7 +89,7 @@ function AccountRow({ account, onSaved, onNotice }: { account: Account; onSaved:
         </p>
           {error ? <p id={`${id}-error`} role="alert">{error}</p> : null}
           <label className="settings-field"><span>Your current password</span>
-            <input type="password" autoComplete="current-password" value={password} required maxLength={255} disabled={pending} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} onChange={event => setPassword(event.target.value)} />
+            <PasswordInput autoComplete="current-password" value={password} required maxLength={255} disabled={pending} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} onChange={event => setPassword(event.target.value)} />
           </label>
           <div className="accounts-actions">
             <Button type="button" variant="secondary" disabled={pending} onClick={close}>Cancel</Button>

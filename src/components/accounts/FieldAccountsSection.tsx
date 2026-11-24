@@ -8,6 +8,7 @@ import { useAuth } from "../../auth/useAuth";
 import { changeFieldAccess, listFieldAccounts, resendFieldInvite } from "../../services/accountsAdmin.api";
 import type { FieldAccount } from "../../services/accountsAdmin.api";
 import { Button } from "../ui/Button";
+import { PasswordInput } from "../ui/FormControls";
 import { Modal } from "../ui/Modal";
 import { Pagination } from "../ui/Pagination";
 import { ErrorState, LoadingState } from "../ui/States";
@@ -129,7 +130,7 @@ function FieldRow({ account, onNotice, onSaved }: { account: FieldAccount; onNot
             </label>
             <p className="settings-field-hint" id={`${id}-reference-hint`}>Memo or ticket number for the audit record.</p>
             <label className="settings-field"><span>Your current password</span>
-              <input type="password" autoComplete="current-password" value={password} required maxLength={255} disabled={pending} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} onChange={event => setPassword(event.target.value)} />
+              <PasswordInput autoComplete="current-password" value={password} required maxLength={255} disabled={pending} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} onChange={event => setPassword(event.target.value)} />
             </label>
             <div className="accounts-actions">
               <Button type="button" variant="secondary" disabled={pending} onClick={close}>Cancel</Button>
