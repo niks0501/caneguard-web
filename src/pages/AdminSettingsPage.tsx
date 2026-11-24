@@ -1,8 +1,7 @@
-import { PageContent, PageHeader } from "../components/layout/Page";
-import { AerialAnalysisSettings } from "../components/reports/AerialAnalysisSettings";
-import { OfficialRecipients } from "../components/reports/OfficialRecipients";
-import { WeeklyReportingSettings } from "../components/reports/WeeklyReportingSettings";
+import { Navigate } from "react-router";
+import { routes } from "../app/routes";
 
+/** Admin settings now live under Workspace in Settings; old links land there. */
 export function AdminSettingsPage() {
-  return <PageContent><PageHeader title="Admin Settings" /><WeeklyReportingSettings /><AerialAnalysisSettings /><OfficialRecipients /></PageContent>;
+  return <Navigate replace to={`${routes.settings}#weekly-reporting`} />;
 }

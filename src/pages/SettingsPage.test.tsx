@@ -76,6 +76,36 @@ describe("SettingsPage", () => {
     ]);
   });
 
+  it("keeps the Workspace sections for Admins only", async () => {
+    renderSettingsPage();
+    expect(await screen.findByRole("link", { name: "Mobile devices" })).toHaveAttribute("href", "#devices");
+    expect(screen.queryByRole("link", { name: "Weekly reporting" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Official recipients" })).not.toBeInTheDocument();
+  });
+
+  it("lists the admin sections in the rail for Admins", async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        uuid: "00000000-0000-4000-8000-000000000100",
+        name: "Maria Santos",
+        email: "maria.santos@sra.gov.ph",
+        role: "admin",
+      },
+      status: "authenticated",
+      reason: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+    } as unknown as ReturnType<typeof useAuth>);
+    renderSettingsPage();
+    for (const [name, anchor] of [
+      ["Weekly reporting", "#weekly-reporting"],
+      ["Aerial canopy check", "#aerial-analysis"],
+      ["Official recipients", "#official-recipients"],
+    ]) {
+      expect(await screen.findByRole("link", { name })).toHaveAttribute("href", anchor);
+    }
+  });
+
   it("sets document title and renders account profile", async () => {
     renderSettingsPage();
 

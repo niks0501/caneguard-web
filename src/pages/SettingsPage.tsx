@@ -1,19 +1,23 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router";
 import type { FormEvent } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
   KeyRound,
   Mail,
+  Copy,
   Palette,
   Smartphone,
   Trash2,
-  User,
 } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ApiError } from "../api/ApiError";
 import { useAuth } from "../auth/useAuth";
-import { DetailField, PageContent, PageHeader } from "../components/layout/Page";
+import { PageContent, PageHeader } from "../components/layout/Page";
+import { AerialAnalysisSettings } from "../components/reports/AerialAnalysisSettings";
+import { OfficialRecipients } from "../components/reports/OfficialRecipients";
+import { WeeklyReportingSettings } from "../components/reports/WeeklyReportingSettings";
 import { Button } from "../components/ui/Button";
 import { PasswordInput } from "../components/ui/FormControls";
 import { LoadingState } from "../components/ui/States";
@@ -162,72 +166,111 @@ export function SettingsPage() {
   const roleLabel =
     user?.role === "admin"
       ? "District Mill Officer"
-        : "Reviewer";
+      : "Reviewer";
+  const isAdmin = user?.role === "admin";
+
+  const accountSections = [
+    { id: "profile", label: "Profile" },
+    { id: "appearance", label: "Appearance" },
+    { id: "password", label: "Password" },
+    { id: "email", label: "Email address" },
+    { id: "devices", label: "Mobile devices" },
+  ];
+  const workspaceSections = [
+    { id: "weekly-reporting", label: "Weekly reporting" },
+    { id: "aerial-analysis", label: "Aerial canopy check" },
+    { id: "official-recipients", label: "Official recipients" },
+  ];
+  const activeSection = useActiveSection(
+    [...accountSections, ...(isAdmin ? workspaceSections : [])].map((section) => section.id),
+  );
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView?.();
+  }, [hash]);
+
+  const initials = user?.name
+    ? user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+    : "CG";
+
+  const railLink = (section: { id: string; label: string }) => (
+    <a
+      key={section.id}
+      href={`#${section.id}`}
+      aria-current={activeSection === section.id ? "location" : undefined}
+    >
+      {section.label}
+    </a>
+  );
 
   return (
     <PageContent className="settings-page">
       <PageHeader
         title="Account settings"
-        description="View your authorized account profile, update credentials, and manage connected mobile inspection devices."
+        description="Your profile, sign-in details and connected inspection devices."
       />
 
-      <div className="settings-layout">
-        {/* Profile Sidebar */}
-        <aside className="settings-sidebar">
-          <section className="settings-card settings-card--profile" aria-labelledby="profile-heading">
-            <div className="section-heading">
+      <div className="settings-shell">
+        <nav className="settings-rail" aria-label="Settings sections">
+          <p className="settings-rail__group">Account</p>
+          {accountSections.map(railLink)}
+          {isAdmin ? (
+            <>
+              <p className="settings-rail__group">Workspace</p>
+              {workspaceSections.map(railLink)}
+            </>
+          ) : null}
+        </nav>
+
+        <div className="settings-main">
+          <section id="profile" className="settings-card settings-card--profile" aria-labelledby="profile-heading">
+            <h2 id="profile-heading" className="sr-only">Account profile</h2>
+            <div className="settings-identity">
+              <div className="avatar avatar--large" aria-hidden="true">{initials}</div>
+              <div className="settings-identity__text">
+                <strong className="settings-identity__name">{user?.name ?? "Unavailable"}</strong>
+                <span className="settings-identity__email">{user?.email ?? "Unavailable"}</span>
+              </div>
+              <span className="settings-role-badge">{roleLabel}</span>
+            </div>
+            <dl className="settings-facts">
               <div>
-                <h2 id="profile-heading">Account profile</h2>
+                <dt>Workspace</dt>
+                <dd>SRA Don Pedro Workspace</dd>
               </div>
-              <User aria-hidden="true" />
-            </div>
-
-            <div className="settings-profile-header">
-              <div className="avatar avatar--large" aria-hidden="true">
-                {user?.name ? user.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "CG"}
+              <div>
+                <dt>User ID</dt>
+                <dd>
+                  <span className="machine-text settings-uid" title={user?.uuid}>{user?.uuid ?? "Unavailable"}</span>
+                  {user?.uuid ? (
+                    <button
+                      type="button"
+                      className="settings-copy"
+                      aria-label="Copy user ID"
+                      onClick={() => void navigator.clipboard?.writeText(user.uuid)}
+                    >
+                      <Copy aria-hidden="true" />
+                    </button>
+                  ) : null}
+                </dd>
               </div>
-              <div className="settings-profile-identity">
-                <span className="settings-profile-name">Active account</span>
-                <span className="settings-profile-status">Authorized workspace access</span>
-              </div>
-            </div>
-
-            <dl className="detail-list settings-detail-list">
-              <DetailField label="Full name">{user?.name ?? "Unavailable"}</DetailField>
-              <DetailField label="Email address">{user?.email ?? "Unavailable"}</DetailField>
-              <DetailField label="Assigned role">{roleLabel}</DetailField>
-              <DetailField label="User ID">
-                <span className="machine-text settings-uid">{user?.uuid ?? "Unavailable"}</span>
-              </DetailField>
             </dl>
-
-            <div className="settings-auth-note">
-              <span className="settings-auth-note__title">SRA Don Pedro Workspace</span>
-              <span className="settings-auth-note__text">Role privileges are managed by office administrators.</span>
-            </div>
+            <p className="settings-card__description settings-card__description--flush">
+              Role privileges are managed by office administrators.
+            </p>
           </section>
-        </aside>
 
-        {/* Credentials and Security Section */}
-        <div className="settings-security-group">
-          {/* Appearance Card */}
-          <section className="settings-card settings-card--form" aria-labelledby="appearance-heading">
+          <section id="appearance" className="settings-card" aria-labelledby="appearance-heading">
             <div className="section-heading">
-              <div>
-                <h2 id="appearance-heading">Appearance</h2>
-              </div>
+              <h2 id="appearance-heading">Appearance</h2>
               <Palette aria-hidden="true" />
             </div>
-
             <ThemeChoice />
           </section>
 
-          {/* Change Password Card */}
-          <section className="settings-card settings-card--form" aria-labelledby="password-heading">
+          <section id="password" className="settings-card" aria-labelledby="password-heading">
             <div className="section-heading">
-              <div>
-                <h2 id="password-heading">Change password</h2>
-              </div>
+              <h2 id="password-heading">Change password</h2>
               <KeyRound aria-hidden="true" />
             </div>
 
@@ -292,12 +335,9 @@ export function SettingsPage() {
             </form>
           </section>
 
-          {/* Change Email Card */}
-          <section className="settings-card settings-card--form" aria-labelledby="email-heading">
+          <section id="email" className="settings-card" aria-labelledby="email-heading">
             <div className="section-heading">
-              <div>
-                <h2 id="email-heading">Change email address</h2>
-              </div>
+              <h2 id="email-heading">Change email address</h2>
               <Mail aria-hidden="true" />
             </div>
 
@@ -350,94 +390,112 @@ export function SettingsPage() {
               </div>
             </form>
           </section>
-        </div>
 
-
-        {/* Mobile Devices Card */}
-        <section className="settings-card settings-card--wide" aria-labelledby="devices-heading">
-          <div className="section-heading">
-            <div>
+          <section id="devices" className="settings-card" aria-labelledby="devices-heading">
+            <div className="section-heading">
               <h2 id="devices-heading">Connected mobile devices</h2>
+              <Smartphone aria-hidden="true" />
             </div>
-            <Smartphone aria-hidden="true" />
-          </div>
 
-          <p className="settings-card__description">
-            Active Android field-inspection devices enrolled under this account. Revoking a device immediately invalidates its offline sync token.
-          </p>
+            <p className="settings-card__description">
+              Active Android field-inspection devices enrolled under this account. Revoking a device immediately invalidates its offline sync token.
+            </p>
 
-          {deviceError ? (
-            <div className="govuk-error-summary" role="alert" tabIndex={-1}>
-              <h2 className="govuk-error-summary__title">There is a problem</h2>
-              <div className="govuk-error-summary__body">
-                <ul className="govuk-error-summary__list">
-                  <li>{deviceError}</li>
-                </ul>
+            {deviceError ? (
+              <div className="govuk-error-summary" role="alert" tabIndex={-1}>
+                <h2 className="govuk-error-summary__title">There is a problem</h2>
+                <div className="govuk-error-summary__body">
+                  <ul className="govuk-error-summary__list">
+                    <li>{deviceError}</li>
+                  </ul>
+                </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
 
-          {deviceSuccess ? (
-            <div className="settings-alert settings-alert--success" role="status">
-              <CheckCircle2 aria-hidden="true" />
-              <span>{deviceSuccess}</span>
-            </div>
-          ) : null}
+            {deviceSuccess ? (
+              <div className="settings-alert settings-alert--success" role="status">
+                <CheckCircle2 aria-hidden="true" />
+                <span>{deviceSuccess}</span>
+              </div>
+            ) : null}
 
-          {devicesQuery.isLoading ? (
-            <LoadingState message="Loading enrolled devices..." />
-          ) : devicesQuery.isError ? (
-            <div className="settings-alert settings-alert--error" role="alert">
-              <AlertTriangle aria-hidden="true" />
-              <span>Failed to load registered mobile devices.</span>
-            </div>
-          ) : devicesQuery.data && devicesQuery.data.length > 0 ? (
-            <div className="table-scroll">
-              <table className="report-table device-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Device name</th>
-                    <th scope="col">Device ID</th>
-                    <th scope="col">Registered</th>
-                    <th scope="col">Last active</th>
-                    <th scope="col">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {devicesQuery.data.map((device) => (
-                    <tr key={device.id}>
-                      <td>
-                        <strong>{device.deviceName}</strong>
-                        {device.isCurrent ? (
-                          <span className="current-device-tag"> (Current session)</span>
-                        ) : null}
-                      </td>
-                      <td>
-                        <span className="machine-text">{device.deviceId ?? "Not recorded"}</span>
-                      </td>
-                      <td>{device.createdAt ? formatDateTime(device.createdAt) : "Unknown"}</td>
-                      <td>{device.lastUsedAt ? formatDateTime(device.lastUsedAt) : "Never"}</td>
-                      <td>
-                        <Button
-                          type="button"
-                          variant="danger"
-                          icon={<Trash2 aria-hidden="true" />}
-                          disabled={revokeMutation.isPending}
-                          onClick={() => handleRevoke(device.id)}
-                        >
-                          Revoke
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="settings-empty">No mobile inspection devices are currently enrolled.</p>
-          )}
-        </section>
+            {devicesQuery.isLoading ? (
+              <LoadingState message="Loading enrolled devices..." />
+            ) : devicesQuery.isError ? (
+              <div className="settings-alert settings-alert--error" role="alert">
+                <AlertTriangle aria-hidden="true" />
+                <span>Failed to load registered mobile devices.</span>
+              </div>
+            ) : devicesQuery.data && devicesQuery.data.length > 0 ? (
+              <ul className="settings-devices">
+                {devicesQuery.data.map((device) => (
+                  <li key={device.id} className="settings-device">
+                    <Smartphone aria-hidden="true" className="settings-device__icon" />
+                    <div className="settings-device__meta">
+                      <strong>{device.deviceName}</strong>
+                      {device.isCurrent ? (
+                        <span className="current-device-tag"> (Current session)</span>
+                      ) : null}
+                      <span className="machine-text">{device.deviceId ?? "Not recorded"}</span>
+                      <span className="settings-device__times">
+                        Registered {device.createdAt ? formatDateTime(device.createdAt) : "Unknown"}
+                        {" · "}
+                        Last active {device.lastUsedAt ? formatDateTime(device.lastUsedAt) : "Never"}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      icon={<Trash2 aria-hidden="true" />}
+                      disabled={revokeMutation.isPending}
+                      onClick={() => handleRevoke(device.id)}
+                    >
+                      Revoke
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="settings-empty">No mobile inspection devices are currently enrolled.</p>
+            )}
+          </section>
+
+          {isAdmin ? (
+            <>
+              <div id="weekly-reporting" className="settings-anchor"><WeeklyReportingSettings /></div>
+              <div id="aerial-analysis" className="settings-anchor"><AerialAnalysisSettings /></div>
+              <div id="official-recipients" className="settings-anchor"><OfficialRecipients /></div>
+            </>
+          ) : null}
+        </div>
       </div>
     </PageContent>
   );
+}
+
+/** The section nearest the top of the viewport, for the rail's current marker. */
+function useActiveSection(ids: string[]) {
+  const [active, setActive] = useState(ids[0] ?? "");
+  const key = ids.join("|");
+  useEffect(() => {
+    if (typeof IntersectionObserver === "undefined") return;
+    const visible = new Set<string>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) visible.add(entry.target.id);
+          else visible.delete(entry.target.id);
+        }
+        const first = key.split("|").find((id) => visible.has(id));
+        if (first) setActive(first);
+      },
+      { rootMargin: "-10% 0px -70% 0px" },
+    );
+    for (const id of key.split("|")) {
+      const element = document.getElementById(id);
+      if (element) observer.observe(element);
+    }
+    return () => observer.disconnect();
+  }, [key]);
+  return active;
 }

@@ -182,7 +182,7 @@ describe("weekly district approval", () => {
     );
     const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 30_000 }, mutations: { retry: false } } });
     const approval = render(<QueryClientProvider client={client}><WeeklyReportApproval week="2026-W40" /></QueryClientProvider>);
-    expect(await screen.findByText(/No official recipients configured\. Add them in Admin Settings\./)).toBeInTheDocument();
+    expect(await screen.findByText(/No official recipients configured\. Add them in Settings\./)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Request send" })).not.toBeInTheDocument();
     approval.unmount();
     const settings = render(<QueryClientProvider client={client}><OfficialRecipients /></QueryClientProvider>);

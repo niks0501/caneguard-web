@@ -8,7 +8,6 @@ const sectionLabels: Record<string, string> = {
   settings: "Settings",
   accounts: "User Management",
   "report-approval": "Report Approval",
-  "admin-settings": "Admin Settings",
 };
 
 /** Stops at the section name: Home has no trail and detail pages add no crumb. */

@@ -7,7 +7,6 @@ import {
   MapPinned,
   Settings,
   ShieldCheck,
-  SlidersHorizontal,
   Users,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -111,9 +110,6 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
             </SidebarLink>
             <SidebarLink to={routes.accounts} icon={<Users aria-hidden="true" />} onNavigate={onNavigate}>
               User Management
-            </SidebarLink>
-            <SidebarLink to={routes.adminSettings} icon={<SlidersHorizontal aria-hidden="true" />} onNavigate={onNavigate}>
-              Admin Settings
             </SidebarLink>
           </div>
         ) : null}
