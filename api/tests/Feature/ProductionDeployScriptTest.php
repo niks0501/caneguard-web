@@ -79,6 +79,16 @@ class ProductionDeployScriptTest extends TestCase
         );
     }
 
+    public function test_deploy_lets_the_deploy_user_inherit_access_to_private_storage_before_the_preflight(): void
+    {
+        $this->assertTrue($this->deploy('release-1-'.str_repeat('b', 40))->isSuccessful());
+
+        $this->assertContains(
+            "setfacl -d -m u:deploy:rwX {$this->root}/shared/api/storage/app/private",
+            $this->logLines(),
+        );
+    }
+
     public function test_legacy_cutover_is_refused_while_the_previous_release_is_still_serving(): void
     {
         $process = $this->deploy('release-1-'.str_repeat('b', 40), [], siteDown: false);
