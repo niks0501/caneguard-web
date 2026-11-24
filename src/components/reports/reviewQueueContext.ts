@@ -1,4 +1,5 @@
 import type { ReportFilters } from "../../domain/report.types";
+import { sectionLabelForPath } from "../layout/navigationOrigin";
 
 /** Snapshot the queue's order before a review can remove its current row. */
 export interface ReviewQueueContext {
@@ -14,9 +15,10 @@ export interface ReviewQueueContext {
   snapshotTruncated?: boolean;
 }
 
-/** Names where the back link goes: To do when the review began there, otherwise the Cases list. */
+/** Names where the back link goes: the page the review began on (To do, Field visits or Cases). */
 export function returnLinkLabel(returnTo: string): string {
-  return /^\/todo(\?|$)/.test(returnTo) ? "Back to To do" : "Back to Cases";
+  const path = returnTo.split(/[?#]/)[0];
+  return `Back to ${sectionLabelForPath(path) ?? "Cases"}`;
 }
 
 export function reviewQueueContext(value: unknown): ReviewQueueContext | null {

@@ -6,11 +6,13 @@ import { useRealtimeInvalidation } from "../../hooks/useRealtimeInvalidation";
 import { AppHeader } from "./AppHeader";
 import { BackToTop } from "./BackToTop";
 import { Breadcrumbs } from "./Breadcrumbs";
+import { trackLocation } from "./navigationOrigin";
 
 export function AppShell() {
   const [isNavigationOpen, setNavigationOpen] = useState(false);
   const realtime = useRealtimeInvalidation();
   const location = useLocation();
+  trackLocation(location);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
   const drawerPanelRef = useRef<HTMLDivElement>(null);

@@ -1,7 +1,6 @@
 import { use, useEffect, useRef, useState } from "react";
 import "../styles/report-evidence-review.css";
 import {
-  ArrowLeft,
   ClipboardList,
   Drone,
   GitBranch,
@@ -23,6 +22,7 @@ import { AffectedFieldLinkage } from "../components/reports/AffectedFieldLinkage
 import { CollapsedTool, EvidenceTabs, type EvidenceTab } from "../components/reports/EvidenceTabs";
 import { ReviewDecisionForm } from "../components/reports/ReviewDecisionForm";
 import { ReviewHandoffPanel } from "../components/reports/ReviewHandoffPanel";
+import { BackLink } from "../components/layout/BackLink";
 import { returnLinkLabel, reviewQueueContext } from "../components/reports/reviewQueueContext";
 import { OfflineHandoffNotes } from "../components/reports/OfflineHandoffNotes";
 import { HistoricalReferralPanel } from "../components/reports/HistoricalReferralPanel";
@@ -1001,7 +1001,10 @@ function CaseReviewContent() {
 
   return (
     <PageContent>
-      <Link className="back-link" to={queueContext?.returnTo ?? routes.reports}><ArrowLeft aria-hidden="true" />{returnLinkLabel(queueContext?.returnTo ?? routes.reports)}</Link>
+      <BackLink
+        preferred={queueContext ? { to: queueContext.returnTo, label: returnLinkLabel(queueContext.returnTo).replace(/^Back to /, "") } : null}
+        fallback={{ to: routes.reports, label: "Cases" }}
+      />
       <PageHeader
         title={report.referenceCode}
         description={humanLocationFor(report)}

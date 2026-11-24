@@ -1,8 +1,9 @@
 import { useEffect } from "react";
-import { Link, useParams } from "react-router";
+import { useParams } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth/useAuth";
 import { routes } from "../app/routes";
+import { BackLink } from "../components/layout/BackLink";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { AccountAccessTable } from "../components/accounts/AccountAccessTable";
 import { ErrorState, LoadingState } from "../components/ui/States";
@@ -18,7 +19,7 @@ export function AccountDetailPage() {
   const account = query.data?.data;
   useEffect(() => { document.title = "User access | CaneGuard"; }, []);
   return <PageContent className="accounts-page">
-    <Link className="accounts-back" to={routes.accounts}>Back to User Management</Link>
+    <BackLink className="accounts-back" fallback={{ to: routes.accounts, label: "User Management" }} accepts={(path) => path === routes.accounts} />
     {query.isPending ? <LoadingState message="Loading user…" /> : query.isError ? <ErrorState message="User details could not be loaded." onRetry={() => void query.refetch()} /> : account ? <>
       <PageHeader title={account.name} />
       {account.role === "field_reporter" ? <dl className="accounts-summary">
