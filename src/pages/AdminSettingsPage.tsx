@@ -3,5 +3,5 @@ import { routes } from "../app/routes";
 
 /** Admin settings now live under Workspace in Settings; old links land there. */
 export function AdminSettingsPage() {
-  return <Navigate replace to={`${routes.settings}#weekly-reporting`} />;
+  return <Navigate replace to={routes.settingsSection("weekly-reporting")} />;
 }
