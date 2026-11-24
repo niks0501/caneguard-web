@@ -27,7 +27,7 @@ export function PrintableReportsPage() {
   const scope = useMemo(() => printableScopeFromSearch(searchParams), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <PageContent>
+    <PageContent className="reports-page">
       <PageHeader title="Reports" />
       <div className="report-entries" role="group" aria-label="Report type">
         {entries.map(({ mode: entryMode, title, icon: Icon }) => (
