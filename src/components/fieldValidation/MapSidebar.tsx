@@ -68,9 +68,6 @@ export function CaseDetailsPanel({
         <div><dt>Date Observed</dt><dd>{formatValidationDate(properties.observedAt)}</dd></div>
         <div><dt>Case Status</dt><dd><QueueStatusCell row={properties} showIcon /></dd></div>
       </dl>
-      <p className="map-sidebar__note">
-        Possible Condition is decision support, not a confirmed diagnosis.
-      </p>
       <div className="map-sidebar__actions">
         <Link className="button button--primary" to={routes.reportDetail(properties.uuid)}>Open Case</Link>
         <Link className="button button--secondary" to={`/monitoring?view=field-operations&report=${encodeURIComponent(properties.uuid)}`}>

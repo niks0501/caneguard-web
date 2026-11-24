@@ -69,11 +69,6 @@ function queueCautions(row: QueueRowView): string[] {
   return cautions;
 }
 
-/** The one quiet line that sits under a queue table. */
-export function QueueDisclaimer() {
-  return <p className="queue-disclaimer">Possible Condition is decision support, not a confirmed diagnosis.</p>;
-}
-
 export function QueueCaseCell({ row }: { row: QueueRowView }) {
   const cautions = queueCautions(row);
   return (

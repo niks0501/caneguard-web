@@ -66,11 +66,14 @@ class SecurityHeaders
         $mapImages = $isSpaShell ? ' blob:' : '';
         $mapConnect = $isSpaShell ? ' https://api.maptiler.com' : '';
         $mapWorkers = $isSpaShell ? "; worker-src 'self'" : '';
+        // The shell frames the report preview; without frame-src the
+        // default-src 'none' fallback blocks its own same-origin iframe.
+        $shellFrames = $isSpaShell ? "; frame-src 'self'" : '';
 
         $response->headers->set(
             'Content-Security-Policy',
             $isHtml
-                ? "default-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors {$frameAncestors}; object-src 'none'; img-src 'self' data:{$mapImages}; style-src 'self' 'nonce-{$nonce}'; script-src 'self' 'nonce-{$nonce}'; font-src 'self'; connect-src 'self'{$mapConnect}{$mapWorkers}"
+                ? "default-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors {$frameAncestors}; object-src 'none'; img-src 'self' data:{$mapImages}; style-src 'self' 'nonce-{$nonce}'; script-src 'self' 'nonce-{$nonce}'; font-src 'self'; connect-src 'self'{$mapConnect}{$mapWorkers}{$shellFrames}"
                 : "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'",
         );
         if ($allowsCrossOriginFrame) {

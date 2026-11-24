@@ -6,7 +6,6 @@ import {
   QueueCaseCell,
   QueueConditionCell,
   QueueLocationCell,
-  QueueDisclaimer,
   QueueReviewLink,
   QueueStatusCell,
   type QueueRowView,
@@ -110,7 +109,6 @@ export function DashboardRecentReports({
         </tbody>
       </table>
     </div>
-    <QueueDisclaimer />
     </>
   );
 }

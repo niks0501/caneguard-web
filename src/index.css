@@ -10184,12 +10184,6 @@ button.monitoring-calendar__day-number:focus-visible {
   border-radius: 0;
 }
 
-.queue-disclaimer {
-  margin: var(--space-2) 0 0;
-  font-size: var(--text-body-sm);
-  color: var(--color-muted);
-}
-
 /* Scoped to queue tables on purpose: the Settings device table and every
    other `.report-table` keep their tabular header and cells at every width. */
 @media (max-width: 899px) {
@@ -10542,7 +10536,7 @@ button.monitoring-calendar__day-number:focus-visible {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: 64px;
+  min-height: 72px;
   padding: var(--space-4);
   font: inherit;
   font-weight: 600;
@@ -10550,18 +10544,88 @@ button.monitoring-calendar__day-number:focus-visible {
   text-align: left;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+}
+
+.report-entries__item svg {
+  box-sizing: content-box;
+  flex-shrink: 0;
+  padding: var(--space-2);
+  color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+  border-radius: var(--radius-md);
+}
+
+.report-entries__item:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
 }
 
 .report-entries__item[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
   border-color: var(--color-primary);
   box-shadow: inset 0 0 0 1px var(--color-primary);
 }
 
-.report-builder__page-section {
+.report-entries__item[aria-pressed="true"] svg {
+  color: var(--color-surface);
+  background: var(--color-primary);
+}
+
+.report-builder__page-section,
+.report-builder__official {
   display: grid;
   gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.report-builder__page-section > h2,
+.report-builder__official > h2 {
+  margin: 0;
+  font-size: var(--text-h2);
+}
+
+.report-builder__page-section .report-builder__controls,
+.report-builder__page-section .report-builder__actions,
+.report-builder__page-section .report-builder__scope,
+.report-builder__page-section .report-builder__warning,
+.report-builder__page-section .report-builder__error {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.report-builder__page-section .report-builder__scope {
+  background: var(--color-surface-soft);
+}
+
+.report-builder__page-section .report-builder__actions {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.report-builder__page-section .report-builder__preview {
+  padding: var(--space-4);
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.report-builder__page-section .report-builder__preview iframe {
+  display: block;
+  min-height: 560px;
+  box-shadow: var(--shadow-raised);
+}
+
+.report-builder__more {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 
 .report-builder__more > summary {
@@ -10569,9 +10633,23 @@ button.monitoring-calendar__day-number:focus-visible {
   font-weight: 600;
 }
 
+.report-builder__more[open] > summary {
+  margin-bottom: var(--space-3);
+}
+
+.report-builder__more .report-builder__controls {
+  padding: 0;
+  border: 0;
+}
+
 @media (max-width: 720px) {
   .report-entries {
     grid-template-columns: 1fr;
+  }
+
+  .report-builder__page-section,
+  .report-builder__official {
+    padding: var(--space-4);
   }
 }
 

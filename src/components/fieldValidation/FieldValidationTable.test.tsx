@@ -121,25 +121,10 @@ describe("FieldValidationTable", () => {
     expect(within(track).getAllByRole("listitem")[2]).toHaveAttribute("aria-current", "step");
   });
 
-  it("keeps the decision-support line under the located observations", () => {
+  it("does not show a decision-support line", () => {
     renderTable();
 
-    const line = screen.getByText(
-      "Possible Condition is decision support, not a confirmed diagnosis.",
-    );
-    expect(
-      screen.getByRole("table").closest(".table-scroll")?.nextElementSibling,
-    ).toBe(line);
-  });
-
-  it("omits the decision-support line when no observation is listed", () => {
-    renderTable([]);
-
-    expect(
-      screen.queryByText(
-        "Possible Condition is decision support, not a confirmed diagnosis.",
-      ),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Possible Condition is decision support, not a confirmed diagnosis.")).not.toBeInTheDocument();
   });
 
   it("opens the case when a row is activated by keyboard", async () => {
