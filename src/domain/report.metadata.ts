@@ -62,7 +62,7 @@ export const legacyAuthorityClassifiedConditionLabels: Record<
   LegacyAuthorityClassifiedCondition,
   string
 > = {
-  downy_mildew: "Downy mildew",
+  downy_mildew: "Outside current scope",
 };
 
 export const authorityClassifiedConditionLabels: Record<
