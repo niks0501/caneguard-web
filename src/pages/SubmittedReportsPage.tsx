@@ -36,6 +36,7 @@ import {
   LoadingState,
   NoResultsState,
 } from "../components/ui/States";
+import { BackLink } from "../components/layout/BackLink";
 import {
   activeAuthorityClassifiedConditionLabels,
   authorityClassifiedConditionLabels,
@@ -378,6 +379,7 @@ export function SubmittedReportsPage({
 
   return (
     <PageContent className={embedded ? "page-content--embedded" : undefined}>
+      {!embedded && !isMonitoring && urlState.hasActiveFilters ? <BackLink /> : null}
       {!embedded ? <PageHeader
         title={isMonitoring ? "Field visits" : "Cases"}
         actions={(

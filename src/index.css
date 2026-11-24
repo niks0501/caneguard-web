@@ -8857,7 +8857,7 @@ button.monitoring-calendar__day-number:focus-visible {
 .accounts-email { display: block; margin-top: var(--space-1); color: var(--color-secondary-text); }
 .accounts-summary { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-2) var(--space-5); margin-block: var(--space-5); }
 .accounts-summary dd { margin: 0; }
-.accounts-open, .accounts-back { display: inline-flex; align-items: center; min-height: 44px; color: var(--color-primary); text-decoration: underline; text-underline-offset: 4px; }
+.accounts-open, .accounts-back { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; color: var(--color-primary); text-decoration: underline; text-underline-offset: 4px; }
 .accounts-empty { padding-block: var(--space-6); }
 .accounts-detail, .accounts-editor, .accounts-history { padding: var(--space-5); margin-block: var(--space-5); border: 1px solid var(--color-border); background: var(--color-surface); }
 .accounts-detail h2, .accounts-editor h2, .accounts-history h2 { margin-top: 0; }
