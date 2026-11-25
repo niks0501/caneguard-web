@@ -85,6 +85,22 @@ The synthetic district code above is only an example, not a production default.
 Inspector and district database IDs are derived by the server; client-supplied
 attribution fields have no authority.
 
+## Optional name and reused outline
+
+Two more optional fields describe the map itself; payloads without them stay valid:
+
+- `label`: a name the inspector typed, at most 60 characters. Surrounding
+  whitespace is trimmed and a blank name is stored as no name. The office shows it
+  as the map's name; without it the office uses the case reference.
+- `outline_from_survey_id`: the server id of an earlier map whose plot outline this
+  one reused. It must be an existing survey in the pilot district, otherwise
+  **422**. The new map always carries its own copy of `polygon`, so the source can
+  change or disappear without altering it; the id only records where the outline
+  came from. Affected areas are never reused: they are drawn for each case.
+
+The office learns what happened to a map through
+[Mobile field map contract v1](mobile-field-map-v1.md).
+
 ## Affected-area evidence
 
 Four optional, nullable fields carry the phone's affected-area survey:

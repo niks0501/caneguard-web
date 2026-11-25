@@ -78,6 +78,8 @@ export const duplicateLinkageSchema = z.object({
 });
 export const reportAffectedFieldSchema = z.object({
   field_survey_id: z.number().int().positive(),
+  label: z.string().nullish(),
+  outline_from_survey_id: z.number().int().positive().nullish(),
   geometry: fieldSurveyPolygonSchema,
   captured_at: z.iso.datetime({ offset: true }),
   area_sqm: z.number().nonnegative(),

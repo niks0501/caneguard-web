@@ -392,6 +392,8 @@ class ReportResource extends JsonResource
                 && $this->affectedFieldSurveys->contains(fn ($linked): bool => $linked->getKey() === $survey->getKey()),
             'field_survey' => $survey === null ? null : [
                 'field_survey_id' => (int) $survey->getKey(),
+                'label' => $survey->label,
+                'outline_from_survey_id' => $survey->outline_from_survey_id === null ? null : (int) $survey->outline_from_survey_id,
                 'geometry' => $survey->polygon,
                 'captured_at' => $survey->captured_at->utc()->format('Y-m-d\\TH:i:s.u\\Z'),
                 'area_sqm' => (float) $survey->area_sqm,

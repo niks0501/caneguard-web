@@ -29,6 +29,10 @@ export interface FieldSurveyBoundaryFeature {
   geometry: FieldSurveyPolygon;
   properties: {
     id: number;
+    /** A name the inspector typed on the phone. */
+    label?: string | null;
+    /** The earlier map whose plot outline this one reused. */
+    outlineFromSurveyId?: number | null;
     capturedAt: string;
     areaSqm: number;
     areaSource: "device_reported";
@@ -59,6 +63,8 @@ export interface FieldSurveyBoundariesData {
 
 export interface ReportAffectedField {
   fieldSurveyId: number;
+  label?: string | null;
+  outlineFromSurveyId?: number | null;
   geometry: FieldSurveyPolygon;
   capturedAt: string;
   areaSqm: number;

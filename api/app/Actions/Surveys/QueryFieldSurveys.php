@@ -51,7 +51,7 @@ class QueryFieldSurveys
             ->offset($offset)
             ->limit($limit + 1)
             ->get([
-                'id', 'client_uuid', 'inspector_id', 'polygon', 'area_sqm',
+                'id', 'client_uuid', 'inspector_id', 'polygon', 'area_sqm', 'label', 'outline_from_survey_id',
                 'affected_area_polygons', 'affected_area_sqm', 'captured_at',
             ]);
         $hasMore = $surveys->count() > $limit;

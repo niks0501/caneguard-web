@@ -49,9 +49,9 @@ export function percentAffected(areaSqm: number, affectedAreaSqm: number | null)
   return Math.round(Math.min(100, (affectedAreaSqm / areaSqm) * 100) * 10) / 10;
 }
 
-/** What people recognise: the case reference when there is one, else "Map N". */
+/** What people recognise: the name the inspector typed, else the case reference, else "Map N". */
 export function fieldMapName(feature: FieldSurveyBoundaryFeature): string {
-  return primaryCase(feature)?.referenceCode ?? `Map ${feature.properties.id}`;
+  return feature.properties.label || primaryCase(feature)?.referenceCode || `Map ${feature.properties.id}`;
 }
 
 export function filterFieldMaps(
