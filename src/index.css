@@ -3,6 +3,7 @@
 @source "./**/*.{js,jsx,ts,tsx}";
 
 @import "./styles/tokens.css";
+@import "./styles/public.css";
 
 /* Poppins is self-hosted: the CSP allows only same-origin fonts and styles. */
 @font-face {

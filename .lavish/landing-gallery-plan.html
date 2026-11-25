@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CaneGuard Landing Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* CaneGuard tokens, copied from src/styles/tokens.css */
+  :root{
+    color-scheme: light;
+    --green-structural:#074424; --green:#3E7C30; --lime:#81A92A; --gold:#BB941D; --cream:#F0E4B8; --field:#101711;
+    --primary:#2d6b40; --primary-dark:#1e452a; --primary-tint:#e8f2ea; --accent:#d6cc99;
+    --page:#f8f5ee; --surface:#ffffff; --surface-soft:#edf3ed; --surface-tint:#e2ece3;
+    --text:#1d2720; --muted:#4a5650; --border:#ddd8c9; --border-strong:#98aba0;
+    --band-1:#749926; --band-2:#1e452a; --band-3:#ae8a1b; --band-4:#45370b;
+    --danger:#9b2f2f; --danger-soft:#f6e3de; --warn-soft:#fbf3d9;
+    --focus:0 0 0 3px #ffdd00, 0 0 0 5px #1d2720;
+    --radius:16px;
+  }
+  /* Dark is an explicit choice, never the OS default (mirrors the workspace's
+     paper-first rule). The plan page itself stays paper; only the mock site
+     flips, via its own toggle, to show the public theme in isolation. */
+  [data-theme="dark"]{
+      color-scheme: dark;
+      --page:#171a16; --surface:#20241f; --surface-soft:#2a2e28; --surface-tint:#303a31;
+      --text:#ede9df; --muted:#b9c0b4; --border:#3a4038; --border-strong:#5c7264;
+      --primary:#91B79A; --primary-dark:#cfe0c6; --primary-tint:#263b2c; --accent:#5e5532;
+      --band-1:#5f7f5b; --band-2:#cfe0c6; --band-3:#8a7337; --band-4:#f0dca4;
+      --danger:#f0a8a0; --danger-soft:#3a201d; --warn-soft:#332b12;
+  }
+  .site{background:var(--page);color:var(--text)}
+  .themetoggle{display:inline-flex;border:1px solid var(--border-strong);border-radius:999px;padding:3px;gap:2px;background:var(--surface-soft)}
+  .themetoggle button{border:0;border-radius:999px;padding:5px 12px;font-size:13px;background:transparent}
+  .themetoggle button[aria-pressed="true"]{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+  .nav__end{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .keybox{font-family:ui-monospace,Consolas,monospace;font-size:13px}
+  *,*::before,*::after{box-sizing:border-box}
+  :where(.grid,.flex,[style*="display:grid"],[style*="display:flex"])>*{min-width:0}
+  :where(p,h1,h2,h3,h4,li,dd,td,th,figcaption,.chip){overflow-wrap:anywhere}
+  :where(img,svg){max-width:100%;height:auto}
+  html,body{margin:0;background:var(--page);color:var(--text);font-family:Poppins,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.55}
+  a{color:var(--primary)}
+  main{max-width:1160px;margin:0 auto;padding:28px 16px 80px}
+  h1,h2,h3{line-height:1.2;margin:0 0 .4em}
+  h1{font-size:clamp(28px,4vw,40px)}
+  h2{font-size:clamp(22px,2.6vw,28px);margin-top:0}
+  h3{font-size:18px}
+  p{margin:0 0 .8em}
+  .eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--primary)}
+  .muted{color:var(--muted)}
+  section.block{margin-top:56px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  @media (max-width:860px){.g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media (max-width:620px){.g2,.g3,.g4{grid-template-columns:minmax(0,1fr)}}
+  .chip{display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--primary-tint);color:var(--primary-dark);border:1px solid transparent}
+  .chip.gold{background:var(--warn-soft);color:var(--band-4)}
+  .chip.red{background:var(--danger-soft);color:var(--danger)}
+  .chip.line{background:transparent;border-color:var(--border-strong);color:var(--muted)}
+  button,.btn{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--border-strong);background:var(--surface);color:var(--text);padding:9px 14px;font-weight:500}
+  .btn-primary{background:var(--primary-dark);border-color:var(--primary-dark);color:#fff}
+  [data-theme="dark"] .btn-primary{background:#2d6b40;border-color:#2d6b40}
+  button:focus-visible,a:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:none;box-shadow:var(--focus)}
+  button[aria-pressed="true"],button[aria-selected="true"]{background:var(--primary-tint);border-color:var(--primary);color:var(--primary-dark);font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)}
+  ul.tight{margin:0;padding-left:18px} ul.tight li{margin:3px 0}
+  code{font-family:ui-monospace,Consolas,monospace;font-size:.88em;background:var(--surface-soft);padding:1px 5px;border-radius:5px}
+
+  /* plan header */
+  .plan-head{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:24px;align-items:start}
+  @media (max-width:860px){.plan-head{grid-template-columns:minmax(0,1fr)}}
+  .tldr{border-left:4px solid var(--lime)}
+  .tldr ol{margin:0;padding-left:20px} .tldr li{margin:6px 0}
+
+  /* mock frame */
+  .browser{border:1px solid var(--border-strong);border-radius:18px;overflow:hidden;background:var(--page);box-shadow:0 10px 40px rgba(16,23,17,.10)}
+  .browser__bar{display:flex;gap:8px;align-items:center;padding:10px 14px;background:var(--surface-soft);border-bottom:1px solid var(--border)}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--border-strong)}
+  .url{flex:1;min-width:0;margin-left:8px;font-size:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:4px 10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .site{padding:0}
+  .site section{padding:36px 28px;border-bottom:1px dashed var(--border)}
+  @media (max-width:620px){.site section{padding:28px 16px}}
+  .sec-tag{float:right;margin-left:12px}
+  .nav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 28px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .nav__brand{display:flex;gap:10px;align-items:center;font-weight:700}
+  .nav__links{display:flex;gap:16px;font-size:14px;flex-wrap:wrap}
+  .nav__links a{text-decoration:none;color:var(--muted)}
+  .hero{background:linear-gradient(160deg,#074424 0%,#1e452a 55%,#2d6b40 100%);color:#f4f1e4;position:relative;overflow:hidden}
+  .hero h2{font-size:clamp(28px,4.4vw,46px);color:#fff;max-width:16ch}
+  .hero p{max-width:52ch;color:#dfe9dc}
+  .hero .eyebrow{color:var(--cream)}
+  .hero__grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px;align-items:center}
+  @media (max-width:760px){.hero__grid{grid-template-columns:minmax(0,1fr)}}
+  .hero__photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .hero__photos img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:14px;border:2px solid rgba(240,228,184,.35)}
+  .hero__photos img:nth-child(1){grid-row:span 2;aspect-ratio:auto;height:100%}
+  .hero .btn{border-color:rgba(240,228,184,.6);background:transparent;color:#fff}
+  .hero .btn-cream{background:var(--cream);color:#074424;border-color:var(--cream);font-weight:600}
+  .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:24px}
+  @media (max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .stat{background:rgba(255,255,255,.07);border:1px solid rgba(240,228,184,.25);border-radius:12px;padding:12px}
+  .stat b{display:block;font-size:22px;color:#fff}
+  .stat span{font-size:12px;color:#cfdccb}
+
+  /* anatomy */
+  .anat{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:20px;align-items:start}
+  @media (max-width:760px){.anat{grid-template-columns:minmax(0,1fr)}}
+  .anat svg .hot{cursor:pointer;transition:opacity .15s}
+  .anat svg .hot:hover,.anat svg .hot:focus{opacity:.8}
+  .anat svg .hot.on .ring{stroke:var(--gold);stroke-width:4}
+  .ring{fill:transparent;stroke:transparent;stroke-width:3}
+  .partlist{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+
+  /* growth */
+  .stages{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  @media (max-width:620px){.stages{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .stages button{text-align:left;padding:12px;border-radius:12px}
+  .stages small{display:block;color:var(--muted);font-weight:400;font-size:12px}
+  .stagebar{display:flex;height:12px;border-radius:6px;overflow:hidden;gap:2px;margin:14px 0 6px}
+  .stagebar i{display:block;height:100%}
+
+  /* gallery */
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px}
+  .gcard{padding:0;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;text-align:left;border-radius:var(--radius)}
+  .gcard img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+  .gcard .gbody{padding:14px}
+  .gcard h4{margin:6px 0 4px;font-size:16px}
+  .gcard p{font-size:13px;color:var(--muted);margin:0}
+  .gcard[hidden]{display:none}
+  .detail{margin-top:18px;border:2px solid var(--primary);border-radius:var(--radius);background:var(--surface);overflow:hidden}
+  .detail__top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:0}
+  @media (max-width:760px){.detail__top{grid-template-columns:minmax(0,1fr)}}
+  .detail__media{background:var(--surface-soft);padding:12px}
+  .detail__media img{width:100%;border-radius:10px;display:block;aspect-ratio:4/3;object-fit:cover}
+  .thumbs{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .thumbs button{padding:0;border-radius:8px;overflow:hidden;width:64px;height:48px}
+  .thumbs img{width:100%;height:100%;object-fit:cover;display:block}
+  .detail__text{padding:18px}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+  .tabs button{padding:6px 12px;font-size:14px}
+  .callout{border-radius:12px;padding:12px 14px;background:var(--warn-soft);border:1px solid var(--accent);font-size:14px}
+
+  /* quiz */
+  .quiz{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:center}
+  @media (max-width:760px){.quiz{grid-template-columns:minmax(0,1fr)}}
+  .quiz img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:14px}
+  .answers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+  .answers button.right{background:var(--primary-tint);border-color:var(--primary);color:var(--primary-dark)}
+  .answers button.wrong{background:var(--danger-soft);border-color:var(--danger);color:var(--danger)}
+  .score{font-weight:600}
+
+  /* timeline */
+  .tl{position:relative;display:grid;gap:0}
+  .tl__item{display:grid;grid-template-columns:100px minmax(0,1fr);gap:0}
+  .tl__item>div:last-child{border-left:3px solid var(--border);padding:10px 0 14px 22px;position:relative}
+  .tl__item>div:last-child::before{content:"";position:absolute;left:-9px;top:14px;width:15px;height:15px;border-radius:50%;background:var(--surface);border:3px solid var(--band-1)}
+  .tl__item.hard>div:last-child::before{border-color:var(--band-3)}
+  .tl__yr{font-weight:700;color:var(--primary-dark);text-align:right;padding:10px 18px 0 0;font-size:14px}
+  @media (max-width:620px){.tl__item{grid-template-columns:72px minmax(0,1fr)}.tl__yr{font-size:12px;padding-right:12px}}
+
+  /* paths */
+  .path{border-top:4px solid var(--band-1)}
+  .path:nth-child(2){border-top-color:var(--band-2)}
+  .path:nth-child(3){border-top-color:var(--band-3)}
+  .path:nth-child(4){border-top-color:var(--band-4)}
+
+  /* routing diagram */
+  .fig{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+  .fig svg text{fill:var(--text);font-family:Poppins,sans-serif}
+  .fig .box{fill:var(--surface-soft);stroke:var(--border-strong);stroke-width:1.5}
+  .fig .box.new{fill:var(--primary-tint);stroke:var(--primary);stroke-width:2}
+  .fig .box.lock{fill:var(--warn-soft);stroke:var(--band-3)}
+  .fig .edge{stroke:var(--muted);stroke-width:1.6;fill:none}
+  .fig .edge.new{stroke:var(--primary);stroke-width:2.4}
+  .fig .lbl{font-size:12px;fill:var(--muted)}
+
+  /* decisions */
+  .q{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);padding:18px;margin-bottom:14px}
+  .q label{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:10px;cursor:pointer}
+  .q label:hover{background:var(--surface-soft)}
+  .q input{margin-top:5px;accent-color:var(--primary)}
+  .q .rec{font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;margin-left:6px}
+  .q .row{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+  .queued{font-size:13px;color:var(--primary);font-weight:600}
+  .sources li{margin:6px 0;font-size:14px}
+  .phase{border-left:4px solid var(--band-1)}
+  .phase.p2{border-left-color:var(--band-3)}
+  .phase.p3{border-left-color:var(--band-4)}
+</style>
+<script type="application/json" data-lavish-revisions>
+[{ "id": "r1", "label": "Round 1", "timestamp": "2026-11-25T00:00:00Z", "summary": "Separate public theme toggle; mock no longer follows OS dark; decisions locked" }]
+</script>
+</head>
+<body>
+<main>
+
+<!-- ===================== PLAN HEADER ===================== -->
+<header class="plan-head">
+  <div>
+    <p class="eyebrow">Plan · caneguard-web · Web education gallery</p>
+    <h1>A public landing page that teaches sugarcane before anyone signs in</h1>
+    <p class="muted">Today, opening the root URL <code>/</code> while signed out sends you straight to <code>/login</code>. Under this plan, <code>/</code> becomes a public landing page built around the Field Guide, written for young people in the Nasugbu mill district who may take over the farm. Staff sign-in moves to a button in the navigation bar.</p>
+    <p><span class="chip">Task: web education gallery</span> <span class="chip line">Source of truth: mobile Field Guide (5 entries)</span> <span class="chip gold">Not built yet: review this plan first</span></p>
+  </div>
+  <div class="card tldr">
+    <h3>In short</h3>
+    <ol>
+      <li>Move the <code>/</code> route outside <code>RequireAuth</code> and render <strong>LandingPage</strong> there.</li>
+      <li>Add public <code>/guide</code> and <code>/guide/:entryId</code> pages that port the mobile entries: reference images, symptoms, prevention, management and sources.</li>
+      <li>Add four interactive learning blocks: a plant anatomy explorer, a growth-cycle stepper, a “Which one is it?” photo quiz and a history timeline.</li>
+      <li>Close with a “carry the legacy” section: block farming, the SIDA scholarship and careers in the sugar industry.</li>
+      <li data-lavish-revision="r1">Give the public pages their own Paper/Dark toggle, stored separately from the signed-in workspace theme.</li>
+    </ol>
+  </div>
+</header>
+
+<!-- ===================== CURRENT VS TARGET ROUTING ===================== -->
+<section class="block" id="routing">
+  <p class="eyebrow">1 · Current vs target</p>
+  <h2>What changes in the router</h2>
+  <div class="grid g2">
+    <div class="fig">
+      <h3>Today: <code>src/app/appRoutes.tsx</code></h3>
+      <svg viewBox="0 0 460 250" width="100%" role="img" aria-labelledby="t-now">
+        <title id="t-now">Current routing: root URL is inside RequireAuth</title>
+        <g id="now-visitor"><title>Visitor</title><rect class="box" x="10" y="100" width="90" height="44" rx="10"/><text x="55" y="127" text-anchor="middle" font-size="13">Visitor</text></g>
+        <g id="now-root"><title>/ index route</title><rect class="box lock" x="140" y="20" width="140" height="56" rx="10"/><text x="210" y="44" text-anchor="middle" font-size="13">/ (index)</text><text x="210" y="62" text-anchor="middle" class="lbl">inside RequireAuth</text></g>
+        <g id="now-login"><title>/login</title><rect class="box" x="140" y="170" width="140" height="44" rx="10"/><text x="210" y="197" text-anchor="middle" font-size="13">/login</text></g>
+        <g id="now-dash"><title>/dashboard</title><rect class="box" x="320" y="20" width="130" height="56" rx="10"/><text x="385" y="52" text-anchor="middle" font-size="13">/dashboard</text></g>
+        <path class="edge" d="M100 115 C120 90,120 60,140 52"/>
+        <path class="edge" d="M210 76 L210 170"/><text x="218" y="128" class="lbl">signed out → redirect</text>
+        <path class="edge" d="M280 48 L320 48"/><text x="300" y="100" text-anchor="middle" class="lbl">signed in</text>
+      </svg>
+      <p class="muted" style="font-size:14px">The index route is <code>&lt;Navigate to=/dashboard&gt;</code> inside <code>&lt;RequireAuth&gt;</code>, so visitors who are not signed in see the login page and nothing else.</p>
+    </div>
+    <div class="fig">
+      <h3>Target</h3>
+      <svg viewBox="0 0 460 250" width="100%" role="img" aria-labelledby="t-next">
+        <title id="t-next">Target routing: public landing and guide, sign-in from the nav</title>
+        <g id="next-visitor"><title>Anyone</title><rect class="box" x="10" y="100" width="90" height="44" rx="10"/><text x="55" y="127" text-anchor="middle" font-size="13">Anyone</text></g>
+        <g id="next-landing"><title>/ LandingPage public</title><rect class="box new" x="140" y="14" width="150" height="56" rx="10"/><text x="215" y="38" text-anchor="middle" font-size="13" font-weight="600">/  LandingPage</text><text x="215" y="56" text-anchor="middle" class="lbl">public</text></g>
+        <g id="next-guide"><title>/guide and /guide/:entryId public</title><rect class="box new" x="140" y="96" width="150" height="56" rx="10"/><text x="215" y="120" text-anchor="middle" font-size="13" font-weight="600">/guide/:entryId</text><text x="215" y="138" text-anchor="middle" class="lbl">public, deep-linkable</text></g>
+        <g id="next-login"><title>/login staff only</title><rect class="box" x="140" y="186" width="150" height="44" rx="10"/><text x="215" y="213" text-anchor="middle" font-size="13">/login (staff)</text></g>
+        <g id="next-dash"><title>/dashboard behind RequireAuth</title><rect class="box lock" x="326" y="186" width="124" height="44" rx="10"/><text x="388" y="213" text-anchor="middle" font-size="13">/dashboard</text></g>
+        <path class="edge new" d="M100 112 C120 80,120 50,140 42"/>
+        <path class="edge new" d="M100 122 L140 124"/>
+        <path class="edge" d="M215 70 L215 96"/>
+        <path class="edge" d="M290 42 C330 60,330 160,290 200"/><text x="318" y="110" class="lbl">“Staff sign in”</text>
+        <path class="edge" d="M290 208 L326 208"/>
+      </svg>
+      <p class="muted" style="font-size:14px"><code>/login</code> already sends a signed-in user on to their destination (<code>LoginPage.tsx:59</code>), so the sign-in flow itself does not change. After logout the user still lands on <code>/login</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== THEME ISOLATION ===================== -->
+<section class="block" id="theme" data-lavish-revision="r1">
+  <p class="eyebrow">1b · Appearance</p>
+  <h2>A public theme toggle that never touches the workspace theme</h2>
+  <p class="muted" style="max-width:80ch">Today there is one theme: <code>paper | dark</code>, stored under <code>caneguard.appearance.preferences</code> (<code>src/theme/themePreference.ts</code>) and painted on <code>&lt;html data-theme&gt;</code> by the boot script in <code>index.html</code> before React loads. The public pages get their <strong>own</strong> stored choice. Changing it on the landing page leaves the signed-in workspace exactly as the user set it, and the other way round. Paper stays the default for both, and neither follows the OS setting.</p>
+  <div class="fig" style="margin-top:12px">
+    <svg viewBox="0 0 900 270" width="100%" role="img" aria-labelledby="theme-t">
+      <title id="theme-t">Two independent theme stores, one html data-theme owned by whichever area is mounted</title>
+      <g id="th-pub-store"><title>Public theme store</title><rect class="box new" x="10" y="20" width="260" height="62" rx="10"/><text x="140" y="45" text-anchor="middle" font-size="13" font-weight="600">caneguard.public.appearance</text><text x="140" y="66" text-anchor="middle" class="lbl">new · {version:1, theme}</text></g>
+      <g id="th-ws-store"><title>Workspace theme store</title><rect class="box lock" x="10" y="186" width="260" height="62" rx="10"/><text x="140" y="211" text-anchor="middle" font-size="13" font-weight="600">caneguard.appearance.preferences</text><text x="140" y="232" text-anchor="middle" class="lbl">existing · unchanged</text></g>
+      <g id="th-pub-area"><title>Public area</title><rect class="box new" x="330" y="20" width="230" height="62" rx="10"/><text x="445" y="45" text-anchor="middle" font-size="13" font-weight="600">PublicLayout</text><text x="445" y="66" text-anchor="middle" class="lbl">/  ·  /guide  ·  /guide/:id</text></g>
+      <g id="th-ws-area"><title>Workspace and auth pages</title><rect class="box" x="330" y="186" width="230" height="62" rx="10"/><text x="445" y="211" text-anchor="middle" font-size="13" font-weight="600">Login + AppShell</text><text x="445" y="232" text-anchor="middle" class="lbl">/login · /dashboard · …</text></g>
+      <g id="th-html"><title>html data-theme</title><rect class="box" x="640" y="100" width="240" height="66" rx="10"/><text x="760" y="128" text-anchor="middle" font-size="13" font-weight="600">&lt;html data-theme&gt;</text><text x="760" y="150" text-anchor="middle" class="lbl">painted by whichever area is mounted</text></g>
+      <path class="edge new" d="M270 51 H330"/><text x="300" y="44" text-anchor="middle" class="lbl">read/write</text>
+      <path class="edge" d="M270 217 H330"/><text x="300" y="210" text-anchor="middle" class="lbl">read/write</text>
+      <path class="edge new" d="M560 51 C610 51,610 120,640 125"/>
+      <path class="edge" d="M560 217 C610 217,610 150,640 143"/>
+      <path class="edge" stroke-dasharray="5 5" d="M140 82 V186"/><text x="150" y="138" class="lbl">no link: neither writes the other</text>
+    </svg>
+  </div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card"><h3>How it works</h3>
+      <ul class="tight">
+        <li><code>src/theme/publicThemePreference.ts</code>: the same versioned, zod-validated read/save as the workspace store, under the new key, with a separate in-memory store and its own <code>usePublicTheme()</code> hook.</li>
+        <li><code>PublicLayout</code> (the shared route element for <code>/</code> and <code>/guide/*</code>) paints the public theme on <code>&lt;html&gt;</code> while it is mounted and calls <code>applyTheme(getTheme())</code> on unmount. Clicking “Staff sign in” or “Open workspace” therefore lands on the workspace theme.</li>
+        <li>The boot script in <code>index.html</code> picks the key from <code>location.pathname</code>, so a dark landing page paints dark before React loads, with no paper flash.</li>
+        <li>The toggle sits in the landing page’s nav bar as a two-state switch (☀ Paper / ☾ Dark), with <code>aria-pressed</code> and the focus ring from <code>tokens.css</code>.</li>
+        <li>The <code>/login</code> page keeps the workspace theme, because it is the doorway into the workspace.</li>
+      </ul></div>
+    <div class="card"><h3>What the tests prove</h3>
+      <ul class="tight">
+        <li>Choosing Dark on <code>/</code> writes only <code>caneguard.public.appearance</code>. The workspace key is byte-identical before and after.</li>
+        <li>Public Dark with workspace Paper: navigating <code>/</code> → <code>/login</code> → <code>/dashboard</code> paints paper. Going back to <code>/</code> paints dark again.</li>
+        <li>Workspace Dark with public Paper: the reverse holds.</li>
+        <li>A corrupt, stale-version or blocked store falls back to paper without throwing, mirroring <code>themePreference.test.ts</code>.</li>
+        <li>The boot script picks the right key for <code>/</code>, <code>/guide/rust</code> and <code>/dashboard</code>.</li>
+      </ul>
+      <p class="muted" style="font-size:14px;margin-top:8px">Try it: the ☀/☾ switch in the mock below flips only the mock site, and this plan page stays paper.</p></div>
+  </div>
+</section>
+
+<!-- ===================== AUDIENCE / SCOPE ===================== -->
+<section class="block" id="audience">
+  <p class="eyebrow">2 · Who this is for</p>
+  <h2>The audience and why it matters now</h2>
+  <div class="grid g3">
+    <div class="card"><span class="chip">Primary</span><h3 style="margin-top:8px">Youth in farming families</h3><p class="muted">High-school and college-age children of planters and farm workers in the SRA Don Pedro mill district (Nasugbu, Batangas). They are on phones, read English and Filipino, and have never seen a mill-district report.</p></div>
+    <div class="card"><span class="chip gold">Context</span><h3 style="margin-top:8px">A district under pressure</h3><p class="muted">The CADPI mill in Nasugbu stopped milling in early 2023. A farmers’ group put the affected cane area at about 10,980 ha. Nasugbu cane is now milled at Balayan. Across the country, a 2022 commentary put the average Filipino farmer’s age near 60.</p></div>
+    <div class="card"><span class="chip line">Secondary</span><h3 style="margin-top:8px">Field reporters &amp; teachers</h3><p class="muted">The same entries a field reporter reads on the mobile app, now viewable on a projector or laptop for barangay seminars and school agriculture classes.</p></div>
+  </div>
+  <p class="muted" style="margin-top:12px;font-size:14px">The page has to stay honest on two points. First, CaneGuard’s AI output is decision support, not a diagnosis. Second, every piece of advice follows the mobile guide’s rules: no chemical names, doses or brands, and a referral to the agriculture office.</p>
+</section>
+
+<!-- ===================== PAGE MOCK ===================== -->
+<section class="block" id="mock">
+  <p class="eyebrow">3 · Proposed page</p>
+  <h2>The landing page, section by section</h2>
+  <p class="muted">This is an interactive mock in CaneGuard’s own tokens (Poppins, structural green, cream). Click through it: every widget works on the real field-guide content and photos.</p>
+
+  <div class="browser" id="mockbrowser" data-theme="paper">
+    <div class="browser__bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="url">caneguard … /</span></div>
+    <div class="site" data-lavish-revision="r1">
+
+      <nav class="nav" aria-label="Mock site navigation">
+        <div class="nav__brand"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="#074424"/><path d="M9 21 L13 5 L17 21" stroke="#81A92A" stroke-width="2.4" fill="none"/><path d="M10.2 16h5.6M11.2 11h3.6" stroke="#F0E4B8" stroke-width="1.8"/></svg>CaneGuard</div>
+        <div class="nav__links"><a href="#m-what">Sugarcane</a><a href="#m-grow">Growth</a><a href="#m-guide">Field Guide</a><a href="#m-quiz">Quiz</a><a href="#m-legacy">Legacy</a></div>
+        <div class="nav__end">
+          <div class="themetoggle" role="group" aria-label="Public page theme" id="pubtheme">
+            <button type="button" data-t="paper" aria-pressed="true">☀ Paper</button>
+            <button type="button" data-t="dark" aria-pressed="false">☾ Dark</button>
+          </div>
+          <button class="btn" type="button">Staff sign in</button>
+        </div>
+      </nav>
+
+      <!-- A HERO -->
+      <section class="hero" id="m-hero">
+        <span class="chip sec-tag">A · Hero</span>
+        <div class="hero__grid">
+          <div>
+            <p class="eyebrow">Nasugbu · Batangas · Sugarcane country</p>
+            <h2>Learn the cane. Keep the legacy growing.</h2>
+            <p>Find out how sugarcane grows, how to spot the five conditions our field team watches for, and how the next generation of farmers can keep Nasugbu’s fields alive.</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <a class="btn btn-cream" href="#m-guide">Explore the Field Guide</a>
+              <a class="btn" href="#m-quiz">Take the 1-minute quiz</a>
+            </div>
+          </div>
+          <div class="hero__photos">
+            <img src="landing-plan-assets/01-healthy.jpg" alt="Healthy sugarcane leaves">
+            <img src="landing-plan-assets/01-rust.jpg" alt="Rust pustules on a cane leaf">
+            <img src="landing-plan-assets/01-smut.jpg" alt="A smut whip above the canopy">
+          </div>
+        </div>
+        <div class="stats">
+          <div class="stat"><b>≈392k ha</b><span>sugarcane area, PH, CY 2024–25 (SRA)</span></div>
+          <div class="stat"><b>≈1.87M MT</b><span>raw sugar, CY 2024–25 final estimate (SRA)</span></div>
+          <div class="stat"><b>9–13 mo</b><span>planting to harvest-ready cane</span></div>
+          <div class="stat"><b>5</b><span>conditions in the CaneGuard Field Guide</span></div>
+        </div>
+      </section>
+
+      <!-- B WHAT IS SUGARCANE + ANATOMY -->
+      <section id="m-what">
+        <span class="chip sec-tag">B · Anatomy explorer</span>
+        <p class="eyebrow">What is sugarcane?</p>
+        <h3 style="font-size:24px">A giant grass that stores sunlight as sugar</h3>
+        <p class="muted" style="max-width:70ch">Sugarcane (<em>Saccharum</em> spp.) is a tall perennial grass. It is planted from stalk cuttings called <em>setts</em>, not from seed. Its stalks fill with sucrose, the mill crushes them for juice, and the leftover fibre (<em>bagasse</em>) fuels the mill’s boilers. After harvest the same stool regrows as a <strong>ratoon</strong> crop. Tap a part of the plant to see what lives there and what to check.</p>
+        <div class="anat">
+          <svg id="plant" viewBox="0 0 300 420" width="100%" role="img" aria-labelledby="plant-t">
+            <title id="plant-t">Clickable sugarcane plant diagram</title>
+            <!-- ground -->
+            <rect x="0" y="350" width="300" height="70" fill="var(--accent)" opacity=".45"/>
+            <!-- roots -->
+            <g class="hot" data-part="roots" tabindex="0" role="button" aria-label="Roots and stool"><title>Roots &amp; stool</title>
+              <path d="M150 352 C130 380,110 395,90 410 M150 352 C150 385,150 400,148 415 M150 352 C172 380,190 392,212 408 M130 352 C118 372,100 378,80 386 M170 352 C185 370,205 376,224 382" stroke="#8a7337" stroke-width="3" fill="none"/>
+              <ellipse class="ring" cx="150" cy="384" rx="80" ry="32"/>
+            </g>
+            <!-- side shoot -->
+            <path d="M118 352 L104 210" stroke="#5f8f3a" stroke-width="9" stroke-linecap="round"/>
+            <!-- stalk -->
+            <g class="hot" data-part="stalk" tabindex="0" role="button" aria-label="Stalk and internodes"><title>Stalk &amp; internodes</title>
+              <rect x="140" y="110" width="20" height="242" rx="9" fill="#749926"/>
+              <rect class="ring" x="132" y="196" width="36" height="150" rx="10"/>
+            </g>
+            <!-- nodes + buds -->
+            <g class="hot" data-part="node" tabindex="0" role="button" aria-label="Node and bud"><title>Node &amp; bud</title>
+              <g fill="#45370b"><rect x="138" y="180" width="24" height="5" rx="2"/><rect x="138" y="230" width="24" height="5" rx="2"/><rect x="138" y="280" width="24" height="5" rx="2"/><rect x="138" y="325" width="24" height="5" rx="2"/></g>
+              <circle cx="163" cy="226" r="5" fill="#BB941D"/><circle cx="137" cy="276" r="5" fill="#BB941D"/>
+              <circle class="ring" cx="150" cy="255" r="34"/>
+            </g>
+            <!-- lower leaves -->
+            <g class="hot" data-part="lower" tabindex="0" role="button" aria-label="Lower leaves, underside"><title>Lower leaves (underside)</title>
+              <path d="M150 300 C110 290,60 300,22 330 C70 310,110 305,150 306Z" fill="#8aa04a"/>
+              <path d="M150 260 C195 250,240 262,282 296 C235 272,195 266,150 266Z" fill="#8aa04a"/>
+              <ellipse class="ring" cx="150" cy="290" rx="135" ry="38"/>
+            </g>
+            <!-- leaf sheath -->
+            <g class="hot" data-part="sheath" tabindex="0" role="button" aria-label="Leaf sheath"><title>Leaf sheath</title>
+              <path d="M138 185 L138 150 L162 150 L162 185Z" fill="#3E7C30" opacity=".9"/>
+              <rect class="ring" x="128" y="142" width="44" height="50" rx="8"/>
+            </g>
+            <!-- upper leaves -->
+            <g class="hot" data-part="upper" tabindex="0" role="button" aria-label="Upper and young leaves"><title>Young upper leaves</title>
+              <path d="M150 150 C110 120,60 110,14 128 C60 118,110 128,150 160Z" fill="#3E7C30"/>
+              <path d="M150 140 C190 105,240 96,288 110 C240 106,195 120,150 152Z" fill="#3E7C30"/>
+              <path d="M150 130 C130 90,100 60,70 40 C108 66,135 96,152 136Z" fill="#4f8f3a"/>
+              <ellipse class="ring" cx="150" cy="118" rx="140" ry="52"/>
+            </g>
+            <!-- growing point -->
+            <g class="hot" data-part="top" tabindex="0" role="button" aria-label="Growing point"><title>Growing point / spindle</title>
+              <path d="M150 112 L146 40 L154 40Z" fill="#81A92A"/>
+              <circle class="ring" cx="150" cy="70" r="30"/>
+            </g>
+            <text x="12" y="400" font-size="11" fill="var(--muted)">ratoon stool</text>
+          </svg>
+          <div>
+            <div class="partlist" id="partbtns"></div>
+            <div class="card" id="partcard" aria-live="polite"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- C GROWTH CYCLE -->
+      <section id="m-grow">
+        <span class="chip sec-tag">C · Growth-cycle stepper</span>
+        <p class="eyebrow">From sett to mill</p>
+        <h3 style="font-size:24px">One crop, four stages</h3>
+        <div class="stagebar" aria-hidden="true"><i style="flex:1.5;background:var(--band-1)"></i><i style="flex:2.5;background:var(--band-2)"></i><i style="flex:5;background:var(--band-3)"></i><i style="flex:3;background:var(--band-4)"></i></div>
+        <p class="muted" style="font-size:12px;margin-bottom:12px">Bar widths show typical relative length, not exact months. Exact Nasugbu stage windows still need confirmation from the office.</p>
+        <div class="stages" id="stagebtns"></div>
+        <div class="card" id="stagecard" style="margin-top:12px" aria-live="polite"></div>
+      </section>
+
+      <!-- D FIELD GUIDE GALLERY -->
+      <section id="m-guide">
+        <span class="chip sec-tag">D · Field Guide gallery (/guide)</span>
+        <p class="eyebrow">Field Guide</p>
+        <h3 style="font-size:24px">Know it before you report it</h3>
+        <div class="filters" role="group" aria-label="Filter entries" id="filters">
+          <button type="button" data-f="all" aria-pressed="true">All 5</button>
+          <button type="button" data-f="healthy" aria-pressed="false">Healthy</button>
+          <button type="button" data-f="disease" aria-pressed="false">Diseases</button>
+          <button type="button" data-f="pest" aria-pressed="false">Pest</button>
+        </div>
+        <div class="grid g3" id="gallery" style="grid-template-columns:repeat(auto-fill,minmax(190px,1fr))"></div>
+        <div class="detail" id="detail" aria-live="polite"></div>
+      </section>
+
+      <!-- E QUIZ -->
+      <section id="m-quiz">
+        <span class="chip sec-tag">E · “Which one is it?” quiz</span>
+        <p class="eyebrow">Train your eye</p>
+        <h3 style="font-size:24px">Which one is it?</h3>
+        <div class="quiz">
+          <div><img id="qimg" src="" alt=""></div>
+          <div>
+            <p class="muted" id="qprompt">Look closely at the photo, then pick the matching entry.</p>
+            <div class="answers" id="qans"></div>
+            <p id="qfeedback" aria-live="polite" style="min-height:3em"></p>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" id="qnext" class="btn-primary btn">Next photo</button><span class="score" id="qscore"></span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- F HISTORY -->
+      <section id="m-history">
+        <span class="chip sec-tag">F · History timeline</span>
+        <p class="eyebrow">Our story</p>
+        <h3 style="font-size:24px">Sugar and the Philippines</h3>
+        <div class="tl" id="timeline"></div>
+      </section>
+
+      <!-- G LEGACY -->
+      <section id="m-legacy">
+        <span class="chip sec-tag">G · Carry the legacy</span>
+        <p class="eyebrow">For the next generation</p>
+        <h3 style="font-size:24px">Ways to stay in cane, and grow with it</h3>
+        <div class="grid g4">
+          <div class="card path"><h4 style="margin:0 0 6px">Study on a SIDA scholarship</h4><p class="muted" style="font-size:14px">Under RA 10659, children and dependents of small sugarcane farmers and industry workers can apply for CHED–SRA grants.</p></div>
+          <div class="card path"><h4 style="margin:0 0 6px">Join a block farm</h4><p class="muted" style="font-size:14px">Small farms of 2–3 ha pool into cooperative blocks to share machines, credit and better cane prices.</p></div>
+          <div class="card path"><h4 style="margin:0 0 6px">Scout and report</h4><p class="muted" style="font-size:14px">Walk the field monthly (RSSI: weekly) and report what you see. Early reports protect the whole district.</p></div>
+          <div class="card path"><h4 style="margin:0 0 6px">Build a career</h4><p class="muted" style="font-size:14px">Agronomy, mill engineering, SRA research, drone mapping and the kind of AI that CaneGuard uses.</p></div>
+        </div>
+      </section>
+
+      <!-- H HOW CANEGUARD HELPS -->
+      <section id="m-how">
+        <span class="chip sec-tag">H · How CaneGuard helps</span>
+        <h3 style="font-size:22px">From a phone photo to office follow-up</h3>
+        <svg viewBox="0 0 760 110" width="100%" role="img" aria-labelledby="flow-t">
+          <title id="flow-t">Report flow: capture, AI hint, office review, follow-up</title>
+          <g font-size="13"><g id="f1"><title>Capture</title><rect x="4" y="20" width="160" height="64" rx="12" fill="var(--primary-tint)" stroke="var(--primary)"/><text x="84" y="48" text-anchor="middle" fill="var(--text)" font-weight="600">1 · Capture</text><text x="84" y="68" text-anchor="middle" fill="var(--muted)" font-size="11">field reporter, offline</text></g>
+          <g id="f2"><title>AI hint</title><rect x="200" y="20" width="160" height="64" rx="12" fill="var(--surface-soft)" stroke="var(--border-strong)"/><text x="280" y="48" text-anchor="middle" fill="var(--text)" font-weight="600">2 · AI hint</text><text x="280" y="68" text-anchor="middle" fill="var(--muted)" font-size="11">decision support only</text></g>
+          <g id="f3"><title>Office review</title><rect x="396" y="20" width="160" height="64" rx="12" fill="var(--surface-soft)" stroke="var(--border-strong)"/><text x="476" y="48" text-anchor="middle" fill="var(--text)" font-weight="600">3 · Office review</text><text x="476" y="68" text-anchor="middle" fill="var(--muted)" font-size="11">SRA district staff</text></g>
+          <g id="f4"><title>Follow-up</title><rect x="592" y="20" width="160" height="64" rx="12" fill="var(--warn-soft)" stroke="var(--band-3)"/><text x="672" y="48" text-anchor="middle" fill="var(--text)" font-weight="600">4 · Follow-up</text><text x="672" y="68" text-anchor="middle" fill="var(--muted)" font-size="11">field validation</text></g></g>
+          <g stroke="var(--muted)" stroke-width="2" fill="none"><path d="M164 52 H196"/><path d="M360 52 H392"/><path d="M556 52 H588"/></g>
+        </svg>
+      </section>
+
+      <footer style="padding:20px 28px;font-size:13px;color:var(--muted);background:var(--surface)">
+        <span class="chip line">I · Footer</span>&nbsp; Sources (SRA PH, Sugar Research Australia, LSU AgCenter, FPA) · Photo credits · Staff sign in · CaneGuard is decision support, not a diagnosis.
+      </footer>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CONTENT INVENTORY ===================== -->
+<section class="block" id="inventory">
+  <p class="eyebrow">4 · Content inventory</p>
+  <h2>Where every section’s content comes from</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Section</th><th>Content</th><th>Source</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>A Hero stats</td><td>Area, raw sugar, harvest window</td><td>SRA Sugar Statistics CY 2024–25, final crop estimate</td><td><span class="chip">Verified figure</span></td></tr>
+      <tr><td>B Anatomy</td><td>Where-to-look mapping per plant part</td><td>Mobile <code>whereToLook</code> fields, one per entry</td><td><span class="chip">Exists</span></td></tr>
+      <tr><td>C Growth</td><td>Germination, tillering, grand growth, maturity; SRA planting windows (Nov/Jan/Mar)</td><td>SRA research comparing planting seasons; Negros phenology study</td><td><span class="chip gold">Stage months need office confirmation</span></td></tr>
+      <tr><td>D Gallery + /guide/:id</td><td>Healthy, Mosaic, Rust, Smut, RSSI: summary, signs, where to look, impact, prevention, management, long-form guide, sources</td><td><code>caneguard-mobile/src/features/field-guide/constants/*</code></td><td><span class="chip">Exists (mobile)</span></td></tr>
+      <tr><td>D Images</td><td>3 bundled references and 7 drop photos (≤3 per entry)</td><td><code>assets/images/field-guide/MANIFEST.csv</code></td><td><span class="chip red">Credit not recorded (<code>recorded:false</code>)</span></td></tr>
+      <tr><td>E Quiz</td><td>The same photos, with one cue line per answer</td><td>Derived from gallery <code>signs[0]</code></td><td><span class="chip">No new content</span></td></tr>
+      <tr><td>F History</td><td>Austronesian crop → 1855 Iloilo port → Negros boom → RA 10659 → RSSI → CADPI closure</td><td>Public reporting (Inquirer, Philstar, Rappler), SRA history page, mobile RSSI entry</td><td><span class="chip gold">Needs adviser review</span></td></tr>
+      <tr><td>G Legacy</td><td>SIDA scholarship, block farming, careers</td><td>RA 10659; CHED SIDA-SGP; SRA HRD program</td><td><span class="chip gold">Check latest SRA circular</span></td></tr>
+      <tr><td>Smut, RSSI sources</td><td>SRA booklet pp. 21–22; RSSI brochures 2025/2026</td><td>Registered as <code>awaiting-supply</code></td><td><span class="chip red">Missing: page shows “not supplied yet”</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ===================== IMPLEMENTATION ===================== -->
+<section class="block" id="impl">
+  <p class="eyebrow">5 · Implementation</p>
+  <h2>How it gets built</h2>
+  <div class="grid g3">
+    <div class="card phase"><span class="chip">Phase 1 · this task</span><h3 style="margin-top:8px">Public routes + gallery</h3>
+      <ul class="tight">
+        <li><code>appRoutes.tsx</code>: add public <code>{ index: true, element: &lt;LandingPage/&gt; }</code>, <code>guide</code> and <code>guide/:entryId</code> outside <code>RequireAuth</code>, and drop the old index redirect.</li>
+        <li><code>routes.ts</code>: add <code>home</code>, <code>guide</code> and <code>guideEntry(id)</code>.</li>
+        <li><code>src/features/field-guide/</code>: port the mobile types and entries as static TS with the same <code>contentVersion</code>. Photos go in <code>src/assets/field-guide/</code> as responsive WebP and JPEG, with lazy loading.</li>
+        <li>Unknown <code>:entryId</code> renders <code>NotFoundPage</code>.</li>
+        <li data-lavish-revision="r1"><code>PublicLayout</code> with its own nav bar: “Staff sign in”, or “Open workspace” when signed in.</li>
+        <li data-lavish-revision="r1">A public theme store and toggle, kept separate from the workspace theme (section 1b).</li>
+      </ul></div>
+    <div class="card phase p2"><span class="chip gold">Phase 1b</span><h3 style="margin-top:8px">Interactive learning</h3>
+      <ul class="tight">
+        <li>Anatomy explorer: inline SVG with keyboard-focusable parts and a live region.</li>
+        <li>Growth stepper and history timeline: data arrays, no new library.</li>
+        <li>Quiz: local state only, nothing persisted, works without sign-in.</li>
+        <li>Respect <code>prefers-reduced-motion</code>. Paper and dark both reuse the existing <code>tokens.css</code> token blocks, with no new palette.</li>
+        <li>English first. A Filipino toggle follows here once the office has reviewed the translation.</li>
+      </ul></div>
+    <div class="card phase p3"><span class="chip line">Phase 2 · later</span><h3 style="margin-top:8px">Office-authored content</h3>
+      <ul class="tight">
+        <li>A public read-only endpoint (e.g. <code>GET /api/v1/public/field-guide</code>) serves office-edited entries and photos.</li>
+        <li>Mobile and web read from it, which ends drift between the two copies. This is the end state the mobile drop-folder README already describes.</li>
+        <li>Needs a throttle, cache headers and an admin authoring UI.</li>
+      </ul></div>
+  </div>
+
+  <h3 style="margin-top:28px">Tests and verification</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Check</th><th>What it asserts</th></tr></thead>
+    <tbody>
+      <tr><td><code>appRoutes.test.tsx</code></td><td>A signed-out visitor at <code>/</code> sees the landing page, not <code>/login</code>. <code>/guide/rust</code> renders without auth. <code>/dashboard</code> still redirects to <code>/login</code>.</td></tr>
+      <tr><td>Field-guide content test</td><td>Ports the mobile forbidden-pattern test: no active ingredient, dose or brand name. Every <code>sourceIds</code> entry resolves. Every image has a caption used as its alt text.</td></tr>
+      <tr><td>Component tests</td><td>Filter chips, entry detail tabs, the quiz’s correct and wrong states, and keyboard activation of anatomy parts.</td></tr>
+      <tr data-lavish-revision="r1"><td><code>publicThemePreference.test.ts</code> + layout test</td><td>The two theme stores stay independent in both directions. The workspace theme is restored on leaving the public area, and a corrupt payload falls back to paper. See section 1b.</td></tr>
+      <tr><td><code>test:design-spine</code></td><td>Unaffected: the landing page is not the dashboard. Run it anyway, since <code>index.css</code> changes.</td></tr>
+      <tr><td>Browser check</td><td>Landing at 360 px and 1280 px, light and dark; deep link to <code>/guide/smut</code>; “Staff sign in” leads to login, then the dashboard.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 style="margin-top:28px">Risks</h3>
+  <div class="grid g2">
+    <div class="card"><b>Content drift between mobile and web.</b> <span class="muted">Phase 1 keeps two copies. Mitigate by keeping <code>contentVersion</code> in sync and recording the source mobile commit in a header comment. Phase 2 removes the drift.</span></div>
+    <div class="card"><b>Public photos without recorded credit.</b> <span class="muted">Every <code>MANIFEST.csv</code> row has an empty licence. Fill in the creator and licence before launch, or label photos “credit pending”.</span></div>
+    <div class="card"><b>Deploy and SPA fallback.</b> <span class="muted"><code>/guide/*</code> must reach <code>index.html</code> on the production host. Check the deploy config and CSP for image sources.</span></div>
+    <div class="card" data-lavish-revision="r1"><b>Theme leaking between areas.</b> <span class="muted">Both areas share one <code>&lt;html data-theme&gt;</code>. If <code>PublicLayout</code> fails to restore the theme on unmount, the dashboard shows the landing page’s theme. The navigation tests in section 1b pin this behaviour.</span></div>
+    <div class="card"><b>Overclaiming.</b> <span class="muted">Public copy must not read as a diagnosis service, and “Report it” links go to the office, not to self-treatment.</span></div>
+  </div>
+</section>
+
+<!-- ===================== DECISIONS ===================== -->
+<section class="block" id="decisions" data-lavish-revision="r1">
+  <p class="eyebrow">6 · Decided</p>
+  <h2>Decisions locked for the build</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Question</th><th>Decision</th></tr></thead>
+    <tbody>
+      <tr><td>What a signed-in user sees at <code>/</code></td><td>The landing page. The nav button reads “Open workspace” instead of “Staff sign in”.</td></tr>
+      <tr><td>Language</td><td>English first, with a Filipino toggle in Phase 1b after office review.</td></tr>
+      <tr><td>Content source</td><td>A static port of the mobile content now; office-authored content from the API in Phase 2.</td></tr>
+      <tr><td>Interactive blocks in v1</td><td>All of them: gallery and entry pages, anatomy explorer, growth stepper, quiz, history timeline and legacy pathways.</td></tr>
+      <tr><td>Theme</td><td>A separate public Paper/Dark toggle, stored apart from the workspace theme. Paper is the default and the OS setting is not followed (section 1b).</td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted" style="margin-top:12px">Annotate anything you still want changed. Otherwise say go and I’ll start Phase 1 and 1b on this branch.</p>
+</section>
+
+<!-- ===================== SOURCES ===================== -->
+<section class="block" id="sources">
+  <p class="eyebrow">Research used in this plan</p>
+  <h2>Sources</h2>
+  <ul class="sources">
+    <li><a href="https://www.sra.gov.ph/view_file/sugar_statistics/rbXDLKT2EZKlqKS">SRA, Philippine Sugar Statistics CY 2024–25</a>: area ≈392,356 ha and ≈1.87M MT raw sugar (final estimate; other bulletins differ)</li>
+    <li><a href="https://newsinfo.inquirer.net/1777368/over-13000-lose-livelihoods-after-nasugbu-sugar-mill-shutdown-romualdez-leads-aid-distribution">Inquirer: over 13,000 lose livelihoods after the Nasugbu mill shutdown</a> · <a href="https://www.rappler.com/business/sugar-refining-company-central-azucarera-don-pedro-incorporated-closes-down/">Rappler: CADPI closes</a> · <a href="https://business.inquirer.net/392421/rhi-selling-batangas-mill-following-shutdown">Inquirer: RHI selling the Batangas mill</a> · <a href="https://alpha.pna.gov.ph/articles/1227177">PNA: displaced Batangas farmers find other jobs</a></li>
+    <li><a href="https://mb.com.ph/2022/09/06/addressing-the-sugar-crisis-long-term-2">Manila Bulletin (2022 commentary)</a>: average Filipino farmer age near 60 (an opinion piece, not an official statistic)</li>
+    <li><a href="https://www.sra.gov.ph/view_file/researches/mGtMCpCeLRyak0k">SRA research on planting seasons</a> and <a href="https://sciforum.net/paper/28312">the Negros phenology study</a></li>
+    <li><a href="https://legacy.senate.gov.ph/republic_acts/ra%2010659.pdf">RA 10659, the Sugarcane Industry Development Act</a> · <a href="https://legacy.ched.gov.ph/sida-sgp/">CHED SIDA-SGP</a> · <a href="https://www.sra.gov.ph/sida/HRDProgram">SRA HRD program</a></li>
+    <li><a href="https://en.wikipedia.org/wiki/Sugar_industry_of_the_Philippines">Sugar industry of the Philippines (Wikipedia overview)</a> · <a href="https://en.wikipedia.org/wiki/Nicholas_Loney">Nicholas Loney</a> · <a href="https://www.sra.gov.ph/aboutUs/history">SRA history</a></li>
+    <li>Field Guide sources already in the mobile app: SRA RSSI profile and awareness campaign, Sugar Research Australia (rusts, mosaic), LSU AgCenter IDM, FPA register</li>
+  </ul>
+</section>
+</main>
+
+<script>
+const IMG = 'landing-plan-assets/';
+const ENTRIES = [
+  {id:'healthy',cat:'healthy',name:'Healthy cane',tag:'Healthy baseline',sci:null,
+   summary:'A vigorous plant with no visible sign of disease or pest damage.',
+   imgs:[['01-healthy.jpg','Clean, evenly green leaf blades on a healthy stool'],['reference_healthy.jpg','A healthy sugarcane stool with evenly green leaves']],
+   signs:['An upright clump of several strong shoots.','Long, evenly green leaves with a normal green midrib, about ten green leaves on a mature stalk.','New leaves unfurling normally at the growing point, not twisted or bunched.','Internode spacing normal for the variety.'],
+   where:'Look at the whole stool: the growing point at the top first, then the middle and lower leaves.',
+   impact:'This is the baseline you compare every other plant against.',
+   prevention:['Plant material from a healthy, inspected block.','Keep drains open so water does not stand in the field.','Control weeds early, before they compete with young cane.','Walk the field every month.'],
+   management:['Keep the field well drained and free of weeds.','Use planting material from a healthy block.','Ask your agriculture officer if cane looks healthy but a whole block is yielding poorly.'],
+   cue:'Even green blades, normal growing point. Stalk colour alone is not a health test.'},
+  {id:'mosaic',cat:'disease',name:'Mosaic',tag:'Viral disease',sci:null,
+   summary:'Irregular light-and-dark green mottling on the leaf, most obvious on young leaves.',
+   imgs:[['01-mosaic.jpg','Paler green streaking along an otherwise green leaf blade'],['reference_mosaic.jpg','Leaf mottling with contrasting light and dark green areas']],
+   signs:['Contrasting islands or streaks of normal green among paler green or yellowish areas.','Mottling strongest on young leaves, often toward the leaf base.','Weaker growth and thinner stalks in susceptible varieties.'],
+   where:'Young leaves, especially near the base of the leaf blade.',
+   impact:'Mosaic reduces growth and sugar. There is no spray that cures an infected plant.',
+   prevention:['Plant a resistant variety recommended for your area.','Take planting material only from a clean, inspected seed source.','Never take seed cane from a block that shows mosaic.','Keep grass weeds down; avoid maize or sorghum beside cane.'],
+   management:['Remove badly affected plants early and destroy them.','Keep weeds down: they shelter the aphids that carry the virus.','Ask the office before replacing a block.'],
+   cue:'Light-and-dark green islands, strongest on young leaves near the base.'},
+  {id:'rust',cat:'disease',name:'Rust',tag:'Fungal disease',sci:null,
+   summary:'Oval orange to cinnamon-brown pustules, mostly on the underside of the leaf.',
+   imgs:[['01-rust.jpg','Orange-brown rust pustules scattered over the leaf blade'],['reference_rust.jpg','Orange-brown rust pustules on the leaf underside']],
+   signs:['Tiny yellow flecks first, then oval pustules about 2–10 mm long on the leaf underside.','Orange spore dust that rubs off.','Pustules merging into scorched, dead leaf tissue.'],
+   where:'The underside of the leaf, easiest on younger, upper leaves.',
+   impact:'Heavy rust kills leaf area, lowering tonnage and sugar content.',
+   prevention:['Plant rust-resistant varieties recommended for your area.','Spread several varieties across the farm.','Check leaf undersides during warm, humid spells.'],
+   management:['Walk the field during warm, wet spells and look at leaf undersides.','Report a sudden severe outbreak to your agriculture officer.','Clean planting material alone will not solve rust: spores arrive on the wind.'],
+   cue:'Orange-brown pustules on the leaf underside; the dust rubs off.'},
+  {id:'smut',cat:'disease',name:'Smut',tag:'Fungal disease',sci:'Sporisorium scitamineum',
+   summary:'A long dark whip growing out of the growing point, the clearest sign of smut.',
+   imgs:[['01-smut.jpg','A single long whip rising above the cane canopy'],['02-smut.jpg','Several whips curling over a smut-affected block']],
+   signs:['A thin whip-like growth from the top of a shoot, usually 25–150 cm long.','Greyish at first, then releases black powdery spores.','Grass-like stools with many thin shoots.'],
+   where:'The growing point and the top of the cane, and side shoots of older stalks.',
+   impact:'Smut cannot be cured once a plant has it; spores travel on the wind to neighbouring fields.',
+   prevention:['Plant resistant, recommended varieties.','Never plant cane from a block that has smut.','Inspect new plantings often and remove any whip as soon as it appears.'],
+   management:['Cover the whip with a bag before you remove it.','Do not ratoon a badly affected block. Replant with clean material.','Clean tools and footwear between fields.'],
+   cue:'A long, dark whip coming out of the growing point.',
+   pending:'Primary source (SRA booklet, pp. 21–22) not supplied yet.'},
+  {id:'rssi',cat:'pest',name:'Red-Striped Soft Scale Insect',tag:'Insect pest',sci:'Pulvinaria tenuivalvata',
+   summary:'A sap-sucking pest that builds up on the lower leaves and coats them in sticky honeydew and black mold.',
+   imgs:[['01-rssi.jpg','Red-striped scale insects clustered along the leaf blade'],['02-rssi.jpg','A heavy colony of wax-covered scale insects on a leaf']],
+   signs:['Small insects with red stripes on the lower leaves first, then moving upward.','Yellowing leaves, especially toward the base.','Sticky honeydew, then black sooty mold.'],
+   where:'The underside of the lower leaves first, especially along field edges.',
+   impact:'Removes sap and blocks light; spreads quickly field to field, including on planting material.',
+   prevention:['Check the undersides of lower leaves every week.','Do not move cane or planting material out of an affected block.','Clean tools, boots and clothing after working in an affected field.','Protect natural enemies: avoid unnecessary broad-spectrum spraying.'],
+   management:['Report a suspected infestation to SRA, DA, PHILSURIN or your local agriculture officer straight away.','Remove and destroy heavily infested leaves, as directed locally.','Ask the office before any chemical treatment.'],
+   cue:'Red-striped insects with honeydew and sooty mold on lower leaf undersides.',
+   pending:'SRA RSSI brochures (2025, 2026) not supplied yet, so no life-stage timing is given.'}
+];
+const byId = Object.fromEntries(ENTRIES.map(e=>[e.id,e]));
+
+/* ---- anatomy ---- */
+const PARTS = {
+  top:{name:'Growing point',txt:'The spindle at the top where new leaves unroll. It should open normally, not twisted or bunched.',watch:['smut','healthy']},
+  upper:{name:'Young upper leaves',txt:'Fresh leaves do most of the photosynthesis. Check both sides.',watch:['mosaic','rust']},
+  sheath:{name:'Leaf sheath',txt:'Wraps the stalk at each node. On a healthy stalk the sheaths fit closely.',watch:['healthy']},
+  lower:{name:'Lower leaves (underside)',txt:'Older leaves near the ground. Turn them over: pests hide underneath.',watch:['rssi']},
+  stalk:{name:'Stalk & internodes',txt:'Where the sugar is stored. Internode length is normal for the variety on a healthy plant; smut shortens it.',watch:['healthy','smut']},
+  node:{name:'Node & bud',txt:'Each node carries a bud. The bud on a planted sett is what sprouts a new plant, so clean setts mean a clean crop.',watch:['mosaic','smut']},
+  roots:{name:'Roots & stool',txt:'The underground stool regrows after harvest as a ratoon. A stool falling apart into many thin shoots is a warning sign.',watch:['smut','healthy']}
+};
+const partbtns = document.getElementById('partbtns');
+function showPart(k){
+  document.querySelectorAll('#plant .hot').forEach(g=>g.classList.toggle('on',g.dataset.part===k));
+  partbtns.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.part===k));
+  const p = PARTS[k];
+  document.getElementById('partcard').innerHTML =
+    `<h4 style="margin:0 0 6px">${p.name}</h4><p class="muted">${p.txt}</p><p style="margin:0;font-size:14px"><b>Look here for:</b> ${p.watch.map(id=>`<a href="#m-guide" data-open="${id}" class="chip" style="text-decoration:none">${byId[id].name}</a>`).join(' ')}</p>`;
+}
+Object.entries(PARTS).forEach(([k,p])=>{
+  const b=document.createElement('button');b.type='button';b.textContent=p.name;b.dataset.part=k;b.onclick=()=>showPart(k);partbtns.appendChild(b);
+});
+document.querySelectorAll('#plant .hot').forEach(g=>{
+  g.addEventListener('click',()=>showPart(g.dataset.part));
+  g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();showPart(g.dataset.part);}});
+});
+showPart('lower');
+
+/* ---- growth ---- */
+const STAGES = [
+  {n:'Germination',w:'≈ first 1–1.5 months',txt:'Buds on the planted setts sprout and roots form. Dry soil slows this down. SRA trials found that early (Nov) and mid-season (Jan) plantings gave more tonnage than late (Mar) plantings, which had the best juice sucrose.',watch:'Plant clean setts from inspected blocks only.',risk:['mosaic','smut']},
+  {n:'Tillering',w:'≈ months 1.5–4',txt:'Each plant sends up side shoots (tillers) and forms the stool. Weeds compete hardest now, and water stress means fewer tillers.',watch:'Control weeds early; walk the field monthly.',risk:['smut','mosaic']},
+  {n:'Grand growth',w:'≈ months 4–9',txt:'The stalks shoot up and leaves fill the canopy. This is the fastest growth, and the stage where rust and RSSI do the most harm.',watch:'Check leaf undersides in warm, humid spells; RSSI checks weekly.',risk:['rust','rssi']},
+  {n:'Maturity & harvest',w:'≈ months 9–13',txt:'Growth slows and sucrose builds up in the stalk. The cane is cut and hauled to the mill, which for Nasugbu is now Balayan. The stool then regrows as a ratoon.',watch:'Do not ratoon a badly smut-affected block.',risk:['smut','healthy']}
+];
+const sb=document.getElementById('stagebtns');
+function showStage(i){
+  sb.querySelectorAll('button').forEach((b,j)=>b.setAttribute('aria-selected',i===j));
+  const s=STAGES[i];
+  document.getElementById('stagecard').innerHTML=`<p class="eyebrow" style="margin:0">${s.w}</p><h4 style="margin:4px 0 8px;font-size:18px">${s.n}</h4><p class="muted">${s.txt}</p><p style="margin:0 0 6px"><b>Do:</b> ${s.watch}</p><p style="margin:0;font-size:14px"><b>Watch for:</b> ${s.risk.map(id=>`<a href="#m-guide" data-open="${id}" class="chip" style="text-decoration:none">${byId[id].name}</a>`).join(' ')}</p>`;
+}
+STAGES.forEach((s,i)=>{const b=document.createElement('button');b.type='button';b.setAttribute('role','tab');b.innerHTML=`<b>${i+1}. ${s.n}</b><small>${s.w}</small>`;b.onclick=()=>showStage(i);sb.appendChild(b);});
+showStage(0);
+
+/* ---- gallery ---- */
+const gal=document.getElementById('gallery');
+const chipFor=e=>e.cat==='pest'?'red':e.cat==='disease'?'gold':'';
+ENTRIES.forEach(e=>{
+  const b=document.createElement('button');b.type='button';b.className='card gcard';b.dataset.cat=e.cat;b.dataset.id=e.id;
+  b.innerHTML=`<img src="${IMG+e.imgs[0][0]}" alt="${e.imgs[0][1]}" loading="lazy"><div class="gbody"><span class="chip ${chipFor(e)}">${e.tag}</span><h4>${e.name}</h4><p>${e.summary}</p></div>`;
+  b.onclick=()=>openEntry(e.id,true);gal.appendChild(b);
+});
+document.getElementById('filters').addEventListener('click',ev=>{
+  const b=ev.target.closest('button');if(!b)return;
+  document.querySelectorAll('#filters button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  gal.querySelectorAll('.gcard').forEach(c=>c.hidden=!(b.dataset.f==='all'||c.dataset.cat===b.dataset.f));
+});
+let curTab='signs';
+function openEntry(id,scroll){
+  const e=byId[id];
+  gal.querySelectorAll('.gcard').forEach(c=>c.style.outline=c.dataset.id===id?'3px solid var(--primary)':'');
+  const list=a=>`<ul class="tight">${a.map(x=>`<li>${x}</li>`).join('')}</ul>`;
+  const tabs={signs:['Symptoms',list(e.signs)+`<p style="margin-top:8px"><b>Where to look:</b> ${e.where}</p>`],prevention:['Prevention',list(e.prevention)],management:['Management',list(e.management)],why:['Why it matters',`<p>${e.impact}</p>`]};
+  const d=document.getElementById('detail');
+  d.innerHTML=`<div class="detail__top"><div class="detail__media"><img id="dimg" src="${IMG+e.imgs[0][0]}" alt="${e.imgs[0][1]}"><p class="muted" id="dcap" style="font-size:12px;margin:6px 0 0">${e.imgs[0][1]} · <i>credit pending</i></p><div class="thumbs">${e.imgs.map((m,i)=>`<button type="button" data-i="${i}" aria-label="${m[1]}"><img src="${IMG+m[0]}" alt=""></button>`).join('')}</div></div>
+  <div class="detail__text"><p class="eyebrow" style="margin:0">/guide/${e.id}</p><h4 style="font-size:22px;margin:4px 0">${e.name}</h4>${e.sci?`<p class="muted" style="margin:0"><i>${e.sci}</i></p>`:''}<p style="margin-top:8px">${e.summary}</p>
+  <div class="tabs" role="tablist">${Object.entries(tabs).map(([k,v])=>`<button type="button" role="tab" data-t="${k}" aria-selected="${k===curTab}">${v[0]}</button>`).join('')}</div>
+  <div id="tabbody">${tabs[curTab][1]}</div>
+  ${e.pending?`<p class="callout" style="margin-top:12px">Source note: ${e.pending}</p>`:''}
+  <p class="muted" style="font-size:12px;margin-top:12px">If you suspect this, report it to the SRA district office. CaneGuard is decision support, not a diagnosis.</p></div></div>`;
+  d.querySelectorAll('.thumbs button').forEach(t=>t.onclick=()=>{const m=e.imgs[+t.dataset.i];d.querySelector('#dimg').src=IMG+m[0];d.querySelector('#dimg').alt=m[1];d.querySelector('#dcap').innerHTML=m[1]+' · <i>credit pending</i>';});
+  d.querySelectorAll('.tabs button').forEach(t=>t.onclick=()=>{curTab=t.dataset.t;d.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x===t));d.querySelector('#tabbody').innerHTML=tabs[curTab][1];});
+  if(scroll)d.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'nearest'});
+}
+openEntry('rust',false);
+document.addEventListener('click',ev=>{const a=ev.target.closest('[data-open]');if(a){ev.preventDefault();openEntry(a.dataset.open,true);}});
+
+/* ---- quiz ---- */
+const POOL=ENTRIES.flatMap(e=>e.imgs.map(m=>({id:e.id,src:m[0]})));
+let order=POOL.map((_,i)=>i).sort(()=>Math.random()-.5),qi=0,score=0,done=0,answered=false;
+function renderQ(){
+  const q=POOL[order[qi%order.length]];answered=false;
+  const im=document.getElementById('qimg');im.src=IMG+q.src;im.alt='Quiz photo: identify the condition';
+  document.getElementById('qfeedback').textContent='';
+  const box=document.getElementById('qans');box.innerHTML='';
+  ENTRIES.forEach(e=>{const b=document.createElement('button');b.type='button';b.textContent=e.id==='rssi'?'RSSI (pest)':e.name;
+    b.onclick=()=>{if(answered)return;answered=true;done++;
+      const ok=e.id===q.id;if(ok)score++;
+      b.classList.add(ok?'right':'wrong');
+      box.querySelectorAll('button').forEach((x,j)=>{if(ENTRIES[j].id===q.id)x.classList.add('right');});
+      document.getElementById('qfeedback').innerHTML=(ok?'<b>Correct.</b> ':'<b>Not quite.</b> It’s '+byId[q.id].name+'. ')+byId[q.id].cue;
+      document.getElementById('qscore').textContent=`${score} / ${done}`;};
+    box.appendChild(b);});
+}
+document.getElementById('qnext').onclick=()=>{qi++;renderQ();};
+renderQ();
+
+/* ---- timeline ---- */
+const TL=[
+  ['≥3500 BCE','An Austronesian crop','Sugarcane was among the original crops Austronesian peoples (Filipinos’ ancestors) carried across the islands.'],
+  ['1855','Iloilo opens to world trade','The port opening, with British vice-consul Nicholas Loney’s encouragement and imported machinery, launched the export sugar trade.'],
+  ['Late 1800s','Negros becomes the sugar island','Iloilo families start Negros haciendas; by the next decade Negros leads national production.'],
+  ['2015','RA 10659 (SIDA)','The Sugarcane Industry Development Act funds block farms, R&amp;D, credit and scholarships for farmers’ children.'],
+  ['2022','RSSI detected in Pampanga','The red-striped soft scale insect appears in Luzon; it is confirmed in parts of Negros in early 2025.',1],
+  ['2023','CADPI stops milling in Nasugbu','The Don Pedro mill closes, citing losses and dwindling cane supply. Thousands of planters and workers are affected.',1],
+  ['2024 →','Nasugbu cane milled at Balayan','Balayan Sugar Central undergoes rehabilitation to take more of the district’s cane.'],
+  ['Next','Your generation','Young farmers who can read the field, use the data, and keep the district growing.']
+];
+document.getElementById('timeline').innerHTML=TL.map(t=>`<div class="tl__item ${t[3]?'hard':''}"><div class="tl__yr">${t[0]}</div><div><b>${t[1]}</b><p class="muted" style="margin:2px 0 0;font-size:14px">${t[2]}</p></div></div>`).join('');
+
+
+/* ---- public theme toggle (mock only; plan page stays paper) ---- */
+const PUB_KEY='caneguard.public.appearance';
+function setPub(t){
+  document.getElementById('mockbrowser').dataset.theme=t;
+  document.querySelectorAll('#pubtheme button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===t));
+  try{localStorage.setItem(PUB_KEY,JSON.stringify({version:1,theme:t}));}catch(e){}
+}
+document.querySelectorAll('#pubtheme button').forEach(b=>b.onclick=()=>setPub(b.dataset.t));
+try{const v=JSON.parse(localStorage.getItem(PUB_KEY)||'null');if(v&&v.version===1&&(v.theme==='paper'||v.theme==='dark'))setPub(v.theme);}catch(e){}
+</script>
+</body>
+</html>

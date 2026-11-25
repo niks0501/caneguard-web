@@ -17,11 +17,19 @@
       // one declaration `src/theme/themePreference.ts` cannot make early enough;
       // the API replaces __CSP_NONCE__ per request (api/routes/web.php), which
       // is what lets the CSP run this script without 'unsafe-inline';
-      // keep the storage key, version and values in step with that module.
+      // keep the storage keys, version and values in step with that module and
+      // with `src/theme/publicThemePreference.ts`. The public pages (/ and
+      // /guide) read their own key, so the two themes never share a choice.
       (function () {
         try {
+          var path = window.location.pathname;
+          var isPublic = path === "/" || path === "/guide" || path.indexOf("/guide/") === 0;
           var stored = JSON.parse(
-            window.localStorage.getItem("caneguard.appearance.preferences")
+            window.localStorage.getItem(
+              isPublic
+                ? "caneguard.public.appearance"
+                : "caneguard.appearance.preferences"
+            )
           );
           if (
             stored &&

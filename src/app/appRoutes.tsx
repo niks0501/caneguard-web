@@ -20,6 +20,10 @@ import { NotFoundPage } from "../pages/NotFoundPage";
 import { MonitoringWorkspacePage } from "../pages/MonitoringWorkspacePage";
 import { TodoPage } from "../pages/TodoPage";
 import { LoginPage } from "../pages/LoginPage";
+import { LandingPage } from "../pages/LandingPage";
+import { GuidePage } from "../pages/GuidePage";
+import { GuideEntryPage } from "../pages/GuideEntryPage";
+import { PublicLayout } from "../components/public/PublicLayout";
 import { ForgotPasswordPage } from "../pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "../pages/ResetPasswordPage";
 import { VerifyEmailPage } from "../pages/VerifyEmailPage";
@@ -50,6 +54,14 @@ export const appRoutes: RouteObject[] = [
       </UnsavedWorkProvider>
     ),
     children: [
+      {
+        element: <PublicLayout />,
+        children: [
+          { index: true, element: <LandingPage /> },
+          { path: "guide", element: <GuidePage /> },
+          { path: "guide/:entryId", element: <GuideEntryPage /> },
+        ],
+      },
       { path: "login", element: <LoginPage /> },
       { path: "register", element: <Navigate replace to={routes.login} /> },
       { path: "verify-email", element: <VerifyEmailPage /> },
@@ -58,7 +70,6 @@ export const appRoutes: RouteObject[] = [
       {
         element: <RequireAuth />,
         children: [
-          { index: true, element: <Navigate replace to={routes.dashboard} /> },
           {
             element: <RequireWebRole />,
             children: [

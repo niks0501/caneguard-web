@@ -7,6 +7,11 @@ import { server } from "./server";
 // Individual mock-mode tests can still override this with vi.stubEnv.
 vi.stubEnv("VITE_DATA_SOURCE", "api");
 
+// jsdom does not implement scrolling; the public pages scroll to a section or
+// to the top on navigation, so give them a harmless no-op.
+window.scrollTo = () => undefined;
+Element.prototype.scrollIntoView = () => undefined;
+
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {
   cleanup();
