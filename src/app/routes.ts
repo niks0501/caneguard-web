@@ -3,6 +3,9 @@ import type { FieldValidationQueue } from "../domain/operationalQueue";
 export type TodoLane = "review" | "send" | "overdue" | "decide";
 
 export const routes = {
+  home: "/",
+  guide: "/guide",
+  guideEntry: (entryId: string) => `/guide/${encodeURIComponent(entryId)}`,
   login: "/login",
   register: "/register",
   verifyEmail: "/verify-email",

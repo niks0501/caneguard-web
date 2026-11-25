@@ -8,9 +8,35 @@ afterEach(() => {
 });
 
 describe("mock data mode", () => {
-  it("loads the dashboard as the protected default route", async () => {
+  it("shows the public landing page at / with a way into the workspace", async () => {
     vi.stubEnv("VITE_DATA_SOURCE", "mock");
     window.history.pushState({}, "", "/");
+    const [{ AppProviders }, { default: App }] = await Promise.all([
+      import("./app/AppProviders"),
+      import("./App"),
+    ]);
+
+    render(
+      <AppProviders>
+        <App />
+      </AppProviders>,
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        level: 1,
+        name: "Learn the cane. Keep the legacy growing.",
+      }),
+    ).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/");
+    expect(
+      (await screen.findAllByRole("link", { name: "Open workspace" }))[0],
+    ).toHaveAttribute("href", "/dashboard");
+  });
+
+  it("loads the dashboard as a protected route", async () => {
+    vi.stubEnv("VITE_DATA_SOURCE", "mock");
+    window.history.pushState({}, "", "/dashboard");
     const [{ AppProviders }, { default: App }] = await Promise.all([
       import("./app/AppProviders"),
       import("./App"),
