@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'district_id',
     'polygon',
     'area_sqm',
+    'label',
+    'outline_from_survey_id',
     'affected_area_polygons',
     'affected_area_sqm',
     'measurement_provenance',

@@ -10,6 +10,8 @@ export function mapFieldSurveyBoundaries(
     geometry: feature.geometry,
     properties: {
       id: feature.properties.id,
+      label: feature.properties.label ?? null,
+      outlineFromSurveyId: feature.properties.outline_from_survey_id ?? null,
       capturedAt: feature.properties.captured_at,
       areaSqm: feature.properties.area_sqm,
       areaSource: feature.properties.area_source,

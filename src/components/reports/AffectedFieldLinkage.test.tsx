@@ -232,6 +232,16 @@ describe("AffectedFieldLinkage", () => {
     expect(screen.getByText("No field map on this case yet.")).toBeInTheDocument();
   });
 
+  it("shows the name the inspector typed and where a reused outline came from", () => {
+    renderLinkage(report({
+      affectedFields: [{ ...linkedField(123, nearPlot), label: "North lot", outlineFromSurveyId: 41 }],
+    }));
+
+    const card = screen.getByRole("article", { name: "Field map 123" });
+    expect(within(card).getByRole("heading", { name: /North lot/ })).toBeInTheDocument();
+    expect(within(card).getByText("Plot outline reused from Map 41")).toBeInTheDocument();
+  });
+
   it("says plainly when no damage was drawn instead of showing 0%", () => {
     renderLinkage(report({ affectedFields: [linkedField(123, nearPlot, null)] }));
 

@@ -28,6 +28,8 @@ export const fieldSurveyFeatureSchema = z.object({
   geometry: fieldSurveyPolygonSchema,
   properties: z.object({
     id: z.number().int().positive(),
+    label: z.string().nullish(),
+    outline_from_survey_id: z.number().int().positive().nullish(),
     captured_at: z.iso.datetime({ offset: true }),
     area_sqm: z.number().nonnegative(),
     area_source: z.literal("device_reported"),

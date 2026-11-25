@@ -15,6 +15,8 @@ class FieldSurveyFeatureResource extends JsonResource
             'geometry' => $this->polygon,
             'properties' => [
                 'id' => $this->id,
+                'label' => $this->label,
+                'outline_from_survey_id' => $this->outline_from_survey_id === null ? null : (int) $this->outline_from_survey_id,
                 'captured_at' => $this->captured_at->utc()->format('Y-m-d\\TH:i:s.u\\Z'),
                 'area_sqm' => (float) $this->area_sqm,
                 'area_source' => 'device_reported',

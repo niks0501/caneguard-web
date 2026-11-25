@@ -27,6 +27,8 @@ class MobileFieldSurveyController extends Controller
             'district_id' => $districtId,
             'polygon' => $data['polygon'],
             'area_sqm' => $data['area_sqm'],
+            'label' => $data['label'] ?? null,
+            'outline_from_survey_id' => $data['outline_from_survey_id'] ?? null,
             'affected_area_polygons' => $data['affected_area_polygons'] ?? null,
             'affected_area_sqm' => $data['affected_area_sqm'] ?? null,
             'measurement_provenance' => $data['measurement_provenance'] ?? null,

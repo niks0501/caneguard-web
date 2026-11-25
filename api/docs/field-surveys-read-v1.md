@@ -51,6 +51,8 @@ A successful response is a GeoJSON `FeatureCollection`, newest capture first
       },
       "properties": {
         "id": 123,
+        "label": "North lot",
+        "outline_from_survey_id": null,
         "captured_at": "2026-10-04T02:30:12.123456Z",
         "area_sqm": 6075.123456789,
         "area_source": "device_reported",

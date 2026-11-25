@@ -17,8 +17,10 @@ use App\Http\Controllers\Api\V1\FieldValidationQueueController;
 use App\Http\Controllers\Api\V1\LinkDuplicateReportController;
 use App\Http\Controllers\Api\V1\LocationReferenceController;
 use App\Http\Controllers\Api\V1\MapReportController;
+use App\Http\Controllers\Api\V1\MobileAssignmentFieldMapController;
 use App\Http\Controllers\Api\V1\MobileAuthController;
 use App\Http\Controllers\Api\V1\MobileFieldSurveyController;
+use App\Http\Controllers\Api\V1\MobileFieldSurveyOfficeStatusController;
 use App\Http\Controllers\Api\V1\MobileFieldValidationAssignmentController;
 use App\Http\Controllers\Api\V1\MobileFieldValidationCompletionController;
 use App\Http\Controllers\Api\V1\MobileMapTileController;
@@ -235,6 +237,12 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified', 'mobile.token', 'in
         ->middleware(['abilities:report:status'])
         ->whereNumber(['z', 'x', 'y'])
         ->name('api.v1.mobile.map-tiles');
+    Route::get('/mobile/field-surveys/office-status', MobileFieldSurveyOfficeStatusController::class)
+        ->middleware(['abilities:report:status'])
+        ->name('api.v1.mobile.field-surveys.office-status');
+    Route::get('/mobile/assignments/{assignment}/field-map', MobileAssignmentFieldMapController::class)
+        ->middleware(['abilities:assignment:read'])
+        ->name('api.v1.mobile.assignments.field-map');
     Route::get('/mobile/assignments', MobileFieldValidationAssignmentController::class)
         ->middleware(['abilities:assignment:read']);
     Route::get('/mobile/assignments/{assignment}/previous-evidence-photo', MobilePreviousEvidencePhotoController::class)

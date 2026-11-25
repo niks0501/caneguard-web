@@ -48,6 +48,9 @@ describe("field map status", () => {
     expect(fieldMapName(feature(1, [attached, confirmed]))).toBe("CG-0001");
     expect(primaryCase(feature(1, [attached, confirmed]))?.uuid).toBe("c1");
     expect(fieldMapName(feature(9, []))).toBe("Map 9");
+    const named = feature(10, [confirmed]);
+    named.properties.label = "North lot";
+    expect(fieldMapName(named)).toBe("North lot");
   });
 
   it("computes % affected like the API and refuses to invent one", () => {

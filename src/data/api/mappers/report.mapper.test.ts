@@ -192,6 +192,8 @@ describe("report mappers", () => {
             area_sqm: 6075.12,
             area_source: "device_reported",
             inspector: { uuid: "inspector-1", name: "Field Inspector" },
+            label: "North lot",
+            outline_from_survey_id: 41,
             affected_area_sqm: 1580,
             affected_percent: 26,
             loss_rate_percent: 18.5,
@@ -202,6 +204,8 @@ describe("report mappers", () => {
 
     expect(report.affectedFields).toEqual([{
       fieldSurveyId: 123,
+      label: "North lot",
+      outlineFromSurveyId: 41,
       geometry: {
         type: "Polygon",
         coordinates: [[[122.95, 10.7], [122.951, 10.7], [122.95, 10.701], [122.95, 10.7]]],

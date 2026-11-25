@@ -61,6 +61,8 @@ A successful write returns HTTP **200**:
         "area_sqm": 6075.12,
         "area_source": "device_reported",
         "inspector": { "uuid": "…", "name": "…" },
+        "label": "North lot",
+        "outline_from_survey_id": null,
         "affected_area_sqm": 1580.5,
         "affected_percent": 26,
         "loss_rate_percent": null
@@ -80,7 +82,9 @@ unchanged, including every interior ring, in WGS84 `[longitude, latitude]`.
 `affected_area_sqm` are the phone-supplied measurements and stay labelled
 `device_reported`. `affected_percent` is derived, `affected_area_sqm / area_sqm`
 to one decimal, and is `null` when no affected area was drawn (never `0`).
-`loss_rate_percent` is history only: `null` unless an older client stored one.
+`label` is the name the phone typed (or `null`) and `outline_from_survey_id` the
+earlier map whose outline it reused (or `null`); both are optional phone-supplied
+context, never edited here. `loss_rate_percent` is history only: `null` unless an older client stored one.
 No combined or server-measured area
 is stored or returned.
 

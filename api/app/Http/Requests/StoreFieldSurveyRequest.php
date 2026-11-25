@@ -17,6 +17,11 @@ class StoreFieldSurveyRequest extends ApiFormRequest
         if (is_string($this->input('client_uuid'))) {
             $this->merge(['client_uuid' => strtolower($this->input('client_uuid'))]);
         }
+        if (is_string($this->input('label'))) {
+            // A blank name is no name.
+            $label = trim($this->input('label'));
+            $this->merge(['label' => $label === '' ? null : $label]);
+        }
     }
 
     public function authorize(): bool
@@ -34,6 +39,16 @@ class StoreFieldSurveyRequest extends ApiFormRequest
                     $fail('The area sqm must be a finite number greater than zero.');
                 }
             }],
+            // Optional: a name the inspector typed, and the earlier map whose outline
+            // this one reused. Old payloads without them stay valid.
+            'label' => ['nullable', 'string', 'max:60'],
+            'outline_from_survey_id' => [
+                'nullable',
+                'integer',
+                'min:1',
+                Rule::exists('field_surveys', 'id')
+                    ->where(fn ($query) => $query->where('district_id', app(DistrictAccess::class)->pilotId() ?? 0)),
+            ],
             // Optional affected-area evidence: old plot-only payloads stay valid.
             'affected_area_polygons' => ['nullable', new AffectedAreaPolygons],
             'affected_area_polygons.*' => ['required', new SurveyPolygon],

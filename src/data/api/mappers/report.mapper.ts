@@ -192,6 +192,8 @@ export function mapReportAffectedField(
 ): ReportAffectedField {
   return {
     fieldSurveyId: dto.field_survey_id,
+    label: dto.label ?? null,
+    outlineFromSurveyId: dto.outline_from_survey_id ?? null,
     geometry: dto.geometry,
     capturedAt: dto.captured_at,
     areaSqm: dto.area_sqm,
@@ -232,6 +234,8 @@ function mapInspectorAttachment(
     boundary: dto.field_survey
       ? {
           fieldSurveyId: dto.field_survey.field_survey_id,
+          label: dto.field_survey.label ?? null,
+          outlineFromSurveyId: dto.field_survey.outline_from_survey_id ?? null,
           geometry: dto.field_survey.geometry,
           capturedAt: dto.field_survey.captured_at,
           areaSqm: dto.field_survey.area_sqm,

@@ -27,6 +27,8 @@ import { boundaryCentroid, boundaryOutline, distanceMeters, pointInBoundary } fr
 /** One field map as the phone measured it. Every number here comes from the phone. */
 type FieldMap = {
   id: number;
+  label: string | null;
+  outlineFromSurveyId: number | null;
   capturedAt: string;
   areaSqm: number;
   affectedAreaSqm: number | null;
@@ -45,6 +47,8 @@ function fromFeature(feature: FieldSurveyBoundaryFeature): FieldMap {
   const { properties } = feature;
   return {
     id: properties.id,
+    label: properties.label ?? null,
+    outlineFromSurveyId: properties.outlineFromSurveyId ?? null,
     capturedAt: properties.capturedAt,
     areaSqm: properties.areaSqm,
     affectedAreaSqm: properties.affectedAreaSqm,
@@ -57,6 +61,8 @@ function fromFeature(feature: FieldSurveyBoundaryFeature): FieldMap {
 function fromField(field: Omit<ReportAffectedField, "lossRatePercent">): FieldMap {
   return {
     id: field.fieldSurveyId,
+    label: field.label ?? null,
+    outlineFromSurveyId: field.outlineFromSurveyId ?? null,
     capturedAt: field.capturedAt,
     areaSqm: field.areaSqm,
     affectedAreaSqm: field.affectedAreaSqm,
@@ -122,12 +128,15 @@ function FieldMapSummary({
       <Outline map={map} label={`Shape of field map ${map.id}`} />
       <div className="field-map__body">
         <h3 className="field-map__title">
-          Map {map.id}
+          {map.label ?? `Map ${map.id}`}
           {status}
         </h3>
         <p className="field-map__meta">
           Measured by {map.inspectorName} · <time dateTime={map.capturedAt}>{formatDateTime(map.capturedAt)}</time>
         </p>
+        {map.outlineFromSurveyId !== null ? (
+          <p className="field-map__meta">Plot outline reused from Map {map.outlineFromSurveyId}</p>
+        ) : null}
         {inside !== null ? (
           <p className={`field-map__location${inside ? "" : " field-map__location--outside"}`}>
             {inside ? "Case location is inside this plot" : "Case location is outside this plot"}
@@ -418,7 +427,7 @@ export function AffectedFieldLinkage({
                     />
                     <Outline map={choice} label={`Shape of field map ${choice.id}`} />
                     <span className="affected-field-linkage__choice-text">
-                      <strong>Map {choice.id}{attached?.id === choice.id ? " · from this inspector" : ""}</strong>
+                      <strong>{choice.label ?? `Map ${choice.id}`}{attached?.id === choice.id ? " · from this inspector" : ""}</strong>
                       <span>
                         {choice.inspectorName} · <time dateTime={choice.capturedAt}>{formatDateTime(choice.capturedAt)}</time>
                       </span>

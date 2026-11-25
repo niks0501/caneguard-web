@@ -12,6 +12,8 @@ class ReportAffectedFieldResource extends JsonResource
     {
         return [
             'field_survey_id' => (int) $this->getKey(),
+            'label' => $this->label,
+            'outline_from_survey_id' => $this->outline_from_survey_id === null ? null : (int) $this->outline_from_survey_id,
             'geometry' => $this->polygon,
             'captured_at' => $this->captured_at->utc()->format('Y-m-d\\TH:i:s.u\\Z'),
             'area_sqm' => (float) $this->area_sqm,
