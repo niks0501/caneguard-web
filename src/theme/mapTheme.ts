@@ -33,6 +33,11 @@ export interface MapPaint {
   boundarySelected: string;
   /** Damage areas the inspector drew inside a boundary. */
   boundaryDamage: string;
+  /** A field map an inspector attached to a case that the office has not confirmed. */
+  boundaryWaiting: string;
+  boundaryWaitingLine: string;
+  /** A field map no case uses; drawn with a dashed outline. */
+  boundaryUnlinked: string;
 }
 
 type PaintToken =
@@ -41,7 +46,10 @@ type PaintToken =
   | "--color-surface"
   | "--color-primary"
   | "--color-primary-dark"
-  | "--color-accent-dark";
+  | "--color-accent-dark"
+  | "--color-secondary-text"
+  | "--kpi-band-3"
+  | "--kpi-band-4";
 
 const FALLBACKS: Record<PaintToken, string> = {
   "--color-text": "#1d2720",
@@ -50,6 +58,9 @@ const FALLBACKS: Record<PaintToken, string> = {
   "--color-primary": "#2d6b40",
   "--color-primary-dark": "#1e452a",
   "--color-accent-dark": "#b8ad73",
+  "--color-secondary-text": "#4a5650",
+  "--kpi-band-3": "#ae8a1b",
+  "--kpi-band-4": "#45370b",
 };
 
 function readToken(name: PaintToken): string {
@@ -74,6 +85,9 @@ export function readMapPaint(): MapPaint {
     boundaryLine: readToken("--color-primary-dark"),
     boundarySelected: readToken("--color-accent-dark"),
     boundaryDamage: readToken("--color-warning"),
+    boundaryWaiting: readToken("--kpi-band-3"),
+    boundaryWaitingLine: readToken("--kpi-band-4"),
+    boundaryUnlinked: readToken("--color-secondary-text"),
   };
 }
 

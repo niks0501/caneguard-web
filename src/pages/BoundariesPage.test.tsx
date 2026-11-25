@@ -107,8 +107,8 @@ describe("BoundariesPage", () => {
     renderPage();
 
     expect(screen.queryByRole("heading", { level: 1 })).not.toBeInTheDocument();
-    const refresh = screen.getByRole("button", { name: "Refresh boundaries" });
-    expect(screen.getByRole("heading", { name: "Boundary records" }).parentElement).toContainElement(refresh);
+    const refresh = screen.getByRole("button", { name: "Refresh field maps" });
+    expect(screen.getByRole("heading", { name: "Field map records" }).parentElement).toContainElement(refresh);
     await user.click(refresh);
     expect(refetch).toHaveBeenCalledOnce();
   });
@@ -116,8 +116,8 @@ describe("BoundariesPage", () => {
   it("keeps the page heading and refresh action when rendered standalone", () => {
     renderPage("/monitoring", false);
 
-    expect(screen.getByRole("heading", { level: 1, name: "Field boundaries" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Refresh boundaries" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Field maps" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Refresh field maps" })).toBeInTheDocument();
   });
 
   it("shows the loading state without claiming a deep-linked boundary is unavailable", () => {
@@ -135,7 +135,7 @@ describe("BoundariesPage", () => {
     };
     vi.mocked(useFieldSurveys).mockReturnValue(queryResult(empty));
     renderPage();
-    expect(screen.getByText("No field boundaries recorded yet.")).toBeInTheDocument();
+    expect(screen.getByText("No field maps recorded yet.")).toBeInTheDocument();
   });
 
   it("shows an API error with a retry action without claiming a deep-linked boundary is unavailable", async () => {
@@ -212,7 +212,7 @@ describe("BoundariesPage", () => {
     }));
     renderPage("/monitoring?view=boundaries&boundary=999");
     expect(screen.getByRole("alert")).toHaveTextContent("most recently loaded boundaries are still shown and may be stale");
-    expect(screen.getByText("Maria Santos")).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "Maria Santos" })).toBeInTheDocument();
     expect(screen.queryByText(/could not be loaded/)).not.toBeInTheDocument();
   });
 
@@ -235,7 +235,7 @@ describe("BoundariesPage", () => {
     }));
     renderPage();
 
-    const notice = screen.getByText(`Showing the newest ${FIELD_SURVEYS_MAX_LIMIT} boundaries. More exist beyond this view.`);
+    const notice = screen.getByText(`Showing the newest ${FIELD_SURVEYS_MAX_LIMIT} field maps. More exist beyond this view.`);
     expect(notice).toHaveAttribute("role", "status");
     expect(notice).not.toHaveTextContent(`of ${FIELD_SURVEYS_MAX_LIMIT}`);
   });
@@ -263,7 +263,7 @@ describe("BoundariesPage", () => {
     }));
     renderPage();
 
-    expect(screen.getByText(new RegExp(`Showing the newest ${FIELD_SURVEYS_MAX_LIMIT} of ${FIELD_SURVEYS_MAX_LIMIT + 50} boundaries\\. The rest are not on this map\\.`))).toHaveAttribute("role", "status");
+    expect(screen.getByText(new RegExp(`Showing the newest ${FIELD_SURVEYS_MAX_LIMIT} of ${FIELD_SURVEYS_MAX_LIMIT + 50} field maps\\. The rest are not on this map\\.`))).toHaveAttribute("role", "status");
     expect(screen.getByRole("columnheader", { name: /Area, device-reported/ })).toBeInTheDocument();
     expect(screen.getAllByText("Oct 4, 2026, 10:30 AM")).toHaveLength(FIELD_SURVEYS_MAX_LIMIT);
     expect(screen.getAllByText("0.61 ha").length).toBeGreaterThan(0);
@@ -292,7 +292,7 @@ describe("BoundariesPage", () => {
 
     expect(useFieldSurveyById).toHaveBeenCalledWith("7");
     expect(screen.getByText(`${FIELD_SURVEYS_MAX_LIMIT} shown`)).toBeInTheDocument();
-    expect(screen.getByText(`Showing the newest ${FIELD_SURVEYS_MAX_LIMIT} of ${FIELD_SURVEYS_MAX_LIMIT + 50} boundaries. The selected boundary is also on this map; the rest are not.`)).toHaveAttribute("role", "status");
+    expect(screen.getByText(`Showing the newest ${FIELD_SURVEYS_MAX_LIMIT} of ${FIELD_SURVEYS_MAX_LIMIT + 50} field maps. The selected map is also shown; the rest are not.`)).toHaveAttribute("role", "status");
   });
 
   it("selects a row in the map and replaces only the boundary URL state", async () => {
@@ -418,5 +418,62 @@ describe("BoundariesPage", () => {
     renderPage();
     await user.click(screen.getByRole("button", { name: "Select boundary from map" }));
     await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("boundary=123"));
+  });
+});
+
+describe("BoundariesPage field map filters", () => {
+  function twoInspectors(): FieldSurveyBoundariesData {
+    const base = oneBoundary.features[0];
+    const other = {
+      ...base,
+      id: "124",
+      properties: {
+        ...base.properties,
+        id: 124,
+        inspector: { uuid: "inspector-2", name: "Ben Cruz" },
+        cases: [{ uuid: "case-9", referenceCode: "CG-0009", link: "attached" as const }],
+      },
+    };
+    return { ...oneBoundary, features: [base, other] };
+  }
+
+  beforeEach(() => {
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult(twoInspectors()));
+  });
+
+  it("narrows the list and the map by inspector and says how many of the loaded maps match", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(screen.getByText("2 loaded maps")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Inspector"), "Ben Cruz");
+
+    expect(screen.getByText("1 of 2 loaded maps")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open CG-0009" })).toHaveAttribute("href", "/reports/case-9");
+    expect(screen.queryByRole("cell", { name: "Maria Santos" })).not.toBeInTheDocument();
+  });
+
+  it("filters by status and tells the truth when nothing matches", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.selectOptions(screen.getByLabelText("Status"), "confirmed");
+
+    expect(screen.getByText("No field maps match these filters.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Clear filters" }));
+    expect(screen.getByText("2 loaded maps")).toBeInTheDocument();
+  });
+
+  it("keeps a map opened by number visible even when the filters would hide it", async () => {
+    const user = userEvent.setup();
+    renderPage("/monitoring?view=boundaries&boundary=123");
+
+    await user.selectOptions(screen.getByLabelText("Inspector"), "Ben Cruz");
+
+    expect(screen.getByTestId("map-selection")).toHaveTextContent("123");
+    // Ben's map matches the filter; Maria's is kept because it was opened by number.
+    expect(screen.getByRole("cell", { name: "Maria Santos" })).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "Ben Cruz" })).toBeInTheDocument();
   });
 });

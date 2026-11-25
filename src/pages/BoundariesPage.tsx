@@ -1,9 +1,17 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { ZodError } from "zod";
 import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { BoundariesList } from "../components/boundaries/BoundariesList";
 import { BoundariesMap } from "../components/boundaries/BoundariesMap";
+import { FieldMapFilters } from "../components/boundaries/FieldMapFilters";
+import {
+  fieldMapFiltersActive,
+  fieldMapInspectors,
+  filterFieldMaps,
+  NO_FIELD_MAP_FILTERS,
+  type FieldMapFilters as Filters,
+} from "../components/boundaries/fieldMapStatus";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { Button } from "../components/ui/Button";
 import { ErrorState, LoadingState } from "../components/ui/States";
@@ -42,6 +50,7 @@ function errorMessage(error: unknown) {
 export function BoundariesPage({ embedded = false }: { embedded?: boolean }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const query = useFieldSurveys(FIELD_SURVEYS_MAX_LIMIT);
+  const [filters, setFilters] = useState<Filters>(NO_FIELD_MAP_FILTERS);
   const [popupSelection, setPopupSelection] = useState<{ id: string; coordinates: FieldSurveyPosition } | null>(null);
   const accessDenied = isAccessDeniedError(query.error);
   const unauthenticated = isUnauthorizedError(query.error);
@@ -76,9 +85,19 @@ export function BoundariesPage({ embedded = false }: { embedded?: boolean }) {
     lookup: lookupStatus,
     openedOnMap: popupCoordinates !== null,
   });
-  const mapData = data && selectedFeature && !loadedFeature
-    ? { ...data, features: [...data.features, selectedFeature] }
-    : data;
+  const loadedAt = query.dataUpdatedAt ?? 0;
+  const inspectors = useMemo(() => fieldMapInspectors(data?.features ?? []), [data]);
+  // A map opened by number stays visible even when the filters would hide it.
+  const visible = useMemo(() => {
+    if (!data) return undefined;
+    // "Last N days" counts back from when the maps were last loaded.
+    const matching = filterFieldMaps(data.features, filters, loadedAt);
+    const selectedHidden = loadedFeature && !matching.includes(loadedFeature);
+    return { ...data, features: selectedHidden ? [...matching, loadedFeature] : matching };
+  }, [data, filters, loadedAt, loadedFeature]);
+  const mapData = visible && selectedFeature && !loadedFeature
+    ? { ...visible, features: [...visible.features, selectedFeature] }
+    : visible;
 
   const updateBoundaryParam = (id: string | null) => {
     const next = new URLSearchParams(searchParams);
@@ -106,8 +125,8 @@ export function BoundariesPage({ embedded = false }: { embedded?: boolean }) {
     <PageContent className={embedded ? "page-content--embedded" : ""}>
       {!embedded ? (
         <PageHeader
-          title="Field boundaries"
-          description="Recorded plot outlines, newest first."
+          title="Field maps"
+          description="Plots the inspectors measured, newest first."
           actions={(
             <Button
               variant="secondary"
@@ -115,7 +134,7 @@ export function BoundariesPage({ embedded = false }: { embedded?: boolean }) {
               disabled={query.isFetching}
               onClick={() => void query.refetch()}
             >
-              {query.isFetching ? "Refreshing boundaries" : "Refresh boundaries"}
+              {query.isFetching ? "Refreshing field maps" : "Refresh field maps"}
             </Button>
           )}
         />
@@ -149,6 +168,13 @@ export function BoundariesPage({ embedded = false }: { embedded?: boolean }) {
       ) : null}
       {data ? (
         <div className="boundaries-workspace" data-selection-state={selectionState}>
+          <FieldMapFilters
+            filters={filters}
+            inspectors={inspectors}
+            shown={visible?.features.length ?? 0}
+            loaded={data.features.length}
+            onChange={setFilters}
+          />
           <BoundariesMap
             data={mapData ?? data}
             selectedBoundaryId={selectedBoundaryId}
@@ -157,7 +183,9 @@ export function BoundariesPage({ embedded = false }: { embedded?: boolean }) {
             onClearSelection={clearSelection}
           />
           <BoundariesList
-            data={data}
+            data={visible ?? data}
+            loadedCount={data.features.length}
+            filtered={fieldMapFiltersActive(filters)}
             selectedBoundaryId={selectedBoundaryId}
             onSelect={selectFromList}
             isFetching={query.isFetching}

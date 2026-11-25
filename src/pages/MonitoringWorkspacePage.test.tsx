@@ -42,7 +42,7 @@ describe("MonitoringWorkspacePage", () => {
     expect(screen.getByRole("heading", { name: "Field visits" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Assignments" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "To do" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Boundaries" })).toHaveAttribute("href", "/monitoring?view=boundaries");
+    expect(screen.getByRole("link", { name: "Field maps" })).toHaveAttribute("href", "/monitoring?view=boundaries");
   });
 });
 

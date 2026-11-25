@@ -21,6 +21,7 @@ import { Pagination } from "../ui/Pagination";
 import { Skeleton } from "../ui/States";
 import { useUnsavedWorkGuard } from "../ui/unsavedWorkContext";
 import { affectedFieldFormState } from "./affectedFieldFormState";
+import { percentAffected } from "../boundaries/fieldMapStatus";
 import { boundaryCentroid, boundaryOutline, distanceMeters, pointInBoundary } from "./boundaryShape";
 
 /** One field map as the phone measured it. Every number here comes from the phone. */
@@ -38,12 +39,6 @@ type CaseLocation = { latitude: number; longitude: number };
 
 function isRateLimitedError(error: unknown) {
   return error instanceof ApiError && error.status === 429;
-}
-
-/** Same rule as the API: share of the plot the inspector drew as affected. */
-function percentAffected(areaSqm: number, affectedAreaSqm: number | null): number | null {
-  if (affectedAreaSqm === null || areaSqm <= 0) return null;
-  return Math.round(Math.min(100, (affectedAreaSqm / areaSqm) * 100) * 10) / 10;
 }
 
 function fromFeature(feature: FieldSurveyBoundaryFeature): FieldMap {
