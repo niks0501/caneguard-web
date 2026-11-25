@@ -1,7 +1,10 @@
 import { RefreshCw } from "lucide-react";
+import { Link } from "react-router";
+import { routes } from "../../app/routes";
 import type { FieldSurveyBoundariesData, FieldSurveyBoundaryFeature } from "../../domain/fieldSurvey.types";
 import { Button } from "../ui/Button";
 import { formatAffectedArea, formatDateTime } from "../../lib/formatters";
+import { FIELD_MAP_STATUS_LABEL, fieldMapName, fieldMapStatus, percentAffected, primaryCase } from "./fieldMapStatus";
 
 function boundaryLabel(feature: FieldSurveyBoundaryFeature) {
   return `boundary ${feature.properties.id} captured ${formatDateTime(feature.properties.capturedAt)} by ${feature.properties.inspector.name}`;
@@ -13,23 +16,29 @@ export function BoundariesList({
   onSelect,
   isFetching = false,
   onRefresh,
+  loadedCount,
+  filtered = false,
 }: {
   data: FieldSurveyBoundariesData;
   selectedBoundaryId: string | null;
   onSelect: (boundaryId: string) => void;
   isFetching?: boolean;
   onRefresh?: () => void;
+  /** Maps loaded before filters; the truncation note counts these. */
+  loadedCount?: number;
+  /** True when the filters are hiding some of the loaded maps. */
+  filtered?: boolean;
 }) {
-  const shown = data.features.length;
+  const shown = loadedCount ?? data.features.length;
   const selectedOutsidePage = selectedBoundaryId !== null
     && !data.features.some((feature) => String(feature.properties.id) === selectedBoundaryId);
 
   return (
     <section className="field-validation-table-card boundaries-list-card" aria-labelledby="boundaries-list-heading">
       <div className="workspace-heading boundaries-list__heading">
-        <h2 id="boundaries-list-heading">Boundary records</h2>
+        <h2 id="boundaries-list-heading">Field map records</h2>
         <div className="boundaries-list__heading-actions">
-          <span>{shown} shown</span>
+          <span>{data.features.length} shown</span>
           {onRefresh ? (
             <Button
               variant="secondary"
@@ -38,7 +47,7 @@ export function BoundariesList({
               disabled={isFetching}
               onClick={onRefresh}
             >
-              {isFetching ? "Refreshing boundaries" : "Refresh boundaries"}
+              {isFetching ? "Refreshing field maps" : "Refresh field maps"}
             </Button>
           ) : null}
         </div>
@@ -46,22 +55,26 @@ export function BoundariesList({
       {data.metadata.truncated ? (
         <p className="boundaries-list__truncated" role="status">
           {data.metadata.totalCount > shown
-            ? `Showing the newest ${shown} of ${data.metadata.totalCount} boundaries. ${selectedOutsidePage ? "The selected boundary is also on this map; the rest are not." : "The rest are not on this map."}`
-            : `Showing the newest ${shown} boundaries. ${selectedOutsidePage ? "The selected boundary is also on this map; more exist beyond this view." : "More exist beyond this view."}`}
+            ? `Showing the newest ${shown} of ${data.metadata.totalCount} field maps. ${selectedOutsidePage ? "The selected map is also shown; the rest are not." : "The rest are not on this map."}`
+            : `Showing the newest ${shown} field maps. ${selectedOutsidePage ? "The selected map is also shown; more exist beyond this view." : "More exist beyond this view."}`}
         </p>
       ) : null}
       {data.features.length === 0 ? (
-        <p className="field-validation-table-card__empty">No field boundaries recorded yet.</p>
+        <p className="field-validation-table-card__empty">
+          {filtered ? "No field maps match these filters." : "No field maps recorded yet."}
+        </p>
       ) : (
         <div className="boundaries-list__scroll">
           <table className="field-validation-table boundaries-list__table">
             <thead>
               <tr>
-                <th scope="col">Captured</th>
+                <th scope="col">Map</th>
+                <th scope="col">Case</th>
                 <th scope="col" aria-label="Area, device-reported">
                   Area
                   <span className="boundaries-list__source">device-reported</span>
                 </th>
+                <th scope="col">% affected</th>
                 <th scope="col">Inspector</th>
                 <th scope="col"><span className="sr-only">Map action</span></th>
               </tr>
@@ -71,6 +84,9 @@ export function BoundariesList({
                 const id = String(feature.properties.id);
                 const label = boundaryLabel(feature);
                 const selected = selectedBoundaryId === id;
+                const status = fieldMapStatus(feature);
+                const linkedCase = primaryCase(feature);
+                const affected = percentAffected(feature.properties.areaSqm, feature.properties.affectedAreaSqm);
                 return (
                   <tr key={id} className={selected ? "is-selected" : undefined}>
                     <td>
@@ -81,10 +97,24 @@ export function BoundariesList({
                         aria-label={`${selected ? "Selected" : "Show"} ${label} on map`}
                         onClick={() => onSelect(id)}
                       >
-                        <time dateTime={feature.properties.capturedAt}>{formatDateTime(feature.properties.capturedAt)}</time>
+                        {fieldMapName(feature)}
                       </button>
+                      <time className="boundaries-list__source" dateTime={feature.properties.capturedAt}>
+                        {formatDateTime(feature.properties.capturedAt)}
+                      </time>
+                    </td>
+                    <td>
+                      <span className={`boundaries-list__status boundaries-list__status--${status}`}>
+                        {FIELD_MAP_STATUS_LABEL[status]}
+                      </span>
+                      {linkedCase ? (
+                        <Link className="table-action" to={routes.reportDetail(linkedCase.uuid)}>
+                          Open {linkedCase.referenceCode}
+                        </Link>
+                      ) : null}
                     </td>
                     <td>{formatAffectedArea(feature.properties.areaSqm / 10_000)}</td>
+                    <td>{affected === null ? "Not drawn" : `${affected}%`}</td>
                     <td>{feature.properties.inspector.name}</td>
                     <td className="field-validation-table__action-cell">
                       <button

@@ -11,6 +11,7 @@ import { useMapPaint } from "../../theme/mapTheme";
 import { useTheme } from "../../theme/useTheme";
 import { resolveBasemapStyle } from "../fieldValidation/localBasemap";
 import { boundaryCentroid } from "../reports/boundaryShape";
+import { FIELD_MAP_STATUS_LABEL, fieldMapName, fieldMapStatus, percentAffected } from "./fieldMapStatus";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -71,7 +72,7 @@ function MapProviderStatus({
       <div className="validation-map__provider-status validation-map__provider-status--error">
         <div role="alert">
           <strong>Map unavailable.</strong>
-          <p>Field boundaries remain available in the list.</p>
+          <p>Field maps remain available in the list.</p>
         </div>
         <button type="button" className="button button--secondary" onClick={onRetry}>Retry map</button>
       </div>
@@ -80,7 +81,7 @@ function MapProviderStatus({
   return (
     <div className="validation-map__provider-status" role="status">
       <strong>Loading map...</strong>
-      <p>Boundary records remain available while the basemap loads.</p>
+      <p>The list remains available while the basemap loads.</p>
     </div>
   );
 }
@@ -91,17 +92,19 @@ function boundaryLabel(feature: FieldSurveyBoundaryFeature) {
   return {
     size,
     cases: cases.length,
-    text: cases.length > 0 ? `${size} · ${cases.length === 1 ? "1 case" : `${cases.length} cases`}` : size,
+    text: `${fieldMapName(feature)} · ${size}`,
   };
 }
 
 function BoundaryLegend() {
   return (
-    <div className="validation-map__legend boundaries-map__legend" role="group" aria-label="Boundary legend">
+    <div className="validation-map__legend boundaries-map__legend" role="group" aria-label="Field map legend">
       <ul>
-        <li><span className="boundaries-map__swatch" aria-hidden="true" /><span>Recorded field boundary</span></li>
+        <li><span className="boundaries-map__swatch" aria-hidden="true" /><span>{FIELD_MAP_STATUS_LABEL.confirmed}</span></li>
+        <li><span className="boundaries-map__swatch boundaries-map__swatch--waiting" aria-hidden="true" /><span>{FIELD_MAP_STATUS_LABEL.waiting}</span></li>
+        <li><span className="boundaries-map__swatch boundaries-map__swatch--unlinked" aria-hidden="true" /><span>{FIELD_MAP_STATUS_LABEL.unlinked}</span></li>
         <li><span className="boundaries-map__swatch boundaries-map__swatch--damage" aria-hidden="true" /><span>Damage area</span></li>
-        <li><span className="boundaries-map__swatch boundaries-map__swatch--selected" aria-hidden="true" /><span>Selected boundary</span></li>
+        <li><span className="boundaries-map__swatch boundaries-map__swatch--selected" aria-hidden="true" /><span>Selected map</span></li>
       </ul>
     </div>
   );
@@ -138,7 +141,7 @@ export function BoundariesMap({
     type: "FeatureCollection" as const,
     features: data.features.map((feature) => ({
       ...feature,
-      properties: { boundary_id: String(feature.properties.id) },
+      properties: { boundary_id: String(feature.properties.id), status: fieldMapStatus(feature) },
     })),
   }), [data.features]);
   const damageData = useMemo(() => ({
@@ -238,10 +241,10 @@ export function BoundariesMap({
   return (
     <section className="validation-map-card boundaries-map-card" aria-labelledby="boundaries-map-heading">
       <div className="validation-map-card__heading">
-        <h2 id="boundaries-map-heading">Boundary map</h2>
+        <h2 id="boundaries-map-heading">Field map</h2>
         <span>{data.features.length} shown</span>
       </div>
-      <div className="validation-map boundaries-map" role="region" aria-label="Map of recorded field boundaries">
+      <div className="validation-map boundaries-map" role="region" aria-label="Map of recorded field maps">
         {basemapStyle ? (
           <>
             <Map
@@ -249,7 +252,7 @@ export function BoundariesMap({
               ref={mapRef}
               initialViewState={OPERATING_AREA_VIEW}
               mapStyle={basemapStyle}
-              interactiveLayerIds={["field-boundaries-fill", "field-boundaries-outline", "field-boundaries-damage-fill"]}
+              interactiveLayerIds={["field-boundaries-fill", "field-boundaries-outline", "field-boundaries-outline-unlinked", "field-boundaries-damage-fill"]}
               onClick={handleClick}
               onLoad={handleMapLoad}
               onError={handleMapError}
@@ -261,12 +264,28 @@ export function BoundariesMap({
                 <Layer
                   id="field-boundaries-fill"
                   type="fill"
-                  paint={{ "fill-color": paint.boundaryFill, "fill-opacity": 0.18 }}
+                  paint={{
+                    "fill-color": ["match", ["get", "status"],
+                      "confirmed", paint.boundaryFill,
+                      "waiting", paint.boundaryWaiting,
+                      paint.boundaryUnlinked],
+                    "fill-opacity": 0.22,
+                  }}
                 />
                 <Layer
                   id="field-boundaries-outline"
                   type="line"
-                  paint={{ "line-color": paint.boundaryLine, "line-width": 2 }}
+                  filter={["!=", ["get", "status"], "unlinked"]}
+                  paint={{
+                    "line-color": ["match", ["get", "status"], "waiting", paint.boundaryWaitingLine, paint.boundaryLine],
+                    "line-width": 2,
+                  }}
+                />
+                <Layer
+                  id="field-boundaries-outline-unlinked"
+                  type="line"
+                  filter={["==", ["get", "status"], "unlinked"]}
+                  paint={{ "line-color": paint.boundaryUnlinked, "line-width": 2, "line-dasharray": [2, 2] }}
                 />
               </Source>
               <Source id="field-boundaries-damage" type="geojson" data={damageData}>
@@ -320,12 +339,13 @@ export function BoundariesMap({
                 >
                   <div className="boundaries-map__popup" role="dialog" aria-labelledby="boundary-popup-heading">
                     <div className="boundaries-map__popup-heading">
-                      <h3 id="boundary-popup-heading">Field boundary</h3>
-                      <button type="button" aria-label="Close boundary details" onClick={() => onClearSelection?.()}>
+                      <h3 id="boundary-popup-heading">{fieldMapName(selectedFeature)}</h3>
+                      <button type="button" aria-label="Close field map details" onClick={() => onClearSelection?.()}>
                         <X aria-hidden="true" />
                       </button>
                     </div>
                     <dl>
+                      <div><dt>Status</dt><dd>{FIELD_MAP_STATUS_LABEL[fieldMapStatus(selectedFeature)]}</dd></div>
                       <div><dt>Captured</dt><dd>{formatDateTime(selectedFeature.properties.capturedAt)}</dd></div>
                       <div><dt>Area · device-reported</dt><dd>{formatAffectedArea(selectedFeature.properties.areaSqm / 10_000)}</dd></div>
                       {selectedFeature.properties.affectedAreas.length > 0 ? (
@@ -336,6 +356,12 @@ export function BoundariesMap({
                               ? `${selectedFeature.properties.affectedAreas.length} drawn`
                               : formatAffectedArea(selectedFeature.properties.affectedAreaSqm / 10_000)}
                           </dd>
+                        </div>
+                      ) : null}
+                      {percentAffected(selectedFeature.properties.areaSqm, selectedFeature.properties.affectedAreaSqm) !== null ? (
+                        <div>
+                          <dt>% affected</dt>
+                          <dd>{percentAffected(selectedFeature.properties.areaSqm, selectedFeature.properties.affectedAreaSqm)}%</dd>
                         </div>
                       ) : null}
                       <div><dt>Inspector</dt><dd>{selectedFeature.properties.inspector.name}</dd></div>
@@ -364,7 +390,7 @@ export function BoundariesMap({
         ) : (
           <div className="validation-map__unavailable" role="alert">
             <strong>Map unavailable.</strong>
-            <p>Field boundaries remain available in the list.</p>
+            <p>Field maps remain available in the list.</p>
           </div>
         )}
       </div>

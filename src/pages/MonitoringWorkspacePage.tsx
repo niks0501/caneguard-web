@@ -25,7 +25,7 @@ const views: Array<{ key: WorkspaceView; label: string; icon: ReactNode }> = [
   { key: "register", label: "List", icon: <Table2 aria-hidden="true" /> },
   { key: "calendar", label: "Calendar", icon: <CalendarDays aria-hidden="true" /> },
   { key: "map", label: "Map", icon: <MapPinned aria-hidden="true" /> },
-  { key: "boundaries", label: "Boundaries", icon: <LandPlot aria-hidden="true" /> },
+  { key: "boundaries", label: "Field maps", icon: <LandPlot aria-hidden="true" /> },
 ];
 
 /** The Monitoring workspace opens on the map unless the URL carries state only the List can honor. */
@@ -69,7 +69,7 @@ export function MonitoringWorkspacePage() {
       ) : null}
       {view === "field-operations" ? <FieldOperationsPage embedded /> : null}
       {view === "boundaries" ? (
-        <Suspense fallback={<LoadingState message="Loading field boundaries..." />}>
+        <Suspense fallback={<LoadingState message="Loading field maps..." />}>
           <BoundariesPage embedded />
         </Suspense>
       ) : null}

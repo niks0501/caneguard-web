@@ -9491,6 +9491,16 @@ button.monitoring-calendar__day-number:focus-visible {
   border-color: var(--color-warning);
 }
 
+.boundaries-map__swatch--waiting {
+  background: var(--kpi-band-3);
+  border-color: var(--kpi-band-4);
+}
+
+.boundaries-map__swatch--unlinked {
+  background: var(--color-surface);
+  border: 2px dashed var(--color-secondary-text);
+}
+
 .boundaries-map__label {
   display: inline-block;
   padding: 1px var(--space-2);
@@ -9507,7 +9517,59 @@ button.monitoring-calendar__day-number:focus-visible {
 
 .boundaries-map__label--case {
   border-width: 2px;
-  border-color: var(--color-warning);
+  border-color: var(--kpi-band-3);
+}
+
+.field-map-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.field-map-filters label {
+  display: flex;
+  min-width: 11rem;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-weight: 600;
+}
+
+.field-map-filters select {
+  min-height: var(--control-height);
+  padding: 0 var(--space-3);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-weight: 400;
+}
+
+.field-map-filters__count {
+  margin-left: auto;
+  color: var(--color-muted);
+}
+
+.boundaries-list__status {
+  display: inline-block;
+  padding: 1px var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-body-sm);
+  font-weight: 700;
+}
+
+.boundaries-list__status--confirmed {
+  color: var(--color-primary-text);
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
+}
+
+.boundaries-list__status--waiting {
+  color: var(--color-text);
+  background: var(--color-accent);
+  border-color: var(--kpi-band-3);
 }
 
 .boundaries-map__cases {

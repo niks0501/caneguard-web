@@ -1,5 +1,5 @@
 import { createElement, useEffect, type ReactNode } from "react";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FieldSurveyBoundariesData, FieldSurveyPolygon, FieldSurveyPosition } from "../../domain/fieldSurvey.types";
@@ -119,21 +119,41 @@ describe("BoundariesMap", () => {
 
     expect(mapTestState.sources["field-boundaries"].data?.features[0]).toMatchObject({
       geometry: data.features[0].geometry,
-      properties: { boundary_id: "123" },
+      properties: { boundary_id: "123", status: "unlinked" },
     });
+    // Flat solids by status: confirmed green, waiting gold, not on a case grey with a dashed outline.
     expect(mapTestState.layers["field-boundaries-fill"]).toMatchObject({
       type: "fill",
-      paint: { "fill-color": "#2d6b40", "fill-opacity": 0.18 },
+      paint: {
+        "fill-color": ["match", ["get", "status"], "confirmed", "#2d6b40", "waiting", "#ae8a1b", "#4a5650"],
+        "fill-opacity": 0.22,
+      },
     });
     expect(mapTestState.layers["field-boundaries-outline"]).toMatchObject({
       type: "line",
-      paint: { "line-color": "#1e452a", "line-width": 2 },
+      paint: { "line-color": ["match", ["get", "status"], "waiting", "#45370b", "#1e452a"], "line-width": 2 },
+    });
+    expect(mapTestState.layers["field-boundaries-outline-unlinked"]).toMatchObject({
+      type: "line",
+      paint: { "line-color": "#4a5650", "line-width": 2, "line-dasharray": [2, 2] },
     });
     expect(mapTestState.latestProps?.interactiveLayerIds).toEqual([
       "field-boundaries-fill",
       "field-boundaries-outline",
+      "field-boundaries-outline-unlinked",
       "field-boundaries-damage-fill",
     ]);
+  });
+
+  it("marks each map confirmed, waiting or not on a case for the paint", () => {
+    const data = boundaryData();
+    data.features[0].properties.cases = [{ uuid: "case-1", referenceCode: "CG-1", link: "attached" }];
+    const { rerender } = render(<BoundariesMap data={data} />);
+    expect(mapTestState.sources["field-boundaries"].data?.features[0]).toMatchObject({ properties: { status: "waiting" } });
+
+    data.features[0].properties.cases = [{ uuid: "case-1", referenceCode: "CG-1", link: "confirmed" }];
+    rerender(<BoundariesMap data={{ ...data, features: [...data.features] }} />);
+    expect(mapTestState.sources["field-boundaries"].data?.features[0]).toMatchObject({ properties: { status: "confirmed" } });
   });
 
   it("draws the damage areas inside a boundary as their own layer that selects the boundary", () => {
@@ -155,7 +175,7 @@ describe("BoundariesMap", () => {
     expect(mapTestState.layers["field-boundaries-damage-line"]).toMatchObject({ type: "line" });
   });
 
-  it("labels each boundary with its size and case once the map is close enough", () => {
+  it("labels each map with its case and size once the map is close enough", () => {
     const data = boundaryData();
     data.features[0].properties.cases = [
       { uuid: "case-1", referenceCode: "CG-1", link: "confirmed" },
@@ -167,7 +187,7 @@ describe("BoundariesMap", () => {
     act(() => { mapTestState.latestProps?.onZoomEnd?.({ viewState: { zoom: 13 } } as never); });
 
     const label = container.querySelector("[data-boundary-label='123']");
-    expect(label).toHaveTextContent("0.61 ha · 2 cases");
+    expect(label).toHaveTextContent("CG-1 · 0.61 ha");
     expect(label).toHaveClass("boundaries-map__label--case");
   });
 
@@ -182,6 +202,7 @@ describe("BoundariesMap", () => {
     render(<MemoryRouter><BoundariesMap data={data} selectedBoundaryId="123" /></MemoryRouter>);
 
     expect(screen.getByText("Damage · device-reported")).toBeInTheDocument();
+    expect(screen.getByText("6.8%")).toBeInTheDocument();
     expect(screen.getByText("0.04 ha")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "CG-1" })).toHaveAttribute("href", "/reports/case-1");
   });
@@ -194,9 +215,10 @@ describe("BoundariesMap", () => {
       type: "line",
       paint: { "line-color": "#b8ad73", "line-width": 3 },
     });
-    expect(screen.getByRole("dialog", { name: "Field boundary" })).toHaveTextContent("device-reported");
-    expect(screen.getByRole("dialog", { name: "Field boundary" })).toHaveTextContent("0.61 ha");
-    expect(screen.getByRole("button", { name: "Close boundary details" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Map 123" })).toHaveTextContent("device-reported");
+    expect(screen.getByRole("dialog", { name: "Map 123" })).toHaveTextContent("Not on a case");
+    expect(screen.getByRole("dialog", { name: "Map 123" })).toHaveTextContent("0.61 ha");
+    expect(screen.getByRole("button", { name: "Close field map details" })).toBeInTheDocument();
   });
 
   it("selects a clicked polygon at the click coordinate", () => {
@@ -244,9 +266,11 @@ describe("BoundariesMap", () => {
     styleState.value = undefined;
     render(<BoundariesMap data={boundaryData()} />);
 
-    expect(screen.getByRole("region", { name: "Map of recorded field boundaries" })).toHaveTextContent("Map unavailable.");
-    expect(screen.getByText("Recorded field boundary")).toBeInTheDocument();
-    expect(screen.getByText("Selected boundary")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Map of recorded field maps" })).toHaveTextContent("Map unavailable.");
+    const legend = screen.getByRole("group", { name: "Field map legend" });
+    for (const entry of ["Confirmed", "Waiting for office", "Not on a case", "Damage area", "Selected map"]) {
+      expect(within(legend).getByText(entry)).toBeInTheDocument();
+    }
   });
 
   it("keeps a loaded map interactive until a successful basemap tile arrives", () => {
