@@ -103,6 +103,29 @@ describe("ApiFieldValidationRepository", () => {
     expect(result.metadata.unlocatedCount).toBe(1);
   });
 
+  it("accepts a zero-hectare affected area the API can store", async () => {
+    server.use(
+      http.get(`${baseUrl}/api/v1/reports/map`, () =>
+        HttpResponse.json({
+          ...mapDto,
+          features: [
+            {
+              ...mapDto.features[0],
+              properties: { ...mapDto.features[0].properties, affected_area_hectares: 0 },
+            },
+          ],
+        }),
+      ),
+    );
+
+    const repository = new ApiFieldValidationRepository(
+      createAxiosClient({ apiBaseUrl: baseUrl }),
+    );
+    const result = await repository.getMap();
+
+    expect(result.features[0].properties.affectedAreaHectares).toBe(0);
+  });
+
   it("does not send the map-only review state to the fixed queue", async () => {
     server.use(
       http.get(`${baseUrl}/api/v1/reports/field-validation-queue`, ({ request }) => {
