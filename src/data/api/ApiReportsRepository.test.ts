@@ -276,14 +276,16 @@ describe("ApiReportsRepository", () => {
       area_sqm: 6075.12,
       area_source: "device_reported" as const,
       inspector: { uuid: "inspector-1", name: "Field Inspector" },
-      loss_rate_percent: 18.5,
+      affected_area_sqm: 1580,
+      affected_percent: 26,
+      loss_rate_percent: null,
     };
     server.use(http.put(
       `${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}/affected-fields`,
       async ({ request }) => {
         expect(await request.json()).toEqual({
           expected_version: reportDetailDto.version,
-          affected_fields: [{ field_survey_id: 123, loss_rate_percent: 18.5 }],
+          affected_fields: [{ field_survey_id: 123 }],
         });
         return HttpResponse.json({
           data: {
@@ -298,13 +300,15 @@ describe("ApiReportsRepository", () => {
 
     await expect(repository.updateAffectedFields(reportDetailDto.identity.uuid, {
       expectedVersion: reportDetailDto.version,
-      affectedFields: [{ fieldSurveyId: 123, lossRatePercent: 18.5 }],
+      affectedFields: [{ fieldSurveyId: 123 }],
     })).resolves.toMatchObject({
       affectedFields: [{
         fieldSurveyId: 123,
         areaSqm: 6075.12,
         areaSource: "device_reported",
-        lossRatePercent: 18.5,
+        affectedAreaSqm: 1580,
+        affectedPercent: 26,
+        lossRatePercent: null,
       }],
       version: reportDetailDto.version + 1,
     });

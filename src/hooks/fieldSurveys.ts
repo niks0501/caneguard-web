@@ -33,8 +33,11 @@ export const fieldSurveysQueryOptions = (query: FieldSurveysQuery | number = {})
   });
 };
 
-export function useFieldSurveys(query: FieldSurveysQuery | number = {}) {
-  return useQuery(fieldSurveysQueryOptions(query));
+export function useFieldSurveys(
+  query: FieldSurveysQuery | number = {},
+  options: { enabled?: boolean } = {},
+) {
+  return useQuery({ ...fieldSurveysQueryOptions(query), enabled: options.enabled ?? true });
 }
 
 /**

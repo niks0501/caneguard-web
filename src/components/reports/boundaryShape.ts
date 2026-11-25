@@ -104,3 +104,35 @@ export function boundaryCentroid(
 
   return { latitude, longitude };
 }
+
+/** True when a point lies inside the stored outer ring (even-odd rule). */
+export function pointInBoundary(
+  geometry: FieldSurveyPolygon | undefined,
+  point: { latitude: number; longitude: number },
+): boolean {
+  const positions = ring(geometry);
+  if (positions.length < 3) return false;
+
+  let inside = false;
+  for (let index = 0, previous = positions.length - 1; index < positions.length; previous = index++) {
+    const [longitude, latitude] = positions[index];
+    const [previousLongitude, previousLatitude] = positions[previous];
+    const crosses = (latitude > point.latitude) !== (previousLatitude > point.latitude)
+      && point.longitude < ((previousLongitude - longitude) * (point.latitude - latitude)) / (previousLatitude - latitude) + longitude;
+    if (crosses) inside = !inside;
+  }
+  return inside;
+}
+
+/** Great-circle distance in metres between two WGS84 points. */
+export function distanceMeters(
+  from: { latitude: number; longitude: number },
+  to: { latitude: number; longitude: number },
+): number {
+  const radians = (degrees: number) => (degrees * Math.PI) / 180;
+  const deltaLatitude = radians(to.latitude - from.latitude);
+  const deltaLongitude = radians(to.longitude - from.longitude);
+  const a = Math.sin(deltaLatitude / 2) ** 2
+    + Math.cos(radians(from.latitude)) * Math.cos(radians(to.latitude)) * Math.sin(deltaLongitude / 2) ** 2;
+  return 6_371_000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}

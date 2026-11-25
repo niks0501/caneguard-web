@@ -37,8 +37,11 @@ class UpdateReportAffectedFieldsRequest extends ApiFormRequest
                 Rule::exists('field_surveys', 'id')
                     ->where(fn ($query) => $query->where('district_id', $allowedDistrictId)),
             ],
+            // Retired: the office no longer types it. Still accepted so an older
+            // client keeps working; omitted means "leave any stored value alone".
             'affected_fields.*.loss_rate_percent' => [
-                'required',
+                'sometimes',
+                'nullable',
                 'numeric',
                 'between:0,100',
             ],

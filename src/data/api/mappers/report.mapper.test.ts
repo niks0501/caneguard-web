@@ -192,6 +192,8 @@ describe("report mappers", () => {
             area_sqm: 6075.12,
             area_source: "device_reported",
             inspector: { uuid: "inspector-1", name: "Field Inspector" },
+            affected_area_sqm: 1580,
+            affected_percent: 26,
             loss_rate_percent: 18.5,
           }],
         },
@@ -208,6 +210,8 @@ describe("report mappers", () => {
       areaSqm: 6075.12,
       areaSource: "device_reported",
       inspector: { uuid: "inspector-1", name: "Field Inspector" },
+      affectedAreaSqm: 1580,
+      affectedPercent: 26,
       lossRatePercent: 18.5,
     }]);
   });
@@ -270,6 +274,8 @@ describe("report mappers", () => {
               area_sqm: 5000.5,
               area_source: "device_reported",
               inspector: { uuid: "inspector-1", name: "Field Inspector" },
+              affected_area_sqm: 1250.125,
+              affected_percent: 25,
             },
           },
         },
@@ -279,7 +285,7 @@ describe("report mappers", () => {
       clientUuid: "client-1",
       arrived: true,
       confirmed: false,
-      boundary: { fieldSurveyId: 41, areaSqm: 5000.5 },
+      boundary: { fieldSurveyId: 41, areaSqm: 5000.5, affectedAreaSqm: 1250.125, affectedPercent: 25 },
     });
 
     const waiting = mapReportDetail(

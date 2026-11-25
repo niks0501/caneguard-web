@@ -321,7 +321,6 @@ export class ApiReportsRepository implements ReportsRepository {
         expected_version: input.expectedVersion,
         affected_fields: input.affectedFields.map((field) => ({
           field_survey_id: field.fieldSurveyId,
-          loss_rate_percent: field.lossRatePercent,
         })),
       },
     );

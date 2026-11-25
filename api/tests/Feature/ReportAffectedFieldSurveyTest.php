@@ -160,6 +160,49 @@ class ReportAffectedFieldSurveyTest extends TestCase
         ]);
     }
 
+    public function test_confirming_without_a_loss_rate_shows_the_phones_percent_and_keeps_stored_history(): void
+    {
+        $district = $this->pilotDistrict();
+        $inspector = User::factory()->inDistrict($district)->create();
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->inDistrict($district)->create(['lock_version' => 2]);
+        $measured = $this->storeSurvey($district, $inspector, 10000);
+        $measured->update(['affected_area_sqm' => 2600]);
+        $undrawn = $this->storeSurvey($district, $inspector, 5000);
+        $report->affectedFieldSurveys()->attach($undrawn->id, ['loss_rate_percent' => 12.5]);
+
+        $this->actingAs($reviewer, 'web')->putJson(
+            "/api/v1/reports/{$report->uuid}/affected-fields",
+            [
+                'expected_version' => 2,
+                'affected_fields' => [
+                    ['field_survey_id' => $undrawn->id],
+                    ['field_survey_id' => $measured->id],
+                ],
+            ],
+        )->assertOk()
+            ->assertJsonPath('data.version', 3)
+            ->assertJsonPath('data.affected_fields.0.field_survey_id', $measured->id)
+            ->assertJsonPath('data.affected_fields.0.affected_area_sqm', 2600)
+            ->assertJsonPath('data.affected_fields.0.affected_percent', 26)
+            ->assertJsonPath('data.affected_fields.0.loss_rate_percent', null)
+            ->assertJsonPath('data.affected_fields.1.field_survey_id', $undrawn->id)
+            ->assertJsonPath('data.affected_fields.1.affected_percent', null)
+            ->assertJsonPath('data.affected_fields.1.loss_rate_percent', 12.5);
+
+        // Repeating the same set changes nothing, so the version stays put.
+        $this->actingAs($reviewer, 'web')->putJson(
+            "/api/v1/reports/{$report->uuid}/affected-fields",
+            [
+                'expected_version' => 3,
+                'affected_fields' => [
+                    ['field_survey_id' => $undrawn->id],
+                    ['field_survey_id' => $measured->id],
+                ],
+            ],
+        )->assertOk()->assertJsonPath('data.version', 3);
+    }
+
     public function test_case_detail_shows_the_boundary_the_inspector_attached_and_whether_the_office_confirmed_it(): void
     {
         $district = $this->pilotDistrict();

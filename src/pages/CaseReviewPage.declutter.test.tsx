@@ -315,12 +315,12 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     expect(historyTab.compareDocumentPosition(decision) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("lays evidence out as Photo, Aerial, Boundary and History tabs with count badges", async () => {
+  it("lays evidence out as Photo, Aerial, Field map and History tabs with count badges", async () => {
     const user = userEvent.setup();
     renderPage({ ...baseReport, aerialAnalyses: [] });
 
     const tabs = screen.getAllByRole("tab").map((tab) => tab.textContent);
-    expect(tabs.slice(0, 3)).toEqual(["Photo1", "Aerial0", "Boundary0"]);
+    expect(tabs.slice(0, 3)).toEqual(["Photo1", "Aerial0", "Field map0"]);
     expect(tabs[3]).toMatch(/^History\d+$/);
     expect(screen.getByRole("tab", { name: /Photo/ })).toHaveAttribute("aria-selected", "true");
     // The photo and its AI disclaimer share the default tab.
@@ -328,8 +328,8 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     expect(within(photoPanel).getByRole("heading", { name: "Submitted photo" })).toBeInTheDocument();
     expect(within(photoPanel).getByText(/Decision support, not a diagnosis/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: /Boundary/ }));
-    expect(screen.getByRole("tabpanel", { name: /Boundary/ })).toBeVisible();
+    await user.click(screen.getByRole("tab", { name: /Field map/ }));
+    expect(screen.getByRole("tabpanel", { name: /Field map/ })).toBeVisible();
     expect(screen.queryByRole("heading", { name: "Submitted photo" })).toBeNull();
   });
 
@@ -367,14 +367,14 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     renderPage({ ...baseReport, aerialAnalyses: undefined });
 
     const tabs = screen.getAllByRole("tab");
-    expect(tabs.map((tab) => tab.textContent)).toEqual(["Photo1", "Aerial0", "Boundary0", expect.stringMatching(/^History\d+$/)]);
+    expect(tabs.map((tab) => tab.textContent)).toEqual(["Photo1", "Aerial0", "Field map0", expect.stringMatching(/^History\d+$/)]);
     const aerialTab = screen.getByRole("tab", { name: /Aerial/ });
     expect(aerialTab).toBeDisabled();
     expect(aerialTab).toHaveAttribute("aria-selected", "false");
 
     await user.click(screen.getByRole("tab", { name: /Photo/ }));
     await user.keyboard("{ArrowRight}");
-    expect(screen.getByRole("tab", { name: /Boundary/ })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Field map/ })).toHaveAttribute("aria-selected", "true");
   });
 
   it("moves selection to an enabled tab when a refresh disables Aerial", async () => {
@@ -404,10 +404,10 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
 
     await user.click(photoTab);
     await user.keyboard("{ArrowRight}");
-    expect(screen.getByRole("tab", { name: /Boundary/ })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Field map/ })).toHaveAttribute("aria-selected", "true");
   });
 
-  it("shows pending inspector attachments in the Boundary tab", async () => {
+  it("shows pending inspector attachments in the Field map tab", async () => {
     const user = userEvent.setup();
     renderPage({
       ...baseReport,
@@ -415,21 +415,21 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
       inspectorAttachment: { clientUuid: "mobile-client", arrived: false, confirmed: false, boundary: null },
     });
 
-    await user.click(screen.getByRole("tab", { name: /Boundary/ }));
-    expect(screen.getByRole("heading", { name: "Affected field boundaries" })).toBeVisible();
-    expect(screen.getByText("This boundary has not reached the office yet.")).toBeVisible();
-    expect(screen.queryByText("No boundary yet")).toBeNull();
+    await user.click(screen.getByRole("tab", { name: /Field map/ }));
+    expect(screen.getByRole("heading", { name: "Field measurement" })).toBeVisible();
+    expect(screen.getByText(/still on their phone/)).toBeVisible();
+    expect(screen.queryByText("No field map yet")).toBeNull();
   });
 
   it("collapses empty boundary and aerial tools to one line until asked for", async () => {
     const user = userEvent.setup();
     renderPage({ ...baseReport, affectedFields: [], aerialAnalyses: [] });
 
-    await user.click(screen.getByRole("tab", { name: /Boundary/ }));
-    expect(screen.getByText("No boundary yet")).toBeVisible();
-    expect(screen.queryByRole("heading", { name: "Affected field boundaries" })).toBeNull();
+    await user.click(screen.getByRole("tab", { name: /Field map/ }));
+    expect(screen.getByText("No field map yet")).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Field measurement" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "Link one" }));
-    expect(screen.getByRole("heading", { name: "Affected field boundaries" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Field measurement" })).toBeVisible();
 
     await user.click(screen.getByRole("tab", { name: /Aerial/ }));
     expect(screen.getByText("No aerial photo yet")).toBeVisible();

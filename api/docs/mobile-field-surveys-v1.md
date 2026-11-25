@@ -167,7 +167,7 @@ Rate limiting returns **429**. None of these failures creates a survey.
 
 This contract is receive-only pilot storage; it never creates or mutates disease
 reports. Office reviewers can separately link stored surveys to disease cases as
-affected field boundaries, which stores only an office loss rate and never
+affected field boundaries, which stores only the link and never
 changes the survey geometry, affected areas or phone-measured areas. District
 scope uses the existing district/membership model, not a spatial district
 boundary test (that model contains no boundary geometry). Structural ring

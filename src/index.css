@@ -8611,8 +8611,7 @@ button.monitoring-calendar__day-number:focus-visible {
   margin-top: var(--space-4);
 }
 
-/* Boundary lookup stays inside the case: a bounded server page plus an
-   in-context shape preview, so the office rate draft is never abandoned. */
+/* Field map lookup stays inside the case: a bounded server page, opened on request. */
 .affected-field-linkage__lookup {
   display: flex;
   flex-wrap: wrap;
@@ -8635,33 +8634,6 @@ button.monitoring-calendar__day-number:focus-visible {
   background: var(--color-surface);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
-}
-
-.affected-field-linkage__preview {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-4);
-  margin: var(--space-3) 0;
-  padding: var(--space-3);
-  background: var(--color-surface-soft);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-
-.affected-field-linkage__preview svg {
-  width: 200px;
-  height: 140px;
-  flex: 0 0 auto;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-}
-
-.affected-field-linkage__preview polygon {
-  fill: color-mix(in srgb, var(--color-primary) 18%, transparent);
-  stroke: var(--color-primary);
-  stroke-width: 2;
-  stroke-linejoin: round;
 }
 
 .report-builder {
@@ -9536,27 +9508,6 @@ button.monitoring-calendar__day-number:focus-visible {
 .boundaries-map__label--case {
   border-width: 2px;
   border-color: var(--color-warning);
-}
-
-.affected-field-linkage__attachment {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-block: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-surface-soft);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-}
-
-.affected-field-linkage__attachment p {
-  margin: 0;
-}
-
-.affected-field-linkage__attachment-state {
-  font-weight: 700;
 }
 
 .boundaries-map__cases {

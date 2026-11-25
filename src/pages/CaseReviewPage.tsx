@@ -890,7 +890,7 @@ function CaseReviewContent() {
       onRefresh={() => reportQuery.refetch()}
     />
   ) : (
-    <CollapsedTool summary="No boundary yet" action="Link one" onOpen={() => setBoundaryOpen(true)} />
+    <CollapsedTool summary="No field map yet" action="Link one" onOpen={() => setBoundaryOpen(true)} />
   );
   const historyPanel = (
                 <section className="review-card case-timeline" aria-labelledby="timeline-heading">
@@ -995,7 +995,7 @@ function CaseReviewContent() {
         <CollapsedTool summary="No aerial photo yet" action="Add one" onOpen={() => setAerialOpen(true)} />
       ),
     },
-    { id: "boundary", label: "Boundary", icon: <MapIcon aria-hidden="true" />, count: boundaryCount, panel: boundaryPanel },
+    { id: "boundary", label: "Field map", icon: <MapIcon aria-hidden="true" />, count: boundaryCount, panel: boundaryPanel },
     { id: "history", label: "History", icon: <History aria-hidden="true" />, count: visibleHistoryEntries.length, panel: historyPanel },
   ];
 

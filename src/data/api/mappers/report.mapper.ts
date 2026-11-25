@@ -197,6 +197,8 @@ export function mapReportAffectedField(
     areaSqm: dto.area_sqm,
     areaSource: dto.area_source,
     inspector: dto.inspector,
+    affectedAreaSqm: dto.affected_area_sqm,
+    affectedPercent: dto.affected_percent,
     lossRatePercent: dto.loss_rate_percent,
   };
 }
@@ -235,6 +237,8 @@ function mapInspectorAttachment(
           areaSqm: dto.field_survey.area_sqm,
           areaSource: dto.field_survey.area_source,
           inspector: dto.field_survey.inspector,
+          affectedAreaSqm: dto.field_survey.affected_area_sqm,
+          affectedPercent: dto.field_survey.affected_percent,
         }
       : null,
   };

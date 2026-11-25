@@ -39,7 +39,7 @@ const analysis = (overrides: Partial<AerialAnalysis> = {}): AerialAnalysis => ({
 const report = (aerialAnalyses: AerialAnalysis[], extra: Partial<DiseaseReport> = {}) =>
   ({
     uuid: "r1",
-    affectedFields: [{ fieldSurveyId: 7, areaSqm: 6075, lossRatePercent: 18.5 }],
+    affectedFields: [{ fieldSurveyId: 7, areaSqm: 6075, affectedPercent: 26, lossRatePercent: null }],
     aerialAnalyses,
     ...extra,
   }) as unknown as DiseaseReport;
@@ -181,7 +181,7 @@ describe("AerialCheckCard", () => {
     render(<AerialCheckCard report={report([analysis()])} />);
 
     expect(screen.getByRole("heading", { name: "Measured on the ground" }).parentElement).toHaveTextContent(
-      "Boundary 7: 0.61 ha · loss 18.5%",
+      "Boundary 7: 0.61 ha · 26% affected",
     );
     expect(screen.getByRole("heading", { name: "Seen in this photo" }).parentElement).toHaveTextContent(
       "18% of visible cane",
