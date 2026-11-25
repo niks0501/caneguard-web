@@ -480,7 +480,7 @@ export const reportDetailSchema = z.object({
     sugarcane_variety: z.string().nullable(),
     crop_age: z.string().nullable(),
     cane_class: z.string().nullable(),
-    affected_area_hectares: z.number().positive().nullable(),
+    affected_area_hectares: z.number().nonnegative().nullable(),
     affected_area_measurement: measurementProvenanceSchema,
     affected_portion_percent: z.number().min(0).max(100).nullable(),
     affected_portion_measurement: measurementProvenanceSchema,

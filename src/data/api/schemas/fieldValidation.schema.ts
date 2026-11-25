@@ -47,7 +47,7 @@ const sharedItemFields = {
   location_unavailable: z.boolean().optional(),
   location_unavailable_reason: locationUnavailableReasonSchema.nullable().optional(),
   gps_accuracy: z.number().nonnegative().nullable(),
-  affected_area_hectares: z.number().positive().nullable(),
+  affected_area_hectares: z.number().nonnegative().nullable(),
   affected_portion_percent: z.number().min(0).max(100).nullable(),
 };
 
@@ -76,7 +76,7 @@ export const mapFeaturePropertiesSchema = z.object({
   location_source: nullableLocationSourceSchema,
   location_unavailable: z.boolean().optional(),
   gps_accuracy: z.number().nonnegative().nullable(),
-  affected_area_hectares: z.number().positive().nullable(),
+  affected_area_hectares: z.number().nonnegative().nullable(),
   affected_area_measurement: measurementProvenanceSchema.optional(),
   affected_portion_percent: z.number().min(0).max(100).nullable(),
 });
