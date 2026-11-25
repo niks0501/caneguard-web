@@ -28,9 +28,11 @@ class UpdateReportAffectedFieldsController extends Controller
 
             $desired = collect($data['affected_fields'])
                 ->mapWithKeys(fn (array $field): array => [
-                    (int) $field['field_survey_id'] => [
-                        'loss_rate_percent' => round((float) $field['loss_rate_percent'], 2),
-                    ],
+                    (int) $field['field_survey_id'] => array_key_exists('loss_rate_percent', $field)
+                        ? ['loss_rate_percent' => $field['loss_rate_percent'] === null
+                            ? null
+                            : round((float) $field['loss_rate_percent'], 2)]
+                        : [],
                 ])
                 ->all();
             $current = $locked->affectedFieldSurveys()
@@ -41,9 +43,11 @@ class UpdateReportAffectedFieldsController extends Controller
 
             if (! $changed) {
                 foreach ($desired as $fieldSurveyId => $attributes) {
-                    if (round((float) $current->get($fieldSurveyId)->pivot->loss_rate_percent, 2)
-                        !== $attributes['loss_rate_percent']
-                    ) {
+                    if (! array_key_exists('loss_rate_percent', $attributes)) {
+                        continue;
+                    }
+                    $stored = $current->get($fieldSurveyId)->pivot->loss_rate_percent;
+                    if (($stored === null ? null : round((float) $stored, 2)) !== $attributes['loss_rate_percent']) {
                         $changed = true;
                         break;
                     }

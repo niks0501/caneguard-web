@@ -202,7 +202,7 @@ function GroundVersusPhoto({ report, analysis }: { report: DiseaseReport; analys
           <ul>
             {boundaries.map((field) => (
               <li key={field.fieldSurveyId}>
-                Boundary {field.fieldSurveyId}: {(field.areaSqm / 10000).toFixed(2)} ha · loss {field.lossRatePercent}%
+                Boundary {field.fieldSurveyId}: {(field.areaSqm / 10000).toFixed(2)} ha{field.affectedPercent === null ? "" : ` · ${field.affectedPercent}% affected`}
               </li>
             ))}
           </ul>

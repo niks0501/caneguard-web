@@ -67,7 +67,12 @@ export interface ReportAffectedField {
     uuid: string;
     name: string;
   };
-  lossRatePercent: number;
+  /** Damage the inspector drew inside the plot, in square metres; null when none was drawn. */
+  affectedAreaSqm: number | null;
+  /** The phone's measured share of the plot that is affected; null when none was drawn. */
+  affectedPercent: number | null;
+  /** Retired office input, kept as history. Never edited here. */
+  lossRatePercent: number | null;
 }
 
 /** The boundary an inspector attached to a case on the phone. */
@@ -82,7 +87,6 @@ export interface InspectorBoundaryAttachment {
 
 export interface AffectedFieldLinkInput {
   fieldSurveyId: number;
-  lossRatePercent: number;
 }
 
 export interface UpdateAffectedFieldsInput {

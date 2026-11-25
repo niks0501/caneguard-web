@@ -95,7 +95,7 @@ recalculated or validated by the server.
 
 `cases` lists the cases in the pilot district that use the boundary, each as
 `{ "uuid", "reference_code", "link" }`. `link` is `confirmed` when the office
-linked the boundary to that case with a loss rate, and `attached` when the case
+linked the boundary to that case, and `attached` when the case
 only carries the phone's attachment. A case that confirmed the boundary is listed
 once, as `confirmed`, and attachment is matched on the stored survey
 `client_uuid`, which the response itself never returns. The array is empty when no

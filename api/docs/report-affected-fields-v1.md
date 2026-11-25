@@ -1,7 +1,8 @@
 # Report affected fields contract v1
 
 `PUT /api/v1/reports/{report}/affected-fields` replaces the field boundaries
-linked to one case and their office-supplied loss rates. It is the office
+linked to one case. The office no longer types a loss rate: each linked map
+carries the phone's measured `affected_percent` instead. It is the office
 counterpart to the Mobile-only survey ingest; see
 [Mobile field survey receive contract v1](mobile-field-surveys-v1.md) and
 [Field surveys read contract v1](field-surveys-read-v1.md).
@@ -19,8 +20,8 @@ non-office identity returns **403**. The route has no separate rate limit.
 {
   "expected_version": 4,
   "affected_fields": [
-    { "field_survey_id": 123, "loss_rate_percent": 18.5 },
-    { "field_survey_id": 124, "loss_rate_percent": 42 }
+    { "field_survey_id": 123 },
+    { "field_survey_id": 124 }
   ]
 }
 ```
@@ -28,14 +29,16 @@ non-office identity returns **403**. The route has no separate rate limit.
 - `expected_version`: required integer of at least 0. It must equal the case
   `lock_version` read under a row lock; a mismatch returns **409** and writes
   nothing, so a concurrent edit is never silently overwritten.
-- `affected_fields`: required array of at most 250 entries, each with exactly
-  `field_survey_id` and `loss_rate_percent`. It is a full replacement: omitted
+- `affected_fields`: required array of at most 250 entries, each with
+  `field_survey_id` and the optional, retired `loss_rate_percent`. It is a full replacement: omitted
   boundaries are unlinked and an empty array removes every link on this case
   only. Other cases keep their own links to the same surveys.
 - `field_survey_id`: positive integer, distinct within the request, and an
   existing survey in the configured pilot district. A case outside the pilot
   district cannot link any survey.
-- `loss_rate_percent`: finite number from 0 through 100, stored to two decimals.
+- `loss_rate_percent`: **retired and optional.** Omit it and any stored value is
+  left alone (a new link stores `null`). An older client may still send a finite
+  number from 0 through 100, stored to two decimals, or `null`.
 
 Invalid fields return **422** with the standard API error envelope and write no
 link rows.
@@ -58,7 +61,9 @@ A successful write returns HTTP **200**:
         "area_sqm": 6075.12,
         "area_source": "device_reported",
         "inspector": { "uuid": "…", "name": "…" },
-        "loss_rate_percent": 18.5
+        "affected_area_sqm": 1580.5,
+        "affected_percent": 26,
+        "loss_rate_percent": null
       }
     ],
     "version": 5,
@@ -68,12 +73,15 @@ A successful write returns HTTP **200**:
 ```
 
 `version` is the case `lock_version` after the write. It increments only when a
-link or a loss rate actually changed, so repeating the stored set returns the
+link (or a supplied loss rate) actually changed, so repeating the stored set returns the
 current version. `geometry` is the stored survey polygon passed through
 unchanged, including every interior ring, in WGS84 `[longitude, latitude]`.
-`captured_at` is UTC ISO8601 with microseconds. `area_sqm` is the
-phone-supplied measurement and stays labelled `device_reported`; the office loss
-rate is the only value this route adds, and no combined or server-measured area
+`captured_at` is UTC ISO8601 with microseconds. `area_sqm` and
+`affected_area_sqm` are the phone-supplied measurements and stay labelled
+`device_reported`. `affected_percent` is derived, `affected_area_sqm / area_sqm`
+to one decimal, and is `null` when no affected area was drawn (never `0`).
+`loss_rate_percent` is history only: `null` unless an older client stored one.
+No combined or server-measured area
 is stored or returned.
 
 `GET /api/v1/reports/{report}` and the review, duplicate-link, and handoff-note
@@ -112,7 +120,8 @@ shows that boundary as `data.inspector_attachment`:
 still pending, and also when the stored boundary belongs to another district, it
 is `false` and `field_survey` is `null`, so another district's polygon, area and
 inspector are never disclosed. `confirmed` says this case already links the
-boundary as an affected field with a loss rate. Confirming is an ordinary write of
-this route: send the boundary's `field_survey_id` with the loss rate, and the same
-replacement array unlinks it again. Mobile upload responses never carry
+boundary as an affected field. Confirming is an ordinary write of this route:
+send the boundary's `field_survey_id` along with the already linked ones, and the
+same replacement array unlinks it again. `field_survey` carries the same
+`affected_area_sqm` and `affected_percent`. Mobile upload responses never carry
 `inspector_attachment`.

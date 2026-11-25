@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boundaryCentroid, boundaryOutline } from "./boundaryShape";
+import { boundaryCentroid, boundaryOutline, distanceMeters, pointInBoundary } from "./boundaryShape";
 import type { FieldSurveyPolygon } from "../../domain/fieldSurvey.types";
 
 const square: FieldSurveyPolygon = {
@@ -87,5 +87,18 @@ describe("boundaryOutline", () => {
       type: "Polygon",
       coordinates: [[[122.95, 10.7], [122.95, 10.7], [122.95, 10.7], [122.95, 10.7]]],
     }).drawable).toBe(false);
+  });
+
+  it("tells whether a case location falls inside the stored plot", () => {
+    expect(pointInBoundary(square, { latitude: 10.7005, longitude: 122.9505 })).toBe(true);
+    expect(pointInBoundary(square, { latitude: 10.7015, longitude: 122.9505 })).toBe(false);
+    expect(pointInBoundary(undefined, { latitude: 10.7005, longitude: 122.9505 })).toBe(false);
+  });
+
+  it("measures the distance between two points in metres", () => {
+    const meters = distanceMeters({ latitude: 10.7, longitude: 122.95 }, { latitude: 10.701, longitude: 122.95 });
+    expect(meters).toBeGreaterThan(105);
+    expect(meters).toBeLessThan(117);
+    expect(distanceMeters({ latitude: 10.7, longitude: 122.95 }, { latitude: 10.7, longitude: 122.95 })).toBe(0);
   });
 });

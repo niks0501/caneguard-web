@@ -1,12 +1,12 @@
-import { useId, useState, type FormEvent } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { ZodError } from "zod";
 import { ApiError, isApiConnectionError } from "../../api/ApiError";
 import {
   FIELD_SURVEYS_MAX_LIMIT,
   type FieldSurveyBoundaryFeature,
-  type InspectorBoundaryAttachment,
   type FieldSurveyPolygon,
+  type InspectorBoundaryAttachment,
   type ReportAffectedField,
 } from "../../domain/fieldSurvey.types";
 import type { DiseaseReport } from "../../domain/report.types";
@@ -19,100 +19,134 @@ import { routes } from "../../app/routes";
 import { Button } from "../ui/Button";
 import { Pagination } from "../ui/Pagination";
 import { Skeleton } from "../ui/States";
-import { DetailField } from "../layout/Page";
 import { useUnsavedWorkGuard } from "../ui/unsavedWorkContext";
 import { affectedFieldFormState } from "./affectedFieldFormState";
-import { boundaryCentroid, boundaryOutline } from "./boundaryShape";
+import { boundaryCentroid, boundaryOutline, distanceMeters, pointInBoundary } from "./boundaryShape";
 
-type BoundaryChoice = {
+/** One field map as the phone measured it. Every number here comes from the phone. */
+type FieldMap = {
   id: number;
   capturedAt: string;
   areaSqm: number;
+  affectedAreaSqm: number | null;
+  affectedPercent: number | null;
   inspectorName: string;
-  /** The inspector attached this boundary to the case on the phone. */
-  attachedByInspector: boolean;
   geometry?: FieldSurveyPolygon;
 };
 
-type RateDraft = Record<string, string>;
-
-function ratesFor(fields: ReportAffectedField[] | undefined): RateDraft {
-  return Object.fromEntries((fields ?? []).map((field) => [
-    String(field.fieldSurveyId),
-    String(field.lossRatePercent),
-  ]));
-}
-
-function coordinateLabel(value: number, positive: string, negative: string) {
-  return `${Math.abs(value).toFixed(5)}° ${value < 0 ? negative : positive}`;
-}
-
-function lossRate(value: string): number | null {
-  if (value.trim() === "") return null;
-  const number = Number(value);
-  return Number.isFinite(number) && number >= 0 && number <= 100 ? number : null;
-}
+type CaseLocation = { latitude: number; longitude: number };
 
 function isRateLimitedError(error: unknown) {
   return error instanceof ApiError && error.status === 429;
 }
 
-function boundaryChoices(
+/** Same rule as the API: share of the plot the inspector drew as affected. */
+function percentAffected(areaSqm: number, affectedAreaSqm: number | null): number | null {
+  if (affectedAreaSqm === null || areaSqm <= 0) return null;
+  return Math.round(Math.min(100, (affectedAreaSqm / areaSqm) * 100) * 10) / 10;
+}
+
+function fromFeature(feature: FieldSurveyBoundaryFeature): FieldMap {
+  const { properties } = feature;
+  return {
+    id: properties.id,
+    capturedAt: properties.capturedAt,
+    areaSqm: properties.areaSqm,
+    affectedAreaSqm: properties.affectedAreaSqm,
+    affectedPercent: percentAffected(properties.areaSqm, properties.affectedAreaSqm),
+    inspectorName: properties.inspector.name,
+    geometry: feature.geometry,
+  };
+}
+
+function fromField(field: Omit<ReportAffectedField, "lossRatePercent">): FieldMap {
+  return {
+    id: field.fieldSurveyId,
+    capturedAt: field.capturedAt,
+    areaSqm: field.areaSqm,
+    affectedAreaSqm: field.affectedAreaSqm,
+    affectedPercent: field.affectedPercent,
+    inspectorName: field.inspector.name,
+    geometry: field.geometry,
+  };
+}
+
+function fieldMapChoices(
   features: FieldSurveyBoundaryFeature[],
-  linkedFields: ReportAffectedField[],
-  draftChoices: BoundaryChoice[],
-  attachment: InspectorBoundaryAttachment | null | undefined,
-): BoundaryChoice[] {
-  const choices = new Map<number, BoundaryChoice>();
-  const attachedId = attachment?.boundary?.fieldSurveyId;
-  for (const feature of features) {
-    choices.set(feature.properties.id, {
-      id: feature.properties.id,
-      capturedAt: feature.properties.capturedAt,
-      areaSqm: feature.properties.areaSqm,
-      inspectorName: feature.properties.inspector.name,
-      attachedByInspector: feature.properties.id === attachedId,
-      geometry: feature.geometry,
-    });
-  }
-  for (const field of linkedFields) {
-    if (!choices.has(field.fieldSurveyId)) {
-      choices.set(field.fieldSurveyId, {
-        id: field.fieldSurveyId,
-        capturedAt: field.capturedAt,
-        areaSqm: field.areaSqm,
-        inspectorName: field.inspector.name,
-        attachedByInspector: field.fieldSurveyId === attachedId,
-        geometry: field.geometry,
-      });
-    }
-  }
-  if (attachment?.boundary && !choices.has(attachment.boundary.fieldSurveyId)) {
-    choices.set(attachment.boundary.fieldSurveyId, {
-      id: attachment.boundary.fieldSurveyId,
-      capturedAt: attachment.boundary.capturedAt,
-      areaSqm: attachment.boundary.areaSqm,
-      inspectorName: attachment.boundary.inspector.name,
-      attachedByInspector: true,
-      geometry: attachment.boundary.geometry,
-    });
-  }
-  for (const choice of draftChoices) {
-    if (!choices.has(choice.id)) choices.set(choice.id, choice);
-  }
+  linked: FieldMap[],
+  attached: FieldMap | null,
+): FieldMap[] {
+  const choices = new Map<number, FieldMap>();
+  for (const feature of features) choices.set(feature.properties.id, fromFeature(feature));
+  for (const map of linked) if (!choices.has(map.id)) choices.set(map.id, map);
+  if (attached && !choices.has(attached.id)) choices.set(attached.id, attached);
   return [...choices.values()];
+}
+
+function formatDistance(meters: number): string {
+  return meters < 1000 ? `${Math.max(10, Math.round(meters / 10) * 10)} m` : `${(meters / 1000).toFixed(1)} km`;
 }
 
 function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.status === 409) return "This case changed while the boundary links were being saved. Refresh the case before trying again.";
-    if (error.status === 403) return "Your account no longer has permission to update affected boundaries.";
-    if (error.status === 422) return "The service rejected one or more boundaries or loss rates. Review the entries and try again.";
-    if (isRateLimitedError(error)) return "Boundary links are receiving too many requests. Wait a moment, then try again.";
+    if (error.status === 409) return "This case changed while the field map was being saved. Refresh the case before trying again.";
+    if (error.status === 403) return "Your account no longer has permission to update this case's field map.";
+    if (error.status === 422) return "The service rejected the selected field map. Choose again and retry.";
+    if (isRateLimitedError(error)) return "Field maps are receiving too many requests. Wait a moment, then try again.";
   }
-  if (error instanceof ZodError) return "CaneGuard returned affected-boundary data in an unexpected format. Refresh the case after the service is corrected.";
+  if (error instanceof ZodError) return "CaneGuard returned field map data in an unexpected format. Refresh the case after the service is corrected.";
   if (isApiConnectionError(error)) return serviceUnreachableMessage;
-  return "Affected field boundaries could not be saved. No change was confirmed.";
+  return "The field map could not be saved. No change was confirmed.";
+}
+
+function Outline({ map, label }: { map: FieldMap; label: string }) {
+  const outline = boundaryOutline(map.geometry, 120, 84, 8);
+  return outline.drawable ? (
+    <svg className="field-map-outline" viewBox="0 0 120 84" role="img" aria-label={label}>
+      <polygon points={outline.points} />
+    </svg>
+  ) : (
+    <span className="field-map-outline field-map-outline--empty">No shape</span>
+  );
+}
+
+function FieldMapSummary({
+  map,
+  caseLocation,
+  status,
+  actions,
+}: {
+  map: FieldMap;
+  caseLocation: CaseLocation | null;
+  status?: ReactNode;
+  actions?: ReactNode;
+}) {
+  const inside = caseLocation && map.geometry ? pointInBoundary(map.geometry, caseLocation) : null;
+  return (
+    <article className="field-map" aria-label={`Field map ${map.id}`}>
+      <Outline map={map} label={`Shape of field map ${map.id}`} />
+      <div className="field-map__body">
+        <h3 className="field-map__title">
+          Map {map.id}
+          {status}
+        </h3>
+        <p className="field-map__meta">
+          Measured by {map.inspectorName} · <time dateTime={map.capturedAt}>{formatDateTime(map.capturedAt)}</time>
+        </p>
+        {inside !== null ? (
+          <p className={`field-map__location${inside ? "" : " field-map__location--outside"}`}>
+            {inside ? "Case location is inside this plot" : "Case location is outside this plot"}
+          </p>
+        ) : null}
+        <dl className="field-map__numbers">
+          <div><dt>Plot</dt><dd>{formatAffectedArea(map.areaSqm / 10_000)}</dd></div>
+          <div><dt>Affected area</dt><dd>{map.affectedAreaSqm === null ? "Not drawn" : formatAffectedArea(map.affectedAreaSqm / 10_000)}</dd></div>
+          <div><dt>% affected</dt><dd>{map.affectedPercent === null ? "Not drawn" : `${map.affectedPercent}%`}</dd></div>
+        </dl>
+        {actions ? <div className="field-map__actions">{actions}</div> : null}
+      </div>
+    </article>
+  );
 }
 
 export function AffectedFieldLinkage({
@@ -122,54 +156,39 @@ export function AffectedFieldLinkage({
   report: DiseaseReport;
   onRefresh: () => Promise<{ data?: DiseaseReport | null; isError?: boolean }>;
 }) {
-  const idPrefix = useId();
+  const online = useOnlineStatus();
+  const updateMutation = useUpdateReportAffectedFields(report.uuid);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selection, setSelection] = useState<number[]>([]);
   const [lookupDraft, setLookupDraft] = useState("");
   const [lookupSearch, setLookupSearch] = useState("");
   const [lookupPage, setLookupPage] = useState(1);
-  const [previewId, setPreviewId] = useState<number | null>(null);
-  // Bounded server lookup: a search or page change never downloads the archive.
-  const surveysQuery = useFieldSurveys({
-    limit: FIELD_SURVEYS_MAX_LIMIT,
-    page: lookupPage,
-    search: lookupSearch,
-  });
-  const updateMutation = useUpdateReportAffectedFields(report.uuid);
-  const [draft, setDraft] = useState<RateDraft>(() => ratesFor(report.affectedFields));
-  const [draftVersion, setDraftVersion] = useState<number | undefined>(() => report.reviewVersion);
-  const [draftChoices, setDraftChoices] = useState<BoundaryChoice[]>([]);
+  const [version, setVersion] = useState<number | undefined>(() => report.reviewVersion);
   const [savedFields, setSavedFields] = useState<{ report: DiseaseReport; fields: ReportAffectedField[] } | null>(null);
-  const [submitted, setSubmitted] = useState(false);
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
-  const online = useOnlineStatus();
-  const linkedFields = savedFields?.report === report ? savedFields.fields : report.affectedFields ?? [];
-  const attachment = report.inspectorAttachment ?? null;
-  const choices = boundaryChoices(
-    surveysQuery.data?.features ?? [],
-    linkedFields,
-    draftChoices,
-    attachment,
+
+  // The lookup only runs while the picker is open, so a case with a confirmed
+  // map never downloads the district archive.
+  const surveysQuery = useFieldSurveys(
+    { limit: FIELD_SURVEYS_MAX_LIMIT, page: lookupPage, search: lookupSearch },
+    { enabled: drawerOpen },
   );
-  const metadata = surveysQuery.data?.metadata;
-  const previewChoice = choices.find((choice) => choice.id === previewId) ?? null;
-  const previewOutline = boundaryOutline(previewChoice?.geometry);
-  const previewCentroid = boundaryCentroid(previewChoice?.geometry);
-  const readReturnedNoRows = surveysQuery.isSuccess
-    && !surveysQuery.isFetching
-    && !surveysQuery.isError
-    && !surveysQuery.isRefetchError
-    && linkedFields.length === 0
-    && choices.length === 0;
-  const selectedIds = Object.keys(draft);
-  const parsedFields = selectedIds.map((id) => ({
-    fieldSurveyId: Number(id),
-    lossRatePercent: lossRate(draft[id] ?? ""),
-  }));
-  const ratesValid = parsedFields.every((field) => field.lossRatePercent !== null);
-  const existingById = new Map(linkedFields.map((field) => [field.fieldSurveyId, field.lossRatePercent]));
-  const unchanged = selectedIds.length === linkedFields.length
-    && parsedFields.every((field) => existingById.get(field.fieldSurveyId) === field.lossRatePercent);
-  const canSave = !unchanged && ratesValid && !updateMutation.isPending && online;
-  useUnsavedWorkGuard(!unchanged || draftChoices.length > 0);
+  const linkedFields = savedFields?.report === report ? savedFields.fields : report.affectedFields ?? [];
+  const linked = linkedFields.map(fromField);
+  const linkedIds = linkedFields.map((field) => field.fieldSurveyId);
+  const attachment: InspectorBoundaryAttachment | null = report.inspectorAttachment ?? null;
+  const attached = attachment?.boundary ? fromField(attachment.boundary) : null;
+  const attachedConfirmed = attached !== null && linkedIds.includes(attached.id);
+  const awaitingConfirmation = attached !== null && !attachedConfirmed;
+  const caseLocation: CaseLocation | null =
+    report.finalLatitude !== undefined && report.finalLongitude !== undefined
+      ? { latitude: report.finalLatitude, longitude: report.finalLongitude }
+      : null;
+
+  const selectionDirty = drawerOpen
+    && (selection.length !== linkedIds.length || selection.some((id) => !linkedIds.includes(id)));
+  useUnsavedWorkGuard(selectionDirty);
+
   const mutationError = updateMutation.error;
   const staleVersion = mutationError instanceof ApiError && mutationError.status === 409;
   const formState = affectedFieldFormState({
@@ -178,53 +197,21 @@ export function AffectedFieldLinkage({
     conflict: staleVersion,
     saving: updateMutation.isPending,
     failed: updateMutation.isError,
-    dirty: !unchanged,
+    dirty: selectionDirty,
   });
-  const attachedBoundaryId = attachment?.boundary?.fieldSurveyId ?? null;
-  const attachmentConfirmed = attachedBoundaryId !== null
-    && linkedFields.some((field) => field.fieldSurveyId === attachedBoundaryId);
-  const attachmentInDraft = attachedBoundaryId !== null && Object.hasOwn(draft, String(attachedBoundaryId));
 
-  const setBoundarySelected = (id: number, selected: boolean) => {
-    setDraft((current) => {
-      const next = { ...current };
-      if (selected) {
-        const existing = linkedFields.find((field) => field.fieldSurveyId === id);
-        next[String(id)] = existing ? String(existing.lossRatePercent) : "";
-      } else {
-        delete next[String(id)];
-      }
-      return next;
-    });
-    setDraftChoices((current) => {
-      if (!selected) return current.filter((choice) => choice.id !== id);
-      const choice = choices.find((item) => item.id === id);
-      return choice ? [...current.filter((item) => item.id !== id), choice] : current;
-    });
+  const commit = async (ids: number[], notice: string) => {
     setSavedNotice(null);
-    updateMutation.reset();
-  };
-
-  const save = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setSubmitted(true);
-    setSavedNotice(null);
-    if (!ratesValid || unchanged || draftVersion === undefined) return;
-
+    if (version === undefined) return;
     try {
       const result = await updateMutation.mutateAsync({
-        expectedVersion: draftVersion,
-        affectedFields: parsedFields.map((field) => ({
-          fieldSurveyId: field.fieldSurveyId,
-          lossRatePercent: field.lossRatePercent as number,
-        })),
+        expectedVersion: version,
+        affectedFields: ids.map((fieldSurveyId) => ({ fieldSurveyId })),
       });
-      setDraft(ratesFor(result.affectedFields));
       setSavedFields({ report, fields: result.affectedFields });
-      setDraftVersion(result.version);
-      setDraftChoices([]);
-      setSubmitted(false);
-      setSavedNotice("Affected field boundaries saved.");
+      setVersion(result.version);
+      setDrawerOpen(false);
+      setSavedNotice(notice);
     } catch {
       return;
     }
@@ -234,17 +221,44 @@ export function AffectedFieldLinkage({
     try {
       const result = await onRefresh();
       if (result.data && !result.isError) {
-        setDraft(ratesFor(result.data.affectedFields));
         setSavedFields({ report: result.data, fields: result.data.affectedFields ?? [] });
-        setDraftVersion(result.data.reviewVersion);
-        setDraftChoices([]);
+        setVersion(result.data.reviewVersion);
+        setSelection((result.data.affectedFields ?? []).map((field) => field.fieldSurveyId));
         updateMutation.reset();
-        setSubmitted(false);
       }
     } catch {
       return;
     }
   };
+
+  const openDrawer = () => {
+    setSelection(linkedIds);
+    setLookupDraft("");
+    setLookupSearch("");
+    setLookupPage(1);
+    setSavedNotice(null);
+    updateMutation.reset();
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    updateMutation.reset();
+  };
+
+  const choices = fieldMapChoices(surveysQuery.data?.features ?? [], linked, attached);
+  const located = choices.map((choice) => {
+    const centroid = boundaryCentroid(choice.geometry);
+    const meters = caseLocation && centroid ? distanceMeters(caseLocation, centroid) : null;
+    return { choice, meters };
+  });
+  // Nearest to the case first; maps without a usable location keep the server's newest-first order.
+  const ordered = caseLocation
+    ? [...located].sort((a, b) => (a.meters ?? Infinity) - (b.meters ?? Infinity))
+    : located;
+  const metadata = surveysQuery.data?.metadata;
+  const readReturnedNoRows = surveysQuery.isSuccess && !surveysQuery.isFetching && choices.length === 0;
+  const busy = updateMutation.isPending || !online;
 
   return (
     <section
@@ -253,285 +267,219 @@ export function AffectedFieldLinkage({
       data-state={formState}
     >
       <div className="section-heading affected-field-linkage__heading">
-        <h2 id="affected-field-linkage-heading">Affected field boundaries</h2>
-        <Link
-          className="table-action"
-          to={`${routes.monitoring}?view=boundaries`}
-        >
-          Field boundaries
+        <h2 id="affected-field-linkage-heading">Field measurement</h2>
+        <Link className="table-action" to={`${routes.monitoring}?view=boundaries`}>
+          Field maps
         </Link>
       </div>
-      <p className="affected-field-linkage__provenance">
-        Area is device-reported. Loss rates are supplied by the office.
-      </p>
 
-      {surveysQuery.isPending && !surveysQuery.data ? (
-        <div className="affected-field-linkage__loading" aria-busy="true">
-          <p role="status">Loading field boundaries…</p>
-          <Skeleton label="Loading field boundary choices" />
-          <Skeleton label="Loading field boundary choices" />
-        </div>
-      ) : null}
-      {surveysQuery.isError && !surveysQuery.data ? (
-        <p className="form-error" role="alert">
-          {isApiConnectionError(surveysQuery.error)
-            ? `${serviceUnreachableMessage} Saved links remain shown below.`
-            : isRateLimitedError(surveysQuery.error)
-              ? "Boundary lookup is receiving too many requests. Wait a moment, then try again. Saved links remain shown below."
-              : "Field boundary choices are unavailable. Saved links remain shown below; retry after access is restored."}
+      {attachment && !attachment.boundary ? (
+        <p className="affected-field-linkage__pending" role="status">
+          The inspector's field map is still on their phone. It appears here once it syncs.
         </p>
       ) : null}
-      {surveysQuery.isRefetchError && surveysQuery.data ? (
-        <p className="queue-refresh-warning" role="alert">
-          {isApiConnectionError(surveysQuery.error)
-            ? serviceUnreachableWhileShowingData
-            : isRateLimitedError(surveysQuery.error)
-              ? "The boundary lookup refresh was rate limited. Wait a moment before trying again; previously loaded choices remain visible."
-              : "The boundary archive could not be refreshed. Previously loaded choices remain visible and may be stale."}
-        </p>
-      ) : null}
-      {attachment ? (
-        <div className="affected-field-linkage__attachment" role="group" aria-label="Boundary attached by the inspector">
-          {attachment.boundary ? (
+
+      {awaitingConfirmation && attached ? (
+        <FieldMapSummary
+          map={attached}
+          caseLocation={caseLocation}
+          status={<span className="field-map__tag field-map__tag--waiting">Waiting for you</span>}
+          actions={(
             <>
-              <p>
-                <strong>Attached by the inspector</strong>
-                {" · "}
-                Boundary {attachment.boundary.fieldSurveyId}
-                {" · "}
-                {formatAffectedArea(attachment.boundary.areaSqm / 10_000)}
-              </p>
-              {attachmentConfirmed ? (
-                <span className="affected-field-linkage__attachment-state">Confirmed</span>
-              ) : attachmentInDraft ? (
-                <span className="affected-field-linkage__attachment-state">Enter the loss rate, then save</span>
-              ) : (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setBoundarySelected(attachment.boundary!.fieldSurveyId, true)}
-                >
-                  Confirm boundary
-                </Button>
-              )}
+              <Button type="button" disabled={busy} onClick={() => void commit([...linkedIds, attached.id], "Field confirmed.")}>
+                {updateMutation.isPending ? "Confirming…" : "Confirm field"}
+              </Button>
+              <Button type="button" variant="secondary" disabled={busy} onClick={openDrawer}>
+                Wrong field…
+              </Button>
             </>
-          ) : (
-            <p role="status">
-              <strong>Attached by the inspector</strong>
-              {" · "}
-              <span>This boundary has not reached the office yet.</span>
-            </p>
           )}
-        </div>
+        />
       ) : null}
-      <form
-        className="affected-field-linkage__lookup"
-        role="search"
-        aria-label="Boundary lookup"
-        onSubmit={(event) => {
-          event.preventDefault();
-          setLookupPage(1);
-          setLookupSearch(lookupDraft.trim());
-        }}
-      >
-        <label>
-          <span>Find an older boundary</span>
-          <input
-            type="search"
-            maxLength={60}
-            value={lookupDraft}
-            placeholder="Boundary ID, inspector name or capture date"
-            onChange={(event) => setLookupDraft(event.target.value)}
-          />
-        </label>
-        <Button type="submit" variant="secondary">Search</Button>
-        {lookupSearch ? (
-          <Button
-            type="button"
-            variant="quiet"
-            onClick={() => { setLookupDraft(""); setLookupSearch(""); setLookupPage(1); }}
-          >
-            Clear search
+
+      {linked.map((map) => (
+        <FieldMapSummary
+          key={map.id}
+          map={map}
+          caseLocation={caseLocation}
+          status={<span className="field-map__tag">Confirmed</span>}
+          actions={(
+            <Button
+              type="button"
+              variant="quiet"
+              disabled={busy}
+              onClick={() => void commit(linkedIds.filter((id) => id !== map.id), "Field map removed.")}
+            >
+              Remove from case
+            </Button>
+          )}
+        />
+      ))}
+
+      {linked.length === 0 && !awaitingConfirmation && !(attachment && !attachment.boundary) ? (
+        <p className="affected-field-linkage__empty">No field map on this case yet.</p>
+      ) : null}
+
+      {!drawerOpen && !awaitingConfirmation ? (
+        <div className="affected-field-linkage__actions">
+          <Button type="button" variant="secondary" disabled={busy} onClick={openDrawer}>
+            {linked.length === 0 ? "Link a field map" : "Link another map"}
           </Button>
-        ) : null}
-      </form>
-      {metadata && (lookupSearch || metadata.pageCount > 1 || metadata.truncated) ? (
-        <p className="affected-field-linkage__truncated" role="status">
-          {lookupSearch ? `Searching for "${lookupSearch}" · ` : ""}
-          {metadata.totalCount} matching {metadata.totalCount === 1 ? "boundary" : "boundaries"}
-          {metadata.pageCount > 1 ? ` · page ${metadata.page} of ${metadata.pageCount}` : ""}.
-          {metadata.pageCount > 1
-            ? " Linked boundaries stay selectable even when they are not on this page."
-            : null}
-          {metadata.truncated && metadata.page >= metadata.pageCount
-            ? " This read stopped before the last matching boundary; refresh to load the rest."
-            : null}
-        </p>
-      ) : null}
-
-      {previewChoice ? (
-        <div className="affected-field-linkage__preview" role="group" aria-label={`Boundary ${previewChoice.id} shape`}>
-          {previewOutline.drawable ? (
-            <svg viewBox="0 0 200 140" role="img" aria-label={`Stored shape of boundary ${previewChoice.id}`}>
-              <polygon points={previewOutline.points} />
-            </svg>
-          ) : (
-            <p className="form-error" role="alert">This boundary has no stored shape to preview.</p>
-          )}
-          <dl className="detail-list">
-            <DetailField label="Boundary">{previewChoice.id}</DetailField>
-            <DetailField label="Captured">{formatDateTime(previewChoice.capturedAt)}</DetailField>
-            <DetailField label="Device-reported area">{formatAffectedArea(previewChoice.areaSqm / 10_000)}</DetailField>
-            <DetailField label="Inspector">{previewChoice.inspectorName}</DetailField>
-            <DetailField label="Location">
-              {previewCentroid
-                ? `${coordinateLabel(previewCentroid.latitude, "N", "S")}, ${coordinateLabel(previewCentroid.longitude, "E", "W")}`
-                : "Location unavailable"}
-            </DetailField>
-            <DetailField label="Office loss rate">
-              {Object.hasOwn(draft, String(previewChoice.id)) && draft[String(previewChoice.id)] !== ""
-                ? `${draft[String(previewChoice.id)]}%`
-                : "Not entered"}
-            </DetailField>
-          </dl>
         </div>
       ) : null}
 
-      <form onSubmit={(event) => void save(event)}>
-        {choices.length === 0 ? (
-          readReturnedNoRows && (
-            <p className="field-validation-table-card__empty">
-              {lookupSearch
-                ? "No boundaries match this search. Clear the search to see the newest boundaries."
-                : lookupPage > 1
-                  ? "No boundaries are on this page. Return to page 1 to see the newest boundaries."
-                  : "No recorded field boundaries are available to link."}
-            </p>
-          )
-        ) : (
-          <div className="affected-field-linkage__table-scroll">
-            <table className="field-validation-table affected-field-linkage__table">
-              <caption className="sr-only">Affected field boundaries for this case</caption>
-              <thead>
-                <tr>
-                  <th scope="col"><span className="sr-only">Link boundary</span></th>
-                  <th scope="col">Boundary</th>
-                  <th scope="col">Area <span className="affected-field-linkage__source">device-reported</span></th>
-                  <th scope="col">Office loss rate (%)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {choices.map((choice) => {
-                  const key = String(choice.id);
-                  const checked = Object.hasOwn(draft, key);
-                  const rateId = `${idPrefix}-rate-${choice.id}`;
-                  const rateInvalid = checked && lossRate(draft[key] ?? "") === null;
-                  return (
-                    <tr key={choice.id}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          aria-label={`Link boundary ${choice.id}`}
-                          onChange={(event) => setBoundarySelected(choice.id, event.currentTarget.checked)}
-                        />
-                      </td>
-                      <td>
-                        <strong>Boundary {choice.id}</strong>
-                        <span className="affected-field-linkage__capture">
-                          <time dateTime={choice.capturedAt}>{formatDateTime(choice.capturedAt)}</time>
-                          <span> · {choice.inspectorName}</span>
-                        </span>
-                        {choice.attachedByInspector ? (
-                          <span className="affected-field-linkage__source">Attached by the inspector</span>
-                        ) : null}
-                        <Link
-                          className="table-action"
-                          to={`${routes.monitoring}?view=boundaries&boundary=${choice.id}`}
-                        >
-                          Show on Field boundaries
-                        </Link>
-                        {choice.geometry ? (
-                          <button
-                            type="button"
-                            className="table-action"
-                            onClick={() => setPreviewId(choice.id === previewId ? null : choice.id)}
-                            aria-expanded={choice.id === previewId}
-                          >
-                            {choice.id === previewId ? "Hide shape" : "Preview shape"}
-                          </button>
-                        ) : null}
-                      </td>
-                      <td>{formatAffectedArea(choice.areaSqm / 10_000)}</td>
-                      <td>
-                        {checked ? (
-                          <div className="affected-field-linkage__rate">
-                            <label htmlFor={rateId}>
-                              <span className="sr-only">Office loss rate for boundary {choice.id} (percent)</span>
-                              <input
-                                id={rateId}
-                                type="number"
-                                min="0"
-                                max="100"
-                                step="0.01"
-                                value={draft[key] ?? ""}
-                                aria-invalid={rateInvalid}
-                                aria-describedby={rateInvalid ? `${rateId}-error` : undefined}
-                                onChange={(event) => {
-                                  setDraft((current) => ({ ...current, [key]: event.target.value }));
-                                  setSavedNotice(null);
-                                  updateMutation.reset();
-                                }}
-                              />
-                            </label>
-                            {rateInvalid ? <span id={`${rateId}-error`} className="form-error">Enter a rate from 0 to 100.</span> : null}
-                          </div>
-                        ) : <span aria-hidden="true">—</span>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+      {drawerOpen ? (
+        <div className="affected-field-linkage__drawer" role="group" aria-label="Choose field maps">
+          <div className="affected-field-linkage__drawer-heading">
+            <h3>Choose field maps</h3>
+            <p>{caseLocation ? "Nearest to this case first." : "Newest first."}</p>
           </div>
-        )}
-
-        {metadata && metadata.pageCount > 1 ? (
-          <Pagination
-            currentPage={metadata.page}
-            pageCount={metadata.pageCount}
-            itemCount={metadata.totalCount}
-            itemLabel="boundaries"
-            onPageChange={setLookupPage}
-          />
-        ) : null}
-
-        {submitted && !ratesValid ? (
-          <p className="form-error" role="alert">Enter an office loss rate from 0 to 100 for each linked boundary.</p>
-        ) : null}
-        {submitted && draftVersion === undefined ? (
-          <p className="form-error" role="alert">Refresh this case before saving affected boundaries.</p>
-        ) : null}
-        {!online && !unchanged ? (
-          <p className="form-error" role="alert">You are offline. Your changes stay in this tab until you reconnect.</p>
-        ) : null}
-        {mutationError ? (
-          <div className="affected-field-linkage__error" role="alert">
-            <p>{errorMessage(mutationError)}</p>
-            {staleVersion ? (
-              <Button type="button" variant="secondary" onClick={() => void refreshAfterConflict()}>
-                Refresh case and discard draft changes
+          <form
+            className="affected-field-linkage__lookup"
+            role="search"
+            aria-label="Field map lookup"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setLookupPage(1);
+              setLookupSearch(lookupDraft.trim());
+            }}
+          >
+            <label>
+              <span>Find a field map</span>
+              <input
+                type="search"
+                maxLength={60}
+                value={lookupDraft}
+                placeholder="Map number, inspector name or date"
+                onChange={(event) => setLookupDraft(event.target.value)}
+              />
+            </label>
+            <Button type="submit" variant="secondary">Search</Button>
+            {lookupSearch ? (
+              <Button
+                type="button"
+                variant="quiet"
+                onClick={() => { setLookupDraft(""); setLookupSearch(""); setLookupPage(1); }}
+              >
+                Clear search
               </Button>
             ) : null}
+          </form>
+
+          {surveysQuery.isPending && !surveysQuery.data ? (
+            <div className="affected-field-linkage__loading" aria-busy="true">
+              <p role="status">Loading field maps…</p>
+              <Skeleton label="Loading field maps" />
+              <Skeleton label="Loading field maps" />
+            </div>
+          ) : null}
+          {surveysQuery.isError && !surveysQuery.data ? (
+            <p className="form-error" role="alert">
+              {isApiConnectionError(surveysQuery.error)
+                ? serviceUnreachableMessage
+                : isRateLimitedError(surveysQuery.error)
+                  ? "Field map lookup is receiving too many requests. Wait a moment, then try again."
+                  : "Field maps are unavailable. Retry after access is restored."}
+            </p>
+          ) : null}
+          {surveysQuery.isRefetchError && surveysQuery.data ? (
+            <p className="queue-refresh-warning" role="alert">
+              {isApiConnectionError(surveysQuery.error)
+                ? serviceUnreachableWhileShowingData
+                : "Field maps could not be refreshed. The ones shown may be stale."}
+            </p>
+          ) : null}
+          {metadata && (lookupSearch || metadata.pageCount > 1) ? (
+            <p className="affected-field-linkage__truncated" role="status">
+              {lookupSearch ? `Searching for "${lookupSearch}" · ` : ""}
+              {metadata.totalCount} matching {metadata.totalCount === 1 ? "map" : "maps"}
+              {metadata.pageCount > 1 ? ` · page ${metadata.page} of ${metadata.pageCount}` : ""}
+            </p>
+          ) : null}
+
+          {readReturnedNoRows ? (
+            <p className="affected-field-linkage__empty">
+              {lookupSearch ? "No field maps match this search." : "No field maps have been recorded yet."}
+            </p>
+          ) : null}
+
+          <ul className="affected-field-linkage__choices">
+            {ordered.map(({ choice, meters }) => {
+              const checked = selection.includes(choice.id);
+              return (
+                <li key={choice.id} className={checked ? "is-selected" : undefined}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(event) => {
+                        const nowChecked = event.currentTarget.checked;
+                        setSelection((current) => nowChecked
+                          ? [...current, choice.id]
+                          : current.filter((id) => id !== choice.id));
+                        setSavedNotice(null);
+                        updateMutation.reset();
+                      }}
+                    />
+                    <Outline map={choice} label={`Shape of field map ${choice.id}`} />
+                    <span className="affected-field-linkage__choice-text">
+                      <strong>Map {choice.id}{attached?.id === choice.id ? " · from this inspector" : ""}</strong>
+                      <span>
+                        {choice.inspectorName} · <time dateTime={choice.capturedAt}>{formatDateTime(choice.capturedAt)}</time>
+                      </span>
+                      <span>
+                        {formatAffectedArea(choice.areaSqm / 10_000)}
+                        {choice.affectedPercent === null ? "" : ` · ${choice.affectedPercent}% affected`}
+                        {meters === null ? "" : ` · ${formatDistance(meters)} from case`}
+                      </span>
+                    </span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+
+          {metadata && metadata.pageCount > 1 ? (
+            <Pagination
+              currentPage={metadata.page}
+              pageCount={metadata.pageCount}
+              itemCount={metadata.totalCount}
+              itemLabel="field maps"
+              onPageChange={setLookupPage}
+            />
+          ) : null}
+
+          <div className="affected-field-linkage__drawer-actions">
+            <span>{selection.length} selected</span>
+            <Button type="button" variant="quiet" onClick={closeDrawer}>Cancel</Button>
+            <Button
+              type="button"
+              disabled={!selectionDirty || busy}
+              onClick={() => void commit(selection, "Field maps saved.")}
+            >
+              {updateMutation.isPending ? "Saving…" : "Save field maps"}
+            </Button>
           </div>
-        ) : null}
-        {savedNotice ? <p className="success-banner" role="status">{savedNotice}</p> : null}
-        <div className="affected-field-linkage__actions">
-          <Button type="submit" disabled={!canSave}>
-            {updateMutation.isPending ? "Saving boundaries…" : "Save affected boundaries"}
-          </Button>
         </div>
-      </form>
+      ) : null}
+
+      {!online && (selectionDirty || awaitingConfirmation) ? (
+        <p className="form-error" role="alert">You are offline. Reconnect to confirm a field map.</p>
+      ) : null}
+      {version === undefined && (drawerOpen || awaitingConfirmation) ? (
+        <p className="form-error" role="alert">Refresh this case before changing its field map.</p>
+      ) : null}
+      {mutationError ? (
+        <div className="affected-field-linkage__error" role="alert">
+          <p>{errorMessage(mutationError)}</p>
+          {staleVersion ? (
+            <Button type="button" variant="secondary" onClick={() => void refreshAfterConflict()}>
+              Refresh case and discard changes
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {savedNotice ? <p className="success-banner" role="status">{savedNotice}</p> : null}
     </section>
   );
 }

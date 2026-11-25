@@ -400,6 +400,8 @@ class ReportResource extends JsonResource
                     'uuid' => $survey->inspector->uuid,
                     'name' => $survey->inspector->name,
                 ],
+                'affected_area_sqm' => $survey->affected_area_sqm === null ? null : (float) $survey->affected_area_sqm,
+                'affected_percent' => ReportAffectedFieldResource::affectedPercent($survey),
             ],
         ];
     }

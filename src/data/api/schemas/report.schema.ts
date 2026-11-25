@@ -83,7 +83,9 @@ export const reportAffectedFieldSchema = z.object({
   area_sqm: z.number().nonnegative(),
   area_source: z.literal("device_reported"),
   inspector: userSchema.pick({ uuid: true, name: true }),
-  loss_rate_percent: z.number().min(0).max(100),
+  affected_area_sqm: z.number().nonnegative().nullable(),
+  affected_percent: z.number().min(0).max(100).nullable(),
+  loss_rate_percent: z.number().min(0).max(100).nullable(),
 });
 export const aerialAnalysisSchema = z.object({
   uuid: z.string().min(1),

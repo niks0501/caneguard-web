@@ -464,12 +464,11 @@ export class MockReportsRepository implements ReportsRepository {
     const affectedFields = input.affectedFields.map((field) => {
       const existing = currentById.get(field.fieldSurveyId);
       if (!existing) throw new Error("The selected field boundary was not found.");
-      return { ...existing, lossRatePercent: field.lossRatePercent };
+      return existing;
     });
     const unchanged = currentFields.length === affectedFields.length
       && currentFields.every((field, position) =>
-        field.fieldSurveyId === affectedFields[position]?.fieldSurveyId
-        && field.lossRatePercent === affectedFields[position]?.lossRatePercent,
+        field.fieldSurveyId === affectedFields[position]?.fieldSurveyId,
       );
     const updatedAt = unchanged ? current.updatedAt ?? current.submittedAt : new Date().toISOString();
     const version = unchanged ? input.expectedVersion : input.expectedVersion + 1;
