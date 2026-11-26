@@ -4,6 +4,7 @@ import { routes } from "../../app/routes";
 import type { FieldSurveyBoundariesData, FieldSurveyBoundaryFeature } from "../../domain/fieldSurvey.types";
 import { Button } from "../ui/Button";
 import { formatAffectedArea, formatDateTime } from "../../lib/formatters";
+import { createReturnContext, withReturnContext, type MapReturnContext } from "../navigation/mapNavigationContext";
 import { FIELD_MAP_STATUS_LABEL, fieldMapName, fieldMapStatus, percentAffected, primaryCase } from "./fieldMapStatus";
 
 function boundaryLabel(feature: FieldSurveyBoundaryFeature) {
@@ -18,6 +19,7 @@ export function BoundariesList({
   onRefresh,
   loadedCount,
   filtered = false,
+  returnContext,
 }: {
   data: FieldSurveyBoundariesData;
   selectedBoundaryId: string | null;
@@ -28,10 +30,14 @@ export function BoundariesList({
   loadedCount?: number;
   /** True when the filters are hiding some of the loaded maps. */
   filtered?: boolean;
+  returnContext?: MapReturnContext;
 }) {
   const shown = loadedCount ?? data.features.length;
   const selectedOutsidePage = selectedBoundaryId !== null
     && !data.features.some((feature) => String(feature.properties.id) === selectedBoundaryId);
+  const linkState = withReturnContext(
+    returnContext ?? createReturnContext(`${routes.monitoring}?view=boundaries`, "Field maps"),
+  );
 
   return (
     <section className="field-validation-table-card boundaries-list-card" aria-labelledby="boundaries-list-heading">
@@ -108,7 +114,7 @@ export function BoundariesList({
                         {FIELD_MAP_STATUS_LABEL[status]}
                       </span>
                       {linkedCase ? (
-                        <Link className="table-action" to={routes.reportDetail(linkedCase.uuid)}>
+                        <Link className="table-action" to={routes.reportDetail(linkedCase.uuid)} state={linkState}>
                           Open {linkedCase.referenceCode}
                         </Link>
                       ) : null}

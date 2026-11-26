@@ -1,28 +1,51 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AxiosError } from "axios";
-import { MemoryRouter, useLocation } from "react-router";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
 import { env } from "../config/env";
 import { apiEndpointDetail } from "../lib/serviceMessages";
 import { ZodError } from "zod";
-import { FIELD_SURVEYS_MAX_LIMIT, type FieldSurveyBoundariesData } from "../domain/fieldSurvey.types";
-import { useFieldSurveyById, useFieldSurveys } from "../hooks/fieldSurveys";
+import { FIELD_SURVEYS_MAX_LIMIT, type FieldSurveyBoundariesData, type FieldSurveyBoundaryFeature } from "../domain/fieldSurvey.types";
+import type { DiseaseReport } from "../domain/report.types";
+import { createReturnContext, readReturnContext, withReturnContext } from "../components/navigation/mapNavigationContext";
+import { useFieldSurveyById, useFieldSurveys, useFieldSurveysByIds } from "../hooks/fieldSurveys";
+import { useReport } from "../hooks/useReports";
 import { BoundariesPage } from "./BoundariesPage";
 
-vi.mock("../hooks/fieldSurveys", () => ({ useFieldSurveys: vi.fn(), useFieldSurveyById: vi.fn() }));
+vi.mock("../hooks/fieldSurveys", () => ({
+  useFieldSurveys: vi.fn(),
+  useFieldSurveyById: vi.fn(),
+  useFieldSurveysByIds: vi.fn(),
+}));
+vi.mock("../hooks/useReports", () => ({ useReport: vi.fn() }));
 vi.mock("../components/boundaries/BoundariesMap", () => ({
   BoundariesMap: ({
+    data,
     selectedBoundaryId,
+    highlightedBoundaryIds = [],
+    focusedCaseLocation = null,
+    returnContext,
     onSelect,
     onClearSelection,
   }: {
+    data: FieldSurveyBoundariesData;
     selectedBoundaryId: string | null;
+    highlightedBoundaryIds?: string[];
+    focusedCaseLocation?: { longitude: number; latitude: number; referenceCode: string } | null;
+    returnContext?: { to: string; label: string };
     onSelect: (id: string, coordinates: [number, number]) => void;
     onClearSelection: () => void;
   }) => (
-    <div role="region" aria-label="Map provider boundary">
+    <div
+      role="region"
+      aria-label="Map provider boundary"
+      data-map-feature-ids={data.features.map((f) => f.properties.id).join(",")}
+      data-highlighted-ids={highlightedBoundaryIds.join(",")}
+      data-focused-location={focusedCaseLocation ? `${focusedCaseLocation.referenceCode}:${focusedCaseLocation.longitude},${focusedCaseLocation.latitude}` : ""}
+      data-return-context={returnContext ? JSON.stringify(returnContext) : ""}
+    >
       <output data-testid="map-selection">{selectedBoundaryId ?? "none"}</output>
       <button type="button" onClick={() => onSelect("123", [122.9505, 10.7005])}>Select boundary from map</button>
       <button type="button" onClick={onClearSelection}>Clear map selection</button>
@@ -80,16 +103,62 @@ function lookupResult(feature: FieldSurveyBoundariesData["features"][number] | n
   } as never;
 }
 
+function lookupManyResult(features: FieldSurveyBoundaryFeature[] = [], overrides: Record<string, unknown> = {}) {
+  const featuresById = new Map(features.map((f) => [String(f.properties.id), f]));
+  return {
+    queries: features.map(() => ({ isError: false, isFetching: false, isSuccess: true })),
+    featuresById,
+    features,
+    isFetching: false,
+    isPending: false,
+    isError: false,
+    ...overrides,
+  } as never;
+}
+
+function reportQueryResult(data: DiseaseReport | undefined, overrides: Record<string, unknown> = {}) {
+  return {
+    data,
+    error: null,
+    isError: false,
+    isFetching: false,
+    isPending: false,
+    isSuccess: data !== undefined,
+    ...overrides,
+  } as never;
+}
+
 function LocationProbe() {
   const location = useLocation();
   return <output data-testid="location">{location.pathname}{location.search}</output>;
 }
 
-function renderPage(initialEntry = "/monitoring?view=boundaries", embedded = true) {
+function ReturnDestinationProbe() {
+  const location = useLocation();
+  const ctx = readReturnContext(location.state);
+  return (
+    <output data-testid="destination">
+      {location.pathname}{location.search}|{ctx ? `${ctx.label}:${ctx.to}` : "no-ctx"}
+    </output>
+  );
+}
+
+function renderPage(initialEntry: string | { pathname: string; search?: string; state?: unknown } = "/monitoring?view=boundaries", embedded = true) {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
-      <BoundariesPage embedded={embedded} />
-      <LocationProbe />
+      <Routes>
+        <Route
+          path="/monitoring"
+          element={(
+            <>
+              <BoundariesPage embedded={embedded} />
+              <LocationProbe />
+            </>
+          )}
+        />
+        <Route path="/reports/:reportId" element={<ReturnDestinationProbe />} />
+        <Route path="/dashboard" element={<ReturnDestinationProbe />} />
+      </Routes>
     </MemoryRouter>,
   );
 }
@@ -97,6 +166,8 @@ function renderPage(initialEntry = "/monitoring?view=boundaries", embedded = tru
 beforeEach(() => {
   vi.mocked(useFieldSurveys).mockReturnValue(queryResult(oneBoundary));
   vi.mocked(useFieldSurveyById).mockReturnValue(lookupResult(null));
+  vi.mocked(useFieldSurveysByIds).mockReturnValue(lookupManyResult());
+  vi.mocked(useReport).mockReturnValue(reportQueryResult(undefined));
 });
 
 describe("BoundariesPage", () => {
@@ -475,5 +546,232 @@ describe("BoundariesPage field map filters", () => {
     // Ben's map matches the filter; Maria's is kept because it was opened by number.
     expect(screen.getByRole("cell", { name: "Maria Santos" })).toBeInTheDocument();
     expect(screen.getByRole("cell", { name: "Ben Cruz" })).toBeInTheDocument();
+  });
+
+  it("persists Inspector, Status, and Measured filters in URL params and clears them back to clean defaults", async () => {
+    const user = userEvent.setup();
+    renderPage("/monitoring?view=boundaries&fm_inspector=inspector-2&fm_status=waiting&fm_period=30");
+
+    expect(screen.getByLabelText("Inspector")).toHaveValue("inspector-2");
+    expect(screen.getByLabelText("Status")).toHaveValue("waiting");
+    expect(screen.getByLabelText("Measured")).toHaveValue("30");
+    expect(screen.getByText("1 of 2 loaded maps")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Status"), "all");
+    await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("fm_inspector=inspector-2"));
+    expect(screen.getByTestId("location")).not.toHaveTextContent("fm_status=");
+
+    await user.click(screen.getByRole("button", { name: "Clear filters" }));
+    await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("/monitoring?view=boundaries"));
+    expect(screen.getByText("2 loaded maps")).toBeInTheDocument();
+  });
+
+  it("attaches returnContext state to outbound table case links", async () => {
+    const user = userEvent.setup();
+    renderPage("/monitoring?view=boundaries&fm_inspector=inspector-2");
+
+    await user.click(screen.getByRole("link", { name: "Open CG-0009" }));
+    await waitFor(() => {
+      expect(screen.getByTestId("destination")).toHaveTextContent("/reports/case-9|Field maps:/monitoring?view=boundaries&fm_inspector=inspector-2");
+    });
+  });
+});
+
+describe("BoundariesPage case-focused mode", () => {
+  function makeReport(overrides: Partial<DiseaseReport> = {}): DiseaseReport {
+    return {
+      uuid: "case-1",
+      referenceCode: "CG-2026-0101",
+      barangay: "San Jose",
+      submittedByName: "Ana Reyes",
+      submitterRole: "field_reporter",
+      capturedAt: "2026-10-04T02:00:00Z",
+      submittedAt: "2026-10-04T02:05:00Z",
+      predictedDisease: "rust",
+      imageStatus: "available",
+      symptoms: [],
+      reviewStatus: "for_field_validation",
+      ...overrides,
+    };
+  }
+
+  function makePlot(id: number, capturedAt: string, label: string | null = null) {
+    return {
+      fieldSurveyId: id,
+      label,
+      outlineFromSurveyId: null,
+      geometry: oneBoundary.features[0].geometry,
+      capturedAt,
+      areaSqm: 5000,
+      areaSource: "device_reported" as const,
+      inspector: { uuid: "inspector-1", name: "Maria Santos" },
+      affectedAreaSqm: 500,
+      affectedPercent: 10,
+      lossRatePercent: null,
+    };
+  }
+
+  it("shows multi-plot case context newest-first, flags newer waiting plots, auto-selects primary, and fetches older-than-250 plots", async () => {
+    const user = userEvent.setup();
+    const olderConfirmedFeature: FieldSurveyBoundaryFeature = {
+      ...oneBoundary.features[0],
+      id: "42",
+      properties: {
+        ...oneBoundary.features[0].properties,
+        id: 42,
+        label: "North Block",
+        capturedAt: "2026-09-01T01:00:00Z",
+      },
+    };
+    const newerWaitingFeature: FieldSurveyBoundaryFeature = {
+      ...oneBoundary.features[0],
+      id: "88",
+      properties: {
+        ...oneBoundary.features[0].properties,
+        id: 88,
+        label: "North Block Re-check",
+        capturedAt: "2026-10-10T04:15:00Z",
+      },
+    };
+    const report = makeReport({
+      affectedFields: [makePlot(42, "2026-09-01T01:00:00Z", "North Block")],
+      inspectorAttachment: {
+        clientUuid: "att-1",
+        arrived: true,
+        confirmed: false,
+        boundary: makePlot(88, "2026-10-10T04:15:00Z", "North Block Re-check"),
+      },
+    });
+    vi.mocked(useReport).mockReturnValue(reportQueryResult(report));
+    vi.mocked(useFieldSurveys).mockReturnValue(queryResult(oneBoundary, {
+      dataUpdatedAt: Date.parse("2026-10-10T05:00:00Z"),
+    }));
+    vi.mocked(useFieldSurveysByIds).mockReturnValue(lookupManyResult([olderConfirmedFeature, newerWaitingFeature]));
+
+    renderPage("/monitoring?view=boundaries&report=case-1");
+
+    expect(useReport).toHaveBeenCalledWith("case-1");
+    expect(useFieldSurveysByIds).toHaveBeenCalledWith(["88", "42"]);
+
+    const strip = screen.getByRole("region", { name: "Focused case context" });
+    expect(within(strip).getByText("CG-2026-0101")).toBeInTheDocument();
+    expect(within(strip).getByText("San Jose")).toBeInTheDocument();
+    expect(within(strip).getByRole("link", { name: "Back to Case CG-2026-0101" })).toHaveAttribute("href", "/reports/case-1");
+    expect(within(strip).getByText("Newer measurement waiting for confirmation")).toBeInTheDocument();
+
+    // Auto-selects newest confirmed plot (42) when ?boundary= is not explicitly set.
+    expect(screen.getByTestId("map-selection")).toHaveTextContent("42");
+
+    // Both older-than-250 plots are merged into mapData and highlighted.
+    const mapRegion = screen.getByRole("region", { name: "Map provider boundary" });
+    expect(mapRegion).toHaveAttribute("data-map-feature-ids", "123,42,88");
+    expect(mapRegion).toHaveAttribute("data-highlighted-ids", "88,42");
+
+    // Quick switcher buttons are newest-first with Latest badge on the newest plot.
+    const switcher = within(strip).getByRole("group", { name: "Case field map plots" });
+    const buttons = within(switcher).getAllByRole("button");
+    expect(buttons).toHaveLength(2);
+    expect(buttons[0]).toHaveTextContent("North Block Re-check");
+    expect(buttons[0]).toHaveTextContent("Latest");
+    expect(buttons[0]).toHaveTextContent("Oct 10, 2026, 12:15 PM");
+    expect(buttons[0]).toHaveTextContent("Waiting");
+    expect(buttons[1]).toHaveTextContent("North Block");
+    expect(buttons[1]).toHaveTextContent("Sep 1, 2026, 9:00 AM");
+    expect(buttons[1]).toHaveTextContent("Confirmed");
+    expect(buttons[1]).toHaveAttribute("aria-pressed", "true");
+
+    // WorkspaceFreshness renders 12-hour Asia/Manila timestamp.
+    expect(screen.getByText("1:00:00 PM")).toBeInTheDocument();
+
+    // Clicking the newer waiting plot switches selection.
+    await user.click(buttons[0]);
+    await waitFor(() => expect(screen.getByTestId("map-selection")).toHaveTextContent("88"));
+    expect(screen.getByTestId("location")).toHaveTextContent("boundary=88");
+  });
+
+  it("respects an explicit ?boundary= parameter over primaryBoundaryId auto-selection", () => {
+    const report = makeReport({
+      affectedFields: [makePlot(123, "2026-10-04T02:30:12.123456Z", "Primary")],
+      inspectorAttachment: {
+        clientUuid: "att-1",
+        arrived: true,
+        confirmed: false,
+        boundary: makePlot(7, "2026-10-05T02:30:00Z", "Newer"),
+      },
+    });
+    vi.mocked(useReport).mockReturnValue(reportQueryResult(report));
+    vi.mocked(useFieldSurveysByIds).mockReturnValue(lookupManyResult([olderBoundary]));
+
+    renderPage("/monitoring?view=boundaries&report=case-1&boundary=7");
+    expect(screen.getByTestId("map-selection")).toHaveTextContent("7");
+  });
+
+  it("shows pending_sync notice without ever claiming Boundary not found", () => {
+    const report = makeReport({
+      inspectorAttachment: {
+        clientUuid: "att-pending",
+        arrived: false,
+        confirmed: false,
+        boundary: null,
+      },
+    });
+    vi.mocked(useReport).mockReturnValue(reportQueryResult(report));
+
+    renderPage("/monitoring?view=boundaries&report=case-1");
+    expect(screen.getByText("The inspector's field map is still on their phone. It appears here once it syncs.")).toBeInTheDocument();
+    expect(screen.queryByText(/was not found/)).not.toBeInTheDocument();
+  });
+
+  it("shows empty case-plot notice and passes focusedCaseLocation when coordinates exist", () => {
+    const report = makeReport({
+      finalLatitude: 10.7123,
+      finalLongitude: 122.9612,
+    });
+    vi.mocked(useReport).mockReturnValue(reportQueryResult(report));
+
+    renderPage("/monitoring?view=boundaries&report=case-1");
+    expect(screen.getByText("No field map linked to this case yet.")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Map provider boundary" })).toHaveAttribute(
+      "data-focused-location",
+      "CG-2026-0101:122.9612,10.7123",
+    );
+  });
+
+  it("degrades gracefully on 403 or 404 report error without blocking Field Maps", () => {
+    vi.mocked(useReport).mockReturnValue(reportQueryResult(undefined, {
+      error: new ApiError("Forbidden", { status: 403 }),
+      isError: true,
+    }));
+    const { unmount } = renderPage("/monitoring?view=boundaries&report=case-1");
+    expect(screen.getByText("You do not have permission to view this case's details.")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Map provider boundary" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Field map records" })).toBeInTheDocument();
+    unmount();
+
+    vi.mocked(useReport).mockReturnValue(reportQueryResult(undefined, {
+      error: new ApiError("Not Found", { status: 404 }),
+      isError: true,
+    }));
+    renderPage("/monitoring?view=boundaries&report=case-1");
+    expect(screen.getByText("This case was not found.")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Map provider boundary" })).toBeInTheDocument();
+  });
+
+  it("uses returnContext from router state for the Back button and clears case focus quietly", async () => {
+    const user = userEvent.setup();
+    vi.mocked(useReport).mockReturnValue(reportQueryResult(makeReport()));
+
+    renderPage({
+      pathname: "/monitoring",
+      search: "?view=boundaries&report=case-1",
+      state: withReturnContext(createReturnContext("/dashboard", "Home")),
+    });
+
+    const backLink = screen.getByRole("link", { name: "Back to Home" });
+    expect(backLink).toHaveAttribute("href", "/dashboard");
+
+    await user.click(screen.getByRole("button", { name: "Clear case focus" }));
+    await waitFor(() => expect(screen.getByTestId("location")).toHaveTextContent("/monitoring?view=boundaries"));
+    expect(screen.queryByRole("region", { name: "Focused case context" })).not.toBeInTheDocument();
   });
 });
