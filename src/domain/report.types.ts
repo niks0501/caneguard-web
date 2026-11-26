@@ -98,14 +98,34 @@ export type AdvisoryDeliveryState =
   | "delivered"
   | "acknowledged";
 
+/** Topic of a shared office advisory: a disease, a pest, or general field operations. */
+export type AdvisoryCategory = "rust" | "smut" | "mosaic" | "rssi" | "general";
+
 export interface Advisory {
   uuid: string;
   code: string;
   title: string;
   content: string;
   status: AdvisoryStatus;
+  category?: AdvisoryCategory | null;
   validationProvenance?: string | null;
   validatedAt?: string | null;
+}
+
+export interface AdvisoryInput {
+  title: string;
+  content: string;
+  category?: AdvisoryCategory | null;
+  /** Blank lets the server generate `ADV-<TOPIC>-NNN`. */
+  code?: string;
+}
+
+export type AdvisoryUpdateInput = Partial<AdvisoryInput>;
+
+/** `hard`: never used, removed for good. `archived`: used before, hidden but past cases keep their wording. */
+export interface AdvisoryDeleteResult {
+  uuid: string;
+  deleted: "hard" | "archived";
 }
 
 export interface ReferralOfficeContext {

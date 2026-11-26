@@ -5,6 +5,9 @@ import type { UpdateAffectedFieldsInput, UpdateAffectedFieldsResult } from "../.
 import type {
   AerialAnalysis,
   Advisory,
+  AdvisoryDeleteResult,
+  AdvisoryInput,
+  AdvisoryUpdateInput,
   DiseaseReport,
   PaginatedReports,
   PossibleRecentMatch,
@@ -58,6 +61,49 @@ function csvCell(value: unknown): string {
     : cell;
 }
 
+const ADVISORY_REMOVED_MESSAGE = "This advisory was removed from the office library. Pick another one.";
+
+interface MockAdvisory extends Advisory {
+  archived?: boolean;
+}
+
+function publicAdvisory(item: MockAdvisory): Advisory {
+  const advisory: MockAdvisory = { ...item };
+  delete advisory.archived;
+  return advisory;
+}
+
+const seededCodeCounts: Record<string, number> = {};
+
+function seedAdvisory(index: number, category: Advisory["category"], title: string, content: string): MockAdvisory {
+  const suffix = String(index).padStart(2, "0");
+  const topic = (category ?? "general").toUpperCase();
+  seededCodeCounts[topic] = (seededCodeCounts[topic] ?? 0) + 1;
+  return {
+    uuid: `5c21f90a-5a40-4d8d-ae35-1275bb3f01${suffix}`,
+    code: `ADV-${topic}-${String(seededCodeCounts[topic]).padStart(3, "0")}`,
+    title,
+    content,
+    status: "validated",
+    category,
+    validationProvenance: "CaneGuard office operational reference.",
+    validatedAt: `2026-09-01T08:${suffix}:00.000Z`,
+  };
+}
+
+// Demo library modelled on the office seeder: diseases, a pest and general field operations.
+const seededAdvisories: MockAdvisory[] = [
+  seedAdvisory(1, "general", "Document and monitor affected rows", "Mark the affected rows, record the date and visible changes, and revisit the same area to check whether symptoms are spreading. Keep the observations with the case."),
+  seedAdvisory(2, "general", "Clean tools between affected areas", "Remove plant material from tools and clean them between affected areas. Keep affected material separate from healthy planting material and follow local disposal guidance."),
+  seedAdvisory(3, "rust", "Manage rust on susceptible varieties", "Scout neighbouring rows for orange-brown pustules on the leaves, remove heavily affected leaves where practical, and avoid moving cutting material from the affected block until the office has checked it."),
+  seedAdvisory(4, "smut", "Isolate smut-affected stools", "Cover whip-like shoots with a bag before cutting, remove the affected stool and keep it away from healthy planting material. Do not use cuttings from the affected stool."),
+  seedAdvisory(5, "mosaic", "Rogue out mosaic-infected plants", "Remove plants with a clear light-and-dark mottle early and replace them with healthy setts. Keep the area monitored for aphid activity over the next weeks."),
+  seedAdvisory(6, "rssi", "Check for scale insects under leaf sheaths", "Peel back leaf sheaths on a sample of stalks and record any scale insects. Report the affected rows to the office so a field visit can be arranged."),
+];
+
+// One seeded advisory was already sent on a past case, so deleting it archives it.
+const seededUsedAdvisoryUuids = [seededAdvisories[1].uuid];
+
 function reportersForMockAssignment(uuid: string) {
   return {
     uuid,
@@ -101,9 +147,91 @@ function mockPossibleMatch(candidate: DiseaseReport, distanceMeters: number): Po
 
 export class MockReportsRepository implements ReportsRepository {
   private reports = mockReportStore;
+  private advisories: MockAdvisory[] = seededAdvisories.map((advisory) => ({ ...advisory }));
+  private usedAdvisoryUuids = new Set(seededUsedAdvisoryUuids);
+
+  private findLiveAdvisory(advisoryUuid: string): MockAdvisory {
+    const advisory = this.advisories.find((item) => item.uuid === advisoryUuid);
+    if (!advisory) throw new ApiError("Advisory not found.", { status: 404 });
+    return advisory;
+  }
+
+  private nextAdvisoryCode(category: Advisory["category"]): string {
+    const prefix = `ADV-${(category ?? "general").toUpperCase()}-`;
+    const highest = this.advisories
+      .filter((item) => item.code.startsWith(prefix))
+      .map((item) => Number(item.code.slice(prefix.length)))
+      .filter(Number.isInteger)
+      .reduce((max, value) => Math.max(max, value), 0);
+    return `${prefix}${String(highest + 1).padStart(3, "0")}`;
+  }
+
+  private assertAdvisoryCode(code: string, ownUuid?: string) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(code)) {
+      throw new ApiError("The code is invalid.", { status: 422, code: "VALIDATION_ERROR", errors: { code: ["Use letters, numbers, dots, dashes or underscores."] } });
+    }
+    if (this.advisories.some((item) => item.code === code && item.uuid !== ownUuid)) {
+      throw new ApiError("The code is taken.", { status: 422, code: "VALIDATION_ERROR", errors: { code: ["That code is already used by another advisory."] } });
+    }
+  }
 
   async listAdvisories(): Promise<Advisory[]> {
-    return [];
+    return this.advisories
+      .filter((item) => !item.archived)
+      .map(publicAdvisory);
+  }
+
+  async createAdvisory(input: AdvisoryInput): Promise<Advisory> {
+    const title = input.title.trim();
+    const content = input.content.trim();
+    const errors: Record<string, string[]> = {};
+    if (!title) errors.title = ["The title field is required."];
+    if (!content) errors.content = ["The content field is required."];
+    if (Object.keys(errors).length) throw new ApiError("The given data was invalid.", { status: 422, code: "VALIDATION_ERROR", errors });
+    const category = input.category ?? null;
+    const requestedCode = input.code?.trim();
+    if (requestedCode) this.assertAdvisoryCode(requestedCode);
+    const advisory: MockAdvisory = {
+      uuid: crypto.randomUUID(),
+      code: requestedCode || this.nextAdvisoryCode(category),
+      title,
+      content,
+      status: "validated",
+      category,
+      validatedAt: new Date().toISOString(),
+    };
+    this.advisories = [...this.advisories, advisory];
+    return publicAdvisory(advisory);
+  }
+
+  async updateAdvisory(advisoryUuid: string, input: AdvisoryUpdateInput): Promise<Advisory> {
+    const current = this.findLiveAdvisory(advisoryUuid);
+    if (current.archived || current.status === "retired") {
+      throw new ApiError("The given data was invalid.", { status: 422, code: "VALIDATION_ERROR", errors: { status: [current.archived
+        ? "This advisory was removed from the office library and can no longer be edited."
+        : "Retired advisories can no longer be edited."] } });
+    }
+    const code = input.code?.trim();
+    if (code) this.assertAdvisoryCode(code, current.uuid);
+    const next: MockAdvisory = {
+      ...current,
+      ...(input.title !== undefined ? { title: input.title.trim() } : {}),
+      ...(input.content !== undefined ? { content: input.content.trim() } : {}),
+      ...(input.category !== undefined ? { category: input.category } : {}),
+      ...(code ? { code } : {}),
+    };
+    this.advisories = this.advisories.map((item) => (item.uuid === advisoryUuid ? next : item));
+    return publicAdvisory(next);
+  }
+
+  async deleteAdvisory(advisoryUuid: string): Promise<AdvisoryDeleteResult> {
+    const current = this.findLiveAdvisory(advisoryUuid);
+    if (this.usedAdvisoryUuids.has(advisoryUuid)) {
+      this.advisories = this.advisories.map((item) => (item.uuid === advisoryUuid ? { ...current, archived: true } : item));
+      return { uuid: advisoryUuid, deleted: "archived" };
+    }
+    this.advisories = this.advisories.filter((item) => item.uuid !== advisoryUuid);
+    return { uuid: advisoryUuid, deleted: "hard" };
   }
 
   async listReports(filters?: ReportFilters): Promise<PaginatedReports> {
@@ -346,6 +474,12 @@ export class MockReportsRepository implements ReportsRepository {
               ?? (input.fieldValidationAssigneeUuid ? "assigned" : lifecycle.fieldValidationState),
           };
     const now = new Date().toISOString();
+    // Like the API: the wording is copied onto the case, so later library edits never rewrite it.
+    const selectedAdvisory = input.advisoryUuid ? this.advisories.find((item) => item.uuid === input.advisoryUuid) : undefined;
+    if (input.advisoryUuid && (!selectedAdvisory || selectedAdvisory.archived || selectedAdvisory.status !== "validated")) {
+      throw new ApiError("The given data was invalid.", { status: 422, code: "VALIDATION_ERROR", errors: { advisory_uuid: [ADVISORY_REMOVED_MESSAGE] } });
+    }
+    if (selectedAdvisory) this.usedAdvisoryUuids.add(selectedAdvisory.uuid);
     const nextAssignment = input.fieldValidationAssigneeUuid === undefined
       && input.fieldValidationTargetDate === undefined
       ? current.fieldValidationAssignment
@@ -404,6 +538,18 @@ export class MockReportsRepository implements ReportsRepository {
           : input.authorityClassifiedCondition,
       actionTaken:
         input.actionTaken === undefined ? current.actionTaken : input.actionTaken,
+      ...(selectedAdvisory ? {
+        advisory: {
+          uuid: selectedAdvisory.uuid,
+          code: selectedAdvisory.code,
+          title: selectedAdvisory.title,
+          content: selectedAdvisory.content,
+          status: selectedAdvisory.status,
+          category: selectedAdvisory.category,
+          selectedAt: now,
+          deliveryState: "pending" as const,
+        },
+      } : {}),
       lifecycle: nextLifecycle,
       fieldValidationAssignment: nextAssignment ?? undefined,
       reviewedAt: now,

@@ -1,5 +1,6 @@
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
+import { ApiError } from "../../api/ApiError";
 import { createAxiosClient } from "../../api/axiosClient";
 import {
   paginatedReportsDto,
@@ -734,5 +735,68 @@ describe("ApiReportsRepository", () => {
       abnormalCanopyPercent: 18,
     });
     expect(restoreBody).toEqual({ removal_id: "rm-1" });
+  });
+
+  describe("office advisory library", () => {
+    const advisoryDto = {
+      uuid: "5c21f90a-5a40-4d8d-ae35-1275bb3f0009", code: "ADV-RUST-001", title: "Manage rust", content: "Scout rows.",
+      status: "validated", category: "rust", validation_provenance: null, validated_at: "2026-10-01T02:00:00.000Z",
+    };
+    const repository = () => new ApiReportsRepository(createAxiosClient({ apiBaseUrl: baseUrl }));
+
+    it("lists advisories with their topic", async () => {
+      server.use(http.get(`${baseUrl}/api/v1/advisories`, () => HttpResponse.json({ data: [advisoryDto, { ...advisoryDto, uuid: "x2", code: "ADV-OPS", category: null }] })));
+      await expect(repository().listAdvisories()).resolves.toEqual([
+        expect.objectContaining({ uuid: advisoryDto.uuid, category: "rust", validatedAt: advisoryDto.validated_at }),
+        expect.objectContaining({ uuid: "x2", category: null }),
+      ]);
+    });
+
+    it("creates with trimmed text and leaves a blank code for the server to generate", async () => {
+      server.use(http.post(`${baseUrl}/api/v1/advisories`, async ({ request }) => {
+        expect(await request.json()).toEqual({ title: "Manage rust", content: "Scout rows.", category: "rust" });
+        return HttpResponse.json({ data: advisoryDto }, { status: 201 });
+      }));
+      await expect(repository().createAdvisory({ title: " Manage rust ", content: " Scout rows. ", category: "rust", code: "  " }))
+        .resolves.toMatchObject({ uuid: advisoryDto.uuid, code: "ADV-RUST-001", category: "rust", status: "validated" });
+    });
+
+    it("sends a chosen code and surfaces field validation errors", async () => {
+      server.use(http.post(`${baseUrl}/api/v1/advisories`, async ({ request }) => {
+        expect(await request.json()).toMatchObject({ code: "ADV-RUST-001" });
+        return HttpResponse.json({ message: "invalid", code: "VALIDATION_ERROR", errors: { code: ["That code is already used by another advisory."] } }, { status: 422 });
+      }));
+      const failure = await repository().createAdvisory({ title: "T", content: "C", code: "ADV-RUST-001" }).catch((error: unknown) => error);
+      expect(failure).toBeInstanceOf(ApiError);
+      expect(failure).toMatchObject({ status: 422, errors: { code: ["That code is already used by another advisory."] } });
+    });
+
+    it("patches only the changed fields and can clear the topic", async () => {
+      server.use(http.patch(`${baseUrl}/api/v1/advisories/${advisoryDto.uuid}`, async ({ request }) => {
+        expect(await request.json()).toEqual({ title: "New title", category: null });
+        return HttpResponse.json({ data: { ...advisoryDto, title: "New title", category: null } });
+      }));
+      await expect(repository().updateAdvisory(advisoryDto.uuid, { title: "New title", category: null }))
+        .resolves.toMatchObject({ title: "New title", category: null });
+    });
+
+    it("explains a refused edit of a removed advisory through the status error", async () => {
+      server.use(http.patch(`${baseUrl}/api/v1/advisories/${advisoryDto.uuid}`, () => HttpResponse.json(
+        { message: "invalid", code: "VALIDATION_ERROR", errors: { status: ["This advisory was removed from the office library and can no longer be edited."] } },
+        { status: 422 },
+      )));
+      await expect(repository().updateAdvisory(advisoryDto.uuid, { title: "x" }))
+        .rejects.toMatchObject({ status: 422, errors: { status: [expect.stringContaining("removed from the office library")] } });
+    });
+
+    it.each(["hard", "archived"] as const)("reads a %s delete outcome", async (deleted) => {
+      server.use(http.delete(`${baseUrl}/api/v1/advisories/${advisoryDto.uuid}`, () => HttpResponse.json({ data: { uuid: advisoryDto.uuid, deleted } })));
+      await expect(repository().deleteAdvisory(advisoryDto.uuid)).resolves.toEqual({ uuid: advisoryDto.uuid, deleted });
+    });
+
+    it("reports a second delete of a removed advisory as not found", async () => {
+      server.use(http.delete(`${baseUrl}/api/v1/advisories/${advisoryDto.uuid}`, () => HttpResponse.json({ message: "Not found." }, { status: 404 })));
+      await expect(repository().deleteAdvisory(advisoryDto.uuid)).rejects.toMatchObject({ status: 404 });
+    });
   });
 });

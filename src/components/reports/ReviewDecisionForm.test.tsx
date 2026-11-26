@@ -13,7 +13,17 @@ import { ReviewDecisionForm } from "./ReviewDecisionForm";
 import { ReportTable } from "./ReportTable";
 import type { DiseaseReport } from "../../domain/report.types";
 
-vi.mock("../../hooks/useReports", () => ({ useAdvisories: vi.fn(), useUpdateReportReview: vi.fn() }));
+const createAdvisory = vi.fn();
+const updateAdvisory = vi.fn();
+const deleteAdvisory = vi.fn();
+// The picker inside the form manages the library through these hooks; each is a controllable mutation here.
+vi.mock("../../hooks/useReports", () => ({
+  useAdvisories: vi.fn(),
+  useUpdateReportReview: vi.fn(),
+  useCreateAdvisory: () => ({ mutateAsync: createAdvisory }),
+  useUpdateAdvisory: () => ({ mutateAsync: updateAdvisory }),
+  useDeleteAdvisory: () => ({ mutateAsync: deleteAdvisory }),
+}));
 vi.mock("../../hooks/useFieldReporters", () => ({ useFieldReporters: vi.fn() }));
 vi.mock("../../services/reports.service", () => ({ reportsRepository: { listReports: vi.fn() } }));
 const base = mapReportDetail(reportDetailResponseSchema.parse({ data: reportDetailDto }).data);
@@ -25,6 +35,9 @@ function mutation(error: ApiError | null = null, isPending = false) {
 }
 function renderForm(report = base, onRefresh = vi.fn()) {
   return render(<MemoryRouter><ReviewDecisionForm report={report} onRefresh={onRefresh} /></MemoryRouter>);
+}
+async function pickAdvisory(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("radio", { name: /Validated guidance/ }));
 }
 async function technical(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
@@ -260,7 +273,7 @@ describe("Progressive review resilience", () => {
     await user.click(screen.getByRole("button", { name: "Back" }));
     await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.selectOptions(screen.getByLabelText("Validated advisory"), advisory.uuid);
+    await pickAdvisory(user);
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.click(screen.getByRole("button", { name: "Confirm decision" }));
     expect(save.mock.calls[1][0]).toMatchObject({
@@ -334,7 +347,7 @@ describe("Progressive review resilience", () => {
     renderForm(base, onRefresh);
     await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.selectOptions(screen.getByLabelText("Validated advisory"), advisory.uuid);
+    await pickAdvisory(user);
     await user.type(screen.getByRole("textbox"), "Mine");
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.click(screen.getByRole("button", { name: "Confirm decision" }));
@@ -349,7 +362,7 @@ describe("Progressive review resilience", () => {
     await user.click(screen.getByRole("button", { name: "Back" }));
 
     expect(screen.getByRole("radio", { name: "Technical Assistance" })).toBeChecked();
-    expect(screen.queryByLabelText("Validated advisory")).not.toBeInTheDocument();
+    expect(screen.queryByRole("radiogroup", { name: "Advisory to send" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.click(screen.getByRole("button", { name: "Confirm decision" }));
     expect(save.mock.calls[1][0]).toMatchObject({
@@ -432,7 +445,7 @@ describe("Progressive review resilience", () => {
     renderForm(closed);
     await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.selectOptions(screen.getByLabelText("Validated advisory"), advisory.uuid);
+    await pickAdvisory(user);
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.click(screen.getByRole("button", { name: "Confirm decision" }));
     expect(save.mock.calls[1][0]).not.toHaveProperty("caseState");
@@ -469,11 +482,11 @@ describe("Progressive review resilience", () => {
     await user.selectOptions(screen.getByLabelText("Verification Outcome"), "verified");
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.click(screen.getByRole("button", { name: "Confirm decision" }));
-    expect(screen.getByText("Select a validated advisory for Advisory Guidance.")).toBeInTheDocument();
+    expect(screen.getByText("Pick an advisory to send.")).toBeInTheDocument();
     expect(screen.getByText("Staff-Classified Condition is required for Verified.")).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByLabelText("Validated advisory"), advisory.uuid);
-    expect(screen.queryByText("Select a validated advisory for Advisory Guidance.")).not.toBeInTheDocument();
+    await pickAdvisory(user);
+    expect(screen.queryByText("Pick an advisory to send.")).not.toBeInTheDocument();
     expect(screen.getByText("Staff-Classified Condition is required for Verified.")).toBeInTheDocument();
   });
 
@@ -491,7 +504,7 @@ describe("Progressive review resilience", () => {
     await user.selectOptions(screen.getByLabelText("Staff-Classified Condition"), "smut");
     await user.selectOptions(screen.getByLabelText("Staff-Classified Condition"), "");
     expect(screen.queryByText("Staff-Classified Condition is required for Verified.")).not.toBeInTheDocument();
-    expect(screen.getByText("Select a validated advisory for Advisory Guidance.")).toBeInTheDocument();
+    expect(screen.getByText("Pick an advisory to send.")).toBeInTheDocument();
   });
 
   // The success and server-error outcomes live on the confirmation step, so pending keeps it.
@@ -649,7 +662,7 @@ describe("Progressive review resilience", () => {
     renderForm();
     await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.selectOptions(screen.getByLabelText("Validated advisory"), advisory.uuid);
+    await pickAdvisory(user);
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: "First line.\n  Indented second line." },
     });
@@ -676,7 +689,7 @@ describe("Progressive review resilience", () => {
     await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.queryByText("Choose what should happen next.")).not.toBeInTheDocument();
-    expect(screen.queryByText("Select a validated advisory for Advisory Guidance.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Pick an advisory to send.")).not.toBeInTheDocument();
   });
 
   // A field-validation action always saves Not Determined, so the summary must say so too.
@@ -915,7 +928,7 @@ describe("Confirmation before saving", () => {
     await user.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.getByRole("listitem", { current: "step" })).toHaveTextContent("Details");
     expect(screen.queryByRole("button", { name: "Confirm decision" })).not.toBeInTheDocument();
-    await user.selectOptions(screen.getByLabelText("Validated advisory"), advisory.uuid);
+    await pickAdvisory(user);
     await user.click(screen.getByRole("button", { name: "Back" }));
     fireEvent.submit(form);
     expect(save).not.toHaveBeenCalled();

@@ -15,6 +15,7 @@ import { useFieldReporters } from "../../hooks/useFieldReporters";
 import { useAdvisories, useUpdateReportReview } from "../../hooks/useReports";
 import { useOnlineStatus } from "../../hooks/useOnlineStatus";
 import { reportsRepository } from "../../services/reports.service";
+import { AdvisoryPicker } from "./AdvisoryPicker";
 import { ReviewConflictPanel } from "./ReviewConflictPanel";
 import {
   allConflictChoices,
@@ -85,7 +86,10 @@ export function ReviewDecisionForm({ report, onRefresh, locked = false, onMarkDu
     (location.state as { preselectAction?: unknown } | null)?.preselectAction === "field"
       && lifecycle.fieldValidationState !== "completed" ? "field" : null));
   const [support, setSupport] = useState<"advisory" | "technical">("advisory");
-  const [advisoryUuid, setAdvisoryUuid] = useState("");
+  // Revisiting a case keeps the advisory it already carries.
+  const [advisoryUuid, setAdvisoryUuid] = useState(report.advisory?.uuid ?? "");
+  // Set when the server refuses the pick because someone removed it from the office library.
+  const [advisoryUnavailable, setAdvisoryUnavailable] = useState<string | null>(null);
   const [inspectorUuid, setInspectorUuid] = useState(report.fieldValidationAssignment?.assignee.uuid ?? "");
   const [targetDate, setTargetDate] = useState(report.fieldValidationAssignment?.targetVisitDate ?? "");
   const [notes, setNotes] = useState(report.reviewNotes ?? "");
@@ -157,7 +161,7 @@ export function ReviewDecisionForm({ report, onRefresh, locked = false, onMarkDu
   const fieldErrors = {
     classification: effectiveVerification === "verified" && !classification ? ["Staff-Classified Condition is required for Verified."] : [],
     action: !action ? ["Choose what should happen next."] : [],
-    advisory: action === "support" && support === "advisory" && !selectedAdvisory ? ["Select a validated advisory for Advisory Guidance."] : [],
+    advisory: action === "support" && support === "advisory" && !selectedAdvisory ? ["Pick an advisory to send."] : [],
     inspector: assignmentNeeded && !inspectorUuid ? ["Select a Field Inspector before saving field validation."] : [],
     reopen: fieldSelected && currentClosed && !reopenConfirmed ? ["Reopen the case before assigning a field validation visit."] : [],
     close: action === "close" && !closedConfirmed ? ["Confirm that you want to close this case."] : [],
@@ -330,6 +334,15 @@ export function ReviewDecisionForm({ report, onRefresh, locked = false, onMarkDu
         setStale(true);
         void loadLatestVersion();
       }
+      const removed = error instanceof ApiError && error.status === 422 ? error.errors?.advisory_uuid?.[0] : undefined;
+      if (removed) {
+        // Another reviewer removed the advisory: drop the stale pick, reload the library, and return to the picker.
+        setAdvisoryUnavailable(removed);
+        setAdvisoryUuid("");
+        mutation.reset();
+        void advisories.refetch();
+        setStep("details");
+      }
     }
     finally { saving.current = false; }
   };
@@ -494,14 +507,12 @@ export function ReviewDecisionForm({ report, onRefresh, locked = false, onMarkDu
             <label><input type="radio" name="support-type" checked={support === "advisory"} onChange={() => { setSupport("advisory"); changed(); }} /> Advisory Guidance</label>
             <label><input type="radio" name="support-type" checked={support === "technical"} onChange={() => { setSupport("technical"); changed(); }} /> Technical Assistance</label>
           </fieldset>
-          {support === "advisory" ? <><SelectFilter label="Validated advisory" value={advisoryUuid}
-            aria-invalid={showsError("advisory")} aria-describedby={showsError("advisory") ? "review-error-advisory" : undefined}
-            onChange={(event) => { setAdvisoryUuid(event.target.value); changed(); }}>
-            <option value="">Select a validated advisory</option>
-            {validated.map((item) => <option key={item.uuid} value={item.uuid}>{item.code} - {item.title}</option>)}
-          </SelectFilter>{error("advisory")}
-            {selectedAdvisory ? <p>{selectedAdvisory.content}</p> : null}
-            {advisories.isError ? <p className="form-error" role="alert">The advisory library could not be loaded. <Button type="button" variant="secondary" onClick={() => advisories.refetch()}>Retry advisories</Button></p> : null}
+          {support === "advisory" ? <>
+            <AdvisoryPicker advisories={validated} value={advisoryUuid} disabled={mutation.isPending}
+              loading={advisories.isPending} loadFailed={advisories.isError} onRefresh={() => advisories.refetch()}
+              invalid={showsError("advisory")} describedBy={showsError("advisory") ? "review-error-advisory" : undefined}
+              unavailableMessage={advisoryUnavailable}
+              onChange={(uuid) => { setAdvisoryUuid(uuid); setAdvisoryUnavailable(null); changed(); }} />{error("advisory")}
           </> : null}
           <p>Current case state is preserved: {caseStateLabels[lifecycle.caseState]}.</p>
         </div> : null}

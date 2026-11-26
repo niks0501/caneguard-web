@@ -3,6 +3,9 @@ import type { UpdateAffectedFieldsInput, UpdateAffectedFieldsResult } from "../.
 import type {
   AerialAnalysis,
   Advisory,
+  AdvisoryDeleteResult,
+  AdvisoryInput,
+  AdvisoryUpdateInput,
   DiseaseReport,
   PaginatedReports,
   PossibleRecentMatches,
@@ -17,6 +20,12 @@ import type {
 
 export interface ReportsRepository {
   listAdvisories(): Promise<Advisory[]>;
+  /** Adds to the shared office library; the advisory can be sent at once. */
+  createAdvisory(input: AdvisoryInput): Promise<Advisory>;
+  /** Edits wording in place; wording already sent to a case stays as it was. */
+  updateAdvisory(advisoryUuid: string, input: AdvisoryUpdateInput): Promise<Advisory>;
+  /** Removes an unused advisory for good, or archives one that cases have used. */
+  deleteAdvisory(advisoryUuid: string): Promise<AdvisoryDeleteResult>;
   listReports(filters?: ReportFilters): Promise<PaginatedReports>;
   exportReports(filters?: ReportFilters): Promise<Blob>;
   getMonthlySummary(month?: string): Promise<MonthlyReportSummary>;

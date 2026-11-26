@@ -25,6 +25,9 @@ vi.mock("../hooks/useReviewClaim", () => ({
 }));
 vi.mock("../hooks/useReports", () => ({
   useAdvisories: vi.fn(),
+  useCreateAdvisory: vi.fn(() => ({ mutateAsync: vi.fn() })),
+  useUpdateAdvisory: vi.fn(() => ({ mutateAsync: vi.fn() })),
+  useDeleteAdvisory: vi.fn(() => ({ mutateAsync: vi.fn() })),
   useAddAerialAnalysis: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
   useRemoveAerialAnalysis: vi.fn(() => ({ mutate: vi.fn(), isPending: false, isError: false })),
   useRestoreAerialAnalysis: vi.fn(() => ({ mutate: vi.fn(), isPending: false, isError: false })),
