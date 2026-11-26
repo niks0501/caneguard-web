@@ -6,6 +6,7 @@ use App\Models\FieldSurvey;
 use App\Models\FieldValidationAssignment;
 use App\Models\FieldValidationCompletion;
 use App\Models\Report;
+use App\Models\ReportAerialAnalysis;
 use App\Security\DistrictAccess;
 use Closure;
 use Illuminate\Http\JsonResponse;
@@ -29,6 +30,8 @@ final class ReplayAcceptedIntake
 
     public const COMPLETION = 'completion';
 
+    public const AERIAL = 'aerial';
+
     public function handle(Request $request, Closure $next, string $kind): Response
     {
         $user = $request->user();
@@ -45,6 +48,7 @@ final class ReplayAcceptedIntake
             self::REPORT => $this->report($request, $next, $user->getKey(), $key),
             self::SURVEY => $this->survey($request, $next, $user->getKey(), $key),
             self::COMPLETION => $this->completion($request, $next, $user->getKey(), $key),
+            self::AERIAL => $this->aerial($request, $next, $user->getKey(), $key),
             default => throw new InvalidArgumentException("Unknown intake kind [{$kind}]."),
         };
     }
@@ -134,6 +138,41 @@ final class ReplayAcceptedIntake
                 'assignment_uuid' => $completion->assignment->uuid,
             ]],
         ], $completion->created_at);
+    }
+
+    private function aerial(Request $request, Closure $next, int|string $userId, string $key): Response
+    {
+        $analysis = ReportAerialAnalysis::query()
+            ->with('report')
+            ->where('client_uuid', $key)
+            ->first();
+
+        if (! $analysis) {
+            return $next($request);
+        }
+
+        $route = $request->route('assignment');
+        $assignment = $route instanceof FieldValidationAssignment
+            ? $route
+            : FieldValidationAssignment::query()->where('uuid', (string) $route)->first();
+
+        if ((int) $analysis->uploaded_by !== (int) $userId
+            || $assignment === null
+            || (int) $analysis->report_id !== (int) $assignment->report_id) {
+            return response()->json([
+                'message' => 'The client uuid is unavailable. Use a new aerial upload UUID.',
+                'code' => 'CLIENT_UUID_CONFLICT',
+                'client_uuid' => $key,
+            ], 409);
+        }
+
+        return $this->receipt([
+            'data' => ['analysis' => [
+                'uuid' => $analysis->uuid,
+                'client_uuid' => $analysis->client_uuid,
+                'assignment_uuid' => $assignment->uuid,
+            ]],
+        ], $analysis->created_at);
     }
 
     /**

@@ -27,8 +27,12 @@ class AnalyzeAerialImage
 {
     private const LOCK_KEY = 'aerial-analysis';
 
-    public function handle(Report $report, User $uploader, UploadedFile $image): ReportAerialAnalysis
-    {
+    public function handle(
+        Report $report,
+        User $uploader,
+        UploadedFile $image,
+        ?string $clientUuid = null,
+    ): ReportAerialAnalysis {
         $lock = Cache::lock(self::LOCK_KEY, $this->timeout() + 30);
         if (! $lock->get()) {
             throw new HttpResponseException(
@@ -62,6 +66,7 @@ class AnalyzeAerialImage
 
             return DB::transaction(fn () => ReportAerialAnalysis::query()->create([
                 'uuid' => $uuid,
+                'client_uuid' => $clientUuid !== null ? strtolower($clientUuid) : null,
                 'report_id' => $report->getKey(),
                 'uploaded_by' => $uploader->getKey(),
                 'image_path' => $imagePath,
