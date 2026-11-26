@@ -139,6 +139,14 @@
   --text-table: 16px;
   --text-meta: 16px;
   --text-caption: var(--text-meta);
+  /* Compact dashboard typography and card shape. */
+  --text-dashboard-table: 15px;
+  --text-dashboard-label: 14px;
+  --text-dashboard-support: 13px;
+  --text-dashboard-section: 21px;
+  --text-dashboard-metric: 30px;
+  --text-dashboard-chart-title: 20px;
+  --radius-dashboard-card: 14px;
 
   --control-height: 44px;
   --control-height-large: 48px;

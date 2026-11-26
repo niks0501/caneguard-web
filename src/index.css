@@ -6855,31 +6855,33 @@ body {
    the queue breakpoint. */
 .dashboard-report-table {
   width: 100%;
-  min-width: 960px;
-  max-width: none;
+  min-width: 0;
+  max-width: 100%;
   table-layout: auto;
-  font-size: 15px;
+  font-size: var(--text-dashboard-table);
   line-height: 1.35;
 }
 .dashboard-report-table th,
 .dashboard-report-table td {
+  min-width: 0;
+  max-width: 100%;
   padding: 8px 10px;
   overflow-wrap: anywhere;
 }
 .dashboard-report-table th {
   padding-block: 9px;
-  font-size: 14px;
+  font-size: var(--text-dashboard-label);
   line-height: 1.3;
 }
 .dashboard-report-table .table-primary,
 .dashboard-report-table .report-identity strong,
 .dashboard-report-table .disease-badge,
 .dashboard-report-table .table-action {
-  font-size: 15px;
+  font-size: var(--text-dashboard-table);
 }
 .dashboard-report-table .table-secondary,
 .dashboard-report-table .queue-caution {
-  font-size: 14px;
+  font-size: var(--text-dashboard-label);
 }
 .dashboard-report-table .table-secondary {
   margin-top: 2px;
@@ -6888,7 +6890,7 @@ body {
   margin-top: 3px;
 }
 .dashboard-report-table .queue-tag {
-  font-size: 13px;
+  font-size: var(--text-dashboard-support);
 }
 .dashboard-report-table .report-identity {
   min-width: 0;
@@ -6937,13 +6939,13 @@ body {
 .dashboard-report-table .workflow-status-badge {
   max-width: min(100%, 10rem);
   padding: 2px 8px;
-  font-size: 13px;
+  font-size: var(--text-dashboard-support);
   line-height: 1.25;
 }
 .dashboard-report-table .workflow-track {
   column-gap: 4px;
   row-gap: 2px;
-  font-size: 13px;
+  font-size: var(--text-dashboard-support);
   line-height: 1.25;
 }
 .dashboard-report-table .workflow-track__step {
@@ -10226,12 +10228,12 @@ button.monitoring-calendar__day-number:focus-visible {
 }
 
 .dashboard-page .dashboard-note {
-  font-size: 0.875rem;
+  font-size: var(--text-dashboard-label);
   line-height: 1.35;
 }
 
 .dashboard-page .dashboard-section__heading h2 {
-  font-size: 21px;
+  font-size: var(--text-dashboard-section);
   line-height: 1.3;
 }
 
@@ -10241,7 +10243,7 @@ button.monitoring-calendar__day-number:focus-visible {
   --chart-sparkline-height: 24px;
   min-height: 144px;
   padding: 8px 10px;
-  border-radius: 14px;
+  border-radius: var(--radius-dashboard-card);
 }
 
 .dashboard-page .kpi-card__link {
@@ -10264,7 +10266,7 @@ button.monitoring-calendar__day-number:focus-visible {
 
 .dashboard-page .kpi-card__label {
   flex: 1 1 0;
-  font-size: 14px;
+  font-size: var(--text-dashboard-label);
   font-weight: 700;
 }
 
@@ -10276,7 +10278,7 @@ button.monitoring-calendar__day-number:focus-visible {
 
 .dashboard-page .kpi-card__value {
   padding-inline-start: calc(var(--kpi-title-icon-size) + var(--kpi-title-gap));
-  font-size: 30px;
+  font-size: var(--text-dashboard-metric);
   font-weight: 700;
   line-height: 1.05;
   text-align: start;
@@ -10284,7 +10286,7 @@ button.monitoring-calendar__day-number:focus-visible {
 
 .dashboard-page .kpi-card__support,
 .dashboard-page .kpi-card__window {
-  font-size: 0.8125rem;
+  font-size: var(--text-dashboard-support);
   font-weight: 400;
 }
 
@@ -10308,7 +10310,7 @@ button.monitoring-calendar__day-number:focus-visible {
 }
 
 .dashboard-page .decision-chart-card__title {
-  font-size: 20px;
+  font-size: var(--text-dashboard-chart-title);
 }
 
 @media (max-width: 900px) {
