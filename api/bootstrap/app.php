@@ -2,6 +2,7 @@
 
 use App\Actions\Reports\FieldValidationCompletionConflict;
 use App\Http\Middleware\EnsureActiveIdentity;
+use App\Http\Middleware\EnsureFarmerFeature;
 use App\Http\Middleware\EnsureInspectorAccess;
 use App\Http\Middleware\EnsureMobileTokenFresh;
 use App\Http\Middleware\EnsureOfficeAccess;
@@ -50,6 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'inspector.access' => EnsureInspectorAccess::class,
             'access.identity' => EnsureActiveIdentity::class,
             'intake.replay' => ReplayAcceptedIntake::class,
+            'farmer.feature' => EnsureFarmerFeature::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

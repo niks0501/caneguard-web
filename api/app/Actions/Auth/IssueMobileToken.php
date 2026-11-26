@@ -4,6 +4,7 @@ namespace App\Actions\Auth;
 
 use App\Models\User;
 use App\Security\DistrictAccess;
+use App\Support\FarmerAccess;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use Laravel\Sanctum\NewAccessToken;
@@ -17,6 +18,10 @@ final class IssueMobileToken
      */
     public static function abilities(?User $user = null): array
     {
+        if ($user?->role === User::ROLE_FARMER) {
+            return FarmerAccess::abilities();
+        }
+
         if ($user !== null && ! app(DistrictAccess::class)->inspector($user)) {
             return ['account:security'];
         }

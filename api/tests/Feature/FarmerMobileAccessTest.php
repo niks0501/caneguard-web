@@ -25,11 +25,11 @@ class FarmerMobileAccessTest extends TestCase
         ])->assertOk()
             ->assertJsonPath('token_type', 'Bearer')
             ->assertJsonPath('user.role', 'farmer')
-            ->assertJsonPath('user.capabilities', [])
+            ->assertJsonPath('user.capabilities', ['farmer:inquiry', 'farmer:advisory'])
             ->json('token');
 
         $this->assertNotEmpty($token);
-        $this->assertSame(['account:security'], $farmer->tokens()->firstOrFail()->abilities);
+        $this->assertSame(['account:security', 'farmer:inquiry', 'farmer:advisory'], $farmer->tokens()->firstOrFail()->abilities);
 
         $this->withToken($token)->getJson('/api/v1/mobile/auth/me')->assertOk()
             ->assertJsonPath('user.uuid', $farmer->uuid)
