@@ -114,13 +114,19 @@ class ReportAerialAnalysisTest extends TestCase
 
         $this->getJson('/api/v1/admin/aerial-analysis')
             ->assertOk()
-            ->assertJsonPath('data', ['installed' => false, 'enabled' => false]);
+            ->assertJsonPath('data.installed', false)
+            ->assertJsonPath('data.enabled', false)
+            ->assertJsonPath('data.model_version', 'aerial-v3')
+            ->assertJsonPath('data.retention_days', 30)
+            ->assertJsonPath('data.counts', ['active' => 0, 'removed' => 0])
+            ->assertJsonStructure(['data' => ['readiness' => ['model_configured', 'storage_writable', 'timeout_seconds']]]);
         $this->putJson('/api/v1/admin/aerial-analysis', ['enabled' => true])->assertStatus(409);
 
         config(['caneguard.aerial.enabled' => true]);
         $this->putJson('/api/v1/admin/aerial-analysis', ['enabled' => true])
             ->assertOk()
-            ->assertJsonPath('data', ['installed' => true, 'enabled' => true]);
+            ->assertJsonPath('data.installed', true)
+            ->assertJsonPath('data.enabled', true);
         $this->putJson('/api/v1/admin/aerial-analysis', ['enabled' => false])
             ->assertOk()
             ->assertJsonPath('data.enabled', false);
@@ -332,9 +338,79 @@ class ReportAerialAnalysisTest extends TestCase
 
         $this->actingAs($reviewer, 'web')
             ->postJson("/api/v1/reports/{$report->uuid}/aerial-analyses", ['image' => $this->photo()])
-            ->assertStatus(429);
+            ->assertStatus(429)
+            ->assertJsonPath('code', 'AERIAL_BUSY')
+            ->assertHeader('Retry-After', '10');
         Process::assertNothingRan();
         $held->release();
+    }
+
+    public function test_claimed_case_refuses_aerial_mutations_from_another_reviewer_but_allows_reads(): void
+    {
+        $this->enable();
+        $this->fakeSegmenter();
+        $holder = User::factory()->reviewer()->create();
+        $other = User::factory()->reviewer()->create();
+        $report = Report::factory()->create([
+            'review_claimed_by_id' => $holder->id,
+            'review_claimed_at' => now(),
+            'review_claim_expires_at' => now()->addMinutes(15),
+        ]);
+
+        // Claim holder can upload normally.
+        $uuid = $this->actingAs($holder, 'web')
+            ->postJson("/api/v1/reports/{$report->uuid}/aerial-analyses", ['image' => $this->photo()])
+            ->assertCreated()
+            ->json('data.uuid');
+
+        // Another reviewer can inspect the photo/mask, but cannot upload, remove or restore.
+        Auth::forgetGuards();
+        $this->flushSession();
+        $this->actingAs($other, 'web');
+        $this->get("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}/image")->assertOk();
+        $this->get("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}/mask")->assertOk();
+        $this->postJson("/api/v1/reports/{$report->uuid}/aerial-analyses", ['image' => $this->photo()])->assertStatus(423);
+        $this->deleteJson("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}")->assertStatus(423);
+
+        // Holder removes the check; other reviewer still cannot restore it while claimed.
+        Auth::forgetGuards();
+        $this->flushSession();
+        $removalId = $this->actingAs($holder, 'web')
+            ->deleteJson("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}")
+            ->assertOk()
+            ->json('data.removal_id');
+        Auth::forgetGuards();
+        $this->flushSession();
+        $this->actingAs($other, 'web')
+            ->postJson("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}/restore", ['removal_id' => $removalId])
+            ->assertStatus(423);
+    }
+
+    public function test_aerial_upload_and_removal_appear_in_case_history_only_when_enabled(): void
+    {
+        $this->enable();
+        $this->fakeSegmenter();
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        $this->actingAs($reviewer, 'web');
+
+        $uuid = $this->postJson("/api/v1/reports/{$report->uuid}/aerial-analyses", ['image' => $this->photo()])
+            ->assertCreated()
+            ->json('data.uuid');
+        $this->deleteJson("/api/v1/reports/{$report->uuid}/aerial-analyses/{$uuid}")->assertOk();
+
+        $entries = $this->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertOk()
+            ->json('data.case_history.entries');
+        $aerialEntries = array_values(array_filter($entries, fn (array $e): bool => $e['type'] === 'aerial'));
+        $this->assertCount(2, $aerialEntries);
+        $this->assertSame(["aerial-remove-{$uuid}", "aerial-upload-{$uuid}"], array_column($aerialEntries, 'id'));
+
+        DB::table('feature_switches')->where('name', 'aerial_analysis')->update(['enabled' => false]);
+        $entriesWhenOff = $this->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertOk()
+            ->json('data.case_history.entries');
+        $this->assertCount(0, array_filter($entriesWhenOff, fn (array $e): bool => $e['type'] === 'aerial'));
     }
 
     public function test_remove_hides_the_row_but_keeps_the_files(): void

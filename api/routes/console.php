@@ -32,3 +32,8 @@ Schedule::command('caneguard:prune-api-tokens')
     ->dailyAt('02:30')
     ->timezone('Asia/Manila')
     ->withoutOverlapping(60);
+
+Schedule::command('caneguard:prune-removed-aerial-analyses')
+    ->dailyAt('02:45')
+    ->timezone('Asia/Manila')
+    ->withoutOverlapping(60);

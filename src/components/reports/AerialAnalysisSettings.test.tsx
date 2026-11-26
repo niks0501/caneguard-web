@@ -256,4 +256,27 @@ describe("aerial canopy check admin switch", () => {
     await user.click(await screen.findByRole("button", { name: "Turn on aerial check" }));
     expect(await screen.findByRole("alert")).toBeInTheDocument();
   });
+
+  it("shows server readiness details and stored check counts when returned", async () => {
+    server.use(
+      http.get(url, () =>
+        HttpResponse.json({
+          data: {
+            installed: true,
+            enabled: false,
+            model_version: "aerial-v3",
+            retention_days: 30,
+            counts: { active: 14, removed: 3 },
+            readiness: { model_configured: true, storage_writable: true, timeout_seconds: 60 },
+          },
+        }),
+      ),
+    );
+    show();
+    expect(await screen.findByText("Installed · aerial-v3")).toBeInTheDocument();
+    expect(screen.getByText("Readable")).toBeInTheDocument();
+    expect(screen.getByText("Writable")).toBeInTheDocument();
+    expect(screen.getByText("60s")).toBeInTheDocument();
+    expect(screen.getByText("14 active · 3 removed (pruned after 30 days)")).toBeInTheDocument();
+  });
 });

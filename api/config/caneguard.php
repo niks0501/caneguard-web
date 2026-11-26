@@ -89,6 +89,7 @@ return [
         'max_upload_kib' => 20480,
         'max_side_px' => 10000,
         'min_canopy_coverage_percent' => 10,
+        'removed_retention_days' => max(1, (int) env('CANEGUARD_AERIAL_REMOVED_RETENTION_DAYS', 30)),
     ],
     // Android App Links: SHA-256 signing-certificate fingerprints (comma separated)
     // served at /.well-known/assetlinks.json. Blank serves nothing (404).

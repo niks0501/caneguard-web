@@ -526,16 +526,105 @@ describe("AerialCheckCard", () => {
     expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled();
   });
 
-  // Intent: the aerial check opens on problem areas only, and the compare slider keeps one accurate name in every mode.
-  it("defaults to problem areas and keeps the compare slider name mode-neutral", async () => {
+  // Intent: the aerial check opens on problem areas only, disables the compare slider in Photo only mode, and updates slider labels cleanly.
+  it("defaults to problem areas, disables the slider in Photo only, and keeps slider name mode-neutral", async () => {
     setup();
     render(<AerialCheckCard report={report([analysis()])} />);
     expect(screen.getByRole("radio", { name: "Problem areas" })).toBeChecked();
+    expect(screen.getByRole("slider", { name: "Highlight reveal" })).toBeEnabled();
 
-    for (const mode of ["Photo only", "Problem and healthy", "Problem areas"]) {
-      await userEvent.click(screen.getByRole("radio", { name: mode }));
-      expect(screen.getByRole("radio", { name: mode })).toBeChecked();
-      expect(screen.getByRole("slider", { name: "Highlight reveal" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("radio", { name: "Photo only" }));
+    expect(screen.getByRole("radio", { name: "Photo only" })).toBeChecked();
+    expect(screen.getByRole("slider", { name: "Highlight reveal" })).toBeDisabled();
+
+    await userEvent.click(screen.getByRole("radio", { name: "Problem and healthy" }));
+    expect(screen.getByRole("radio", { name: "Problem and healthy" })).toBeChecked();
+    expect(screen.getByRole("slider", { name: "Highlight reveal" })).toBeEnabled();
+
+    await userEvent.click(screen.getByRole("radio", { name: "Problem areas" }));
+    expect(screen.getByRole("radio", { name: "Problem areas" })).toBeChecked();
+    expect(screen.getByRole("slider", { name: "Highlight reveal" })).toBeEnabled();
+  });
+
+  // Intent: dropping a valid image onto the dashed dropzone uploads it directly (D-05).
+  it("accepts drag-and-drop photo uploads on the dropzone", () => {
+    const mutate = vi.fn();
+    setup({ mutate });
+    render(<AerialCheckCard report={report([])} />);
+    const file = new File(["x"], "drone-north.jpg", { type: "image/jpeg" });
+    const dropzone = screen.getByText("Add aerial photo").closest("label")!;
+
+    fireEvent.dragOver(dropzone);
+    expect(dropzone).toHaveClass("is-dragging");
+    fireEvent.drop(dropzone, { dataTransfer: { files: [file] } });
+
+    expect(dropzone).not.toHaveClass("is-dragging");
+    expect(mutate).toHaveBeenCalledWith(file, expect.any(Object));
+  });
+
+  // Intent: reviewers can click any earlier aerial check to inspect its photo and shares without deleting newer checks (D-06).
+  it("lets reviewers switch to an earlier aerial check and return to latest", async () => {
+    setup();
+    const older = analysis({
+      uuid: "a0",
+      abnormalCanopyPercent: 34,
+      normalCanopyPercent: 66,
+      canopyCoveragePercent: 64,
+      uploadedBy: { uuid: "u2", name: "Maria Santos" },
+    });
+    render(<AerialCheckCard report={report([analysis(), older])} />);
+
+    expect(screen.getByText("18%")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /34% of visible cane abnormal/i }));
+    expect(screen.getByText("34%")).toBeInTheDocument();
+    expect(screen.getByText("Maria Santos")).toBeInTheDocument();
+    expect(screen.getByText("Viewing an earlier check.")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Back to latest" }));
+    expect(screen.getByText("18%")).toBeInTheDocument();
+  });
+
+  // Intent: a case claimed by another reviewer keeps aerial checks readable while blocking uploads and removals (D-02).
+  it("enforces read-only mode when locked by another reviewer's claim", () => {
+    setup();
+    render(<AerialCheckCard report={report([analysis(), analysis({ uuid: "a0" })])} locked />);
+
+    expect(screen.getByText(/Read-only while another reviewer holds this case/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/add another aerial photo/i)).not.toBeInTheDocument();
+    for (const btn of screen.getAllByRole("button", { name: "Remove" })) {
+      expect(btn).toBeDisabled();
     }
+    expect(screen.getByRole("radio", { name: "Problem areas" })).toBeEnabled();
+  });
+
+  // Intent: busy-lock 429 and rate-limit 429 report distinct, accurate recovery messages (D-03).
+  it("distinguishes server busy-lock 429 from upload rate-limit 429", async () => {
+    const busyMutate = vi.fn((_file: File, callbacks: { onError: (e: unknown) => void }) =>
+      callbacks.onError(new ApiError("busy", { status: 429, code: "AERIAL_BUSY" })),
+    );
+    setup({ mutate: busyMutate });
+    const { unmount } = render(<AerialCheckCard report={report([])} />);
+    await userEvent.upload(screen.getByLabelText(/add aerial photo/i), new File(["x"], "a.jpg", { type: "image/jpeg" }));
+    expect(screen.getByRole("alert")).toHaveTextContent(/Wait a few seconds and retry/i);
+    unmount();
+
+    const rateMutate = vi.fn((_file: File, callbacks: { onError: (e: unknown) => void }) =>
+      callbacks.onError(new ApiError("Too Many Attempts", { status: 429 })),
+    );
+    setup({ mutate: rateMutate });
+    render(<AerialCheckCard report={report([])} />);
+    await userEvent.upload(screen.getByLabelText(/add aerial photo/i), new File(["x"], "b.jpg", { type: "image/jpeg" }));
+    expect(screen.getByRole("alert")).toHaveTextContent(/Upload limit reached/i);
+  });
+
+  // Intent: failed aerial photo loads show an in-card Retry photo control (D-07).
+  it("offers photo retry when the aerial image fails to load", async () => {
+    setup();
+    render(<AerialCheckCard report={report([analysis()])} />);
+
+    fireEvent.error(screen.getByAltText("Aerial photo"));
+    expect(screen.getByRole("alert")).toHaveTextContent("Aerial photo could not be loaded.");
+    await userEvent.click(screen.getByRole("button", { name: "Retry photo" }));
+    expect(screen.getByAltText("Aerial photo")).toBeInTheDocument();
   });
 });

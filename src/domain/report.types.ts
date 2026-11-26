@@ -295,7 +295,7 @@ export interface ReportMachineFacts {
   reporterMismatch?: boolean | null;
 }
 
-export type CaseHistoryEntryType = "review" | "field_validation" | "referral" | "correction";
+export type CaseHistoryEntryType = "review" | "field_validation" | "referral" | "correction" | "aerial";
 
 export interface ReportCaseHistoryEntry {
   id: string;

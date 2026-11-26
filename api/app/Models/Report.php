@@ -765,6 +765,17 @@ class Report extends Model
     }
 
     /**
+     * Full aerial check history (including soft-removed rows) for Case History
+     * auditing while the aerial switch is enabled.
+     *
+     * @return HasMany<ReportAerialAnalysis, $this>
+     */
+    public function aerialAnalysisHistory(): HasMany
+    {
+        return $this->hasMany(ReportAerialAnalysis::class)->latest('id');
+    }
+
+    /**
      * The boundary the inspector attached on the phone, matched by the client
      * identity the report carries. Null until that boundary has been uploaded.
      *

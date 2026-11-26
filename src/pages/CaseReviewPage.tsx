@@ -54,6 +54,7 @@ import {
 } from "../domain/report.metadata";
 import {
   REPORTER_OBSERVED_CONCERN_RSSI,
+  type CaseHistoryEntryType,
   type DiseaseReport,
 } from "../domain/report.types";
 import type {
@@ -83,7 +84,7 @@ type MetadataDraft = {
 
 function formatShortDate(isoString: string): string { return formatDate(isoString); }
 
-export type CaseHistoryEntryType = "review" | "field_validation" | "referral" | "correction";
+export type { CaseHistoryEntryType };
 
 export interface CaseHistoryEntry {
   id: string;
@@ -441,7 +442,6 @@ function CaseReviewContent() {
   // Sparse: only the fields this reviewer edited, so a newer value saved by
   // someone else is never sent back as if it were this reviewer's correction.
   const [boundaryOpen, setBoundaryOpen] = useState(false);
-  const [aerialOpen, setAerialOpen] = useState(false);
   const [metadataEdits, setMetadataEdits] = useState<Partial<MetadataDraft>>({});
   // Review version the correction pop-up was opened against.
   const [metadataBaseVersion, setMetadataBaseVersion] = useState<number | undefined>();
@@ -489,6 +489,7 @@ function CaseReviewContent() {
     field_validation: visibleHistoryEntries.filter((e) => e.type === "field_validation").length,
     referral: visibleHistoryEntries.filter((e) => e.type === "referral").length,
     correction: visibleHistoryEntries.filter((e) => e.type === "correction").length,
+    aerial: visibleHistoryEntries.filter((e) => e.type === "aerial").length,
   };
 
   const mapUrl = report ? mapUrlFor(report) : null;
@@ -524,8 +525,7 @@ function CaseReviewContent() {
   const aerialCount = report?.aerialAnalyses?.length ?? 0;
   const boundaryCount = report?.affectedFields?.length ?? 0;
   const hasBoundaryEvidence = boundaryCount > 0 || report?.inspectorAttachment != null;
-  // Once a tool has content it stays open, so removing its last item keeps its undo and form in place.
-  if (aerialCount > 0 && !aerialOpen) setAerialOpen(true);
+  // Once the boundary tool has content it stays open, so removing its last item keeps its form in place.
   if (hasBoundaryEvidence && !boundaryOpen) setBoundaryOpen(true);
   const metadataDraft = report
     ? { ...metadataDraftFor(report), ...metadataEdits }
@@ -942,6 +942,16 @@ function CaseReviewContent() {
                     >
                       Correction ({historyCounts.correction})
                     </button>
+                    {report.aerialAnalyses !== undefined || historyCounts.aerial > 0 ? (
+                      <button
+                        type="button"
+                        className={`filter-chip ${historyFilter === "aerial" ? "is-active" : ""}`}
+                        aria-pressed={historyFilter === "aerial"}
+                        onClick={() => setHistoryFilter("aerial")}
+                      >
+                        Aerial ({historyCounts.aerial})
+                      </button>
+                    ) : null}
                   </div>
 
                   {!caseHistoryAvailable ? (
@@ -983,18 +993,15 @@ function CaseReviewContent() {
   );
   const evidenceTabs: EvidenceTab[] = [
     { id: "photo", label: "Photo", icon: <ImageIcon aria-hidden="true" />, count: report.imageStatus === "available" ? 1 : 0, panel: photoPanel },
-    {
-      id: "aerial",
-      label: "Aerial",
-      icon: <Drone aria-hidden="true" />,
-      count: aerialCount,
-      disabled: report.aerialAnalyses === undefined,
-      panel: report.aerialAnalyses === undefined ? null : aerialOpen ? (
-        <AerialCheckCard key={report.uuid} report={report} />
-      ) : (
-        <CollapsedTool summary="No aerial photo yet" action="Add one" onOpen={() => setAerialOpen(true)} />
-      ),
-    },
+    ...(report.aerialAnalyses !== undefined
+      ? [{
+          id: "aerial",
+          label: "Aerial",
+          icon: <Drone aria-hidden="true" />,
+          count: aerialCount,
+          panel: <AerialCheckCard key={report.uuid} report={report} locked={reviewLocked} />,
+        }]
+      : []),
     { id: "boundary", label: "Field map", icon: <MapIcon aria-hidden="true" />, count: boundaryCount, panel: boundaryPanel },
     { id: "history", label: "History", icon: <History aria-hidden="true" />, count: visibleHistoryEntries.length, panel: historyPanel },
   ];
