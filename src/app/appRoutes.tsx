@@ -17,8 +17,8 @@ import { DashboardPage } from "../pages/DashboardPage";
 import { UnsavedWorkProvider } from "../components/ui/UnsavedWorkGuard";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { MonitoringWorkspacePage } from "../pages/MonitoringWorkspacePage";
-import { FarmerBroadcastsPage } from "../pages/FarmerBroadcastsPage";
 import { TodoPage } from "../pages/TodoPage";
+import { FarmerBroadcastsPage } from "../pages/FarmerBroadcastsPage";
 import { LoginPage } from "../pages/LoginPage";
 import { LandingPage } from "../pages/LandingPage";
 import { GuidePage } from "../pages/GuidePage";
@@ -81,8 +81,8 @@ export const appRoutes: RouteObject[] = [
                   { path: "reports/print", element: <PrintableReportsPage /> },
                   { path: "monitoring", element: <MonitoringWorkspacePage /> },
                   { path: "todo", element: <TodoPage /> },
-                  { path: "farmer-broadcasts", element: <FarmerBroadcastsPage /> },
                   { path: "needs-assessment", element: <Navigate replace to={routes.todo} /> },
+                  { path: "farmer-broadcasts", element: <FarmerBroadcastsPage /> },
                   { path: "reports/:reportId", element: <CaseReviewPage /> },
                   {
                     path: "settings",

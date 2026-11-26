@@ -22,10 +22,10 @@ const sectionLabels: Array<[RegExp, string]> = [
   [/^\/reports\/print$/, "Reports"],
   [/^\/reports$/, "Cases"],
   [/^\/monitoring$/, "Field visits"],
-  [/^\/farmer-broadcasts$/, "Barangay broadcasts"],
   [/^\/accounts$/, "User Management"],
   [/^\/settings(\/[^/]+)?$/, "Settings"],
   [/^\/report-approval$/, "Report Approval"],
+  [/^\/farmer-broadcasts$/, "Barangay broadcasts"],
 ];
 
 function normalise(pathname: string) {
