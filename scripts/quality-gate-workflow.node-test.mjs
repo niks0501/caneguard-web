@@ -42,6 +42,26 @@ const securityStepNames = [
   "Run consumer contract suite",
 ];
 
+test("quality gate triggers on pull requests targeting any branch including base branch changes", () => {
+  const triggers = workflow?.on;
+  assert.ok(triggers && typeof triggers === "object", "workflow must define triggers");
+  assert.equal(Object.hasOwn(triggers, "push"), false, "PR quality gate must not duplicate runs on push");
+
+  const pr = triggers.pull_request;
+  assert.ok(pr && typeof pr === "object", "pull_request trigger must be configured");
+  assert.equal(Object.hasOwn(pr, "branches"), false, "pull_request must not restrict target branches so stacked PRs run CI");
+  assert.equal(Object.hasOwn(pr, "branches-ignore"), false, "pull_request must not exclude target branches");
+  assert.equal(Object.hasOwn(pr, "paths"), false, "required PR quality gate must not use workflow-level path filters");
+  assert.equal(Object.hasOwn(pr, "paths-ignore"), false, "required PR quality gate must not ignore paths");
+  assert.deepEqual(pr.types, ["opened", "synchronize", "reopened", "edited"]);
+
+  assert.equal(
+    workflow?.concurrency?.group,
+    "web-api-pr-quality-gate-${{ github.event.pull_request.number || github.ref }}",
+  );
+  assert.equal(workflow?.concurrency?.["cancel-in-progress"], true);
+});
+
 test("quality gate job cannot be skipped or ignored", () => {
   const job = qualityGateJob();
   assert.equal(Object.hasOwn(job, "if"), false, "quality-gate job must not define if");

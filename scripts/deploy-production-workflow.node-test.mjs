@@ -12,6 +12,12 @@ const workflow = parse(
     "utf8",
   ),
 );
+const configureWorkflow = parse(
+  readFileSync(
+    join(import.meta.dirname, "..", ".github", "workflows", "configure-production.yml"),
+    "utf8",
+  ),
+);
 
 function buildStep() {
   const steps = Object.values(workflow.jobs ?? {}).flatMap((job) => job.steps ?? []);
@@ -76,4 +82,25 @@ test("production build runs the Vite build with the MapTiler key when it is set"
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.npmArgs, "run build");
   assert.equal(result.npmMapTilerKey, "test-build-key");
+});
+
+test("production deployment and configuration workflows stay restricted to main and never trigger on PRs", () => {
+  for (const [name, parsed, jobName, confirmation] of [
+    ["deploy-production.yml", workflow, "deploy", "deploy-caneguard"],
+    ["configure-production.yml", configureWorkflow, "configure", "configure-caneguard"],
+  ]) {
+    assert.equal(Object.hasOwn(parsed?.on ?? {}, "pull_request"), false, `${name} must not run on pull_request`);
+    assert.equal(Object.hasOwn(parsed?.on ?? {}, "pull_request_target"), false, `${name} must not run on pull_request_target`);
+    assert.equal(Object.hasOwn(parsed?.on ?? {}, "push"), false, `${name} must not auto-deploy on push`);
+    assert.equal(Object.hasOwn(parsed?.on ?? {}, "workflow_dispatch"), true, `${name} must remain manual dispatch`);
+    assert.equal(parsed?.concurrency?.group, "caneguard-production", `${name} concurrency group`);
+    assert.equal(parsed?.concurrency?.["cancel-in-progress"], false, `${name} must not cancel in-flight deploys`);
+    const job = parsed?.jobs?.[jobName];
+    assert.equal(
+      job?.if,
+      `github.ref == 'refs/heads/main' && inputs.confirmation == '${confirmation}'`,
+      `${name} must gate on refs/heads/main and explicit confirmation`,
+    );
+    assert.equal(job?.environment, "production", `${name} must target production environment`);
+  }
 });

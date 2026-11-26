@@ -132,3 +132,31 @@ test('disables checkout credential persistence for every checkout', () => {
   );
   assert.match(mobileCheckout, /persist-credentials: false/);
 });
+
+test('supports stacked PRs and base-branch changes without weakening trusted main-only gate', () => {
+  const safeTriggerBlock = safeWorkflow.slice(
+    safeWorkflow.indexOf('on:'),
+    safeWorkflow.indexOf('permissions:'),
+  );
+  assert.doesNotMatch(safeTriggerBlock, /^\s+branches(-ignore)?:/m);
+  assert.match(
+    safeTriggerBlock,
+    /pull_request:\s*\n\s+types:\s*\n\s+- opened\s*\n\s+- synchronize\s*\n\s+- reopened\s*\n\s+- edited\s*\n\s+paths:/,
+  );
+  assert.match(
+    safeWorkflow,
+    /if: github\.event_name == 'pull_request' && \(github\.event\.action != 'edited' \|\| github\.event\.changes\.base != null\)/,
+  );
+  assert.match(
+    safeWorkflow,
+    /group: mobile-report-upload-contract-pr-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}/,
+  );
+  assert.match(safeWorkflow, /cancel-in-progress: true/);
+
+  const trustedTriggerBlock = trustedWorkflow.slice(
+    trustedWorkflow.indexOf('on:'),
+    trustedWorkflow.indexOf('permissions:'),
+  );
+  assert.match(trustedTriggerBlock, /push:\s*\n\s+branches:\s*\n\s+- main\b/);
+  assert.doesNotMatch(trustedTriggerBlock, /pull_request:/);
+});
