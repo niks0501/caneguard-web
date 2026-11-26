@@ -84,11 +84,11 @@ class FarmerInquiryTest extends TestCase
     public function test_a_farmer_token_carries_the_inquiry_ability_and_the_kill_switch_narrows_it(): void
     {
         [$farmer] = $this->farmerToken();
-        $this->assertEqualsCanonicalizing(['account:security', 'farmer:inquiry'], $farmer->tokens()->firstOrFail()->abilities);
+        $this->assertEqualsCanonicalizing(['account:security', 'farmer:inquiry', 'farmer:advisory'], $farmer->tokens()->firstOrFail()->abilities);
 
         config(['caneguard.farmer.inquiries_enabled' => false]);
         [$other] = $this->farmerToken(User::factory()->farmer()->create(['password' => self::PASSWORD]));
-        $this->assertSame(['account:security'], $other->tokens()->firstOrFail()->abilities);
+        $this->assertSame(['account:security', 'farmer:advisory'], $other->tokens()->firstOrFail()->abilities);
     }
 
     public function test_a_farmer_asks_the_office_to_look_and_the_photo_stays_private(): void

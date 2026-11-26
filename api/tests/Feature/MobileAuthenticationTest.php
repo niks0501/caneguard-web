@@ -78,7 +78,7 @@ class MobileAuthenticationTest extends TestCase
             ->assertJsonPath('user.capabilities', fn ($caps) => in_array('survey:submit', $caps, true) && in_array('report:submit', $caps, true));
 
         // Proposal - proves intent: the survey grant is not issued to identities that lack inspector access.
-        $this->assertSame(['account:security', 'farmer:inquiry'], IssueMobileToken::abilities(User::factory()->farmer()->create()));
+        $this->assertSame(['account:security', 'farmer:inquiry', 'farmer:advisory'], IssueMobileToken::abilities(User::factory()->farmer()->create()));
     }
 
     public function test_mobile_me_omits_district_code_without_active_membership(): void

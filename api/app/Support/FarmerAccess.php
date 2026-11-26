@@ -15,9 +15,16 @@ final class FarmerAccess
 
     public const INQUIRY = 'farmer:inquiry';
 
+    public const ADVISORY = 'farmer:advisory';
+
     public static function inquiriesEnabled(): bool
     {
         return (bool) config('caneguard.farmer.inquiries_enabled');
+    }
+
+    public static function advisoriesEnabled(): bool
+    {
+        return (bool) config('caneguard.farmer.advisories_enabled');
     }
 
     /** @return array<int, string> */
@@ -26,6 +33,7 @@ final class FarmerAccess
         return [
             self::ACCOUNT_SECURITY,
             ...(self::inquiriesEnabled() ? [self::INQUIRY] : []),
+            ...(self::advisoriesEnabled() ? [self::ADVISORY] : []),
         ];
     }
 

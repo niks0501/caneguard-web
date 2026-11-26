@@ -1166,7 +1166,7 @@ class AdminAccountCreationTest extends TestCase
 
         $this->postJson('/api/v1/mobile/auth/login', ['email' => 'farmer@example.test', 'password' => 'Str0ng-Passphrase!42',
             'device_name' => 'Farmer phone', 'device_id' => 'farmer-phone-1'])->assertOk()->assertJsonPath('user.role', 'farmer');
-        $this->assertSame(['account:security', 'farmer:inquiry'], $farmer->refresh()->tokens()->firstOrFail()->abilities);
+        $this->assertSame(['account:security', 'farmer:inquiry', 'farmer:advisory'], $farmer->refresh()->tokens()->firstOrFail()->abilities);
     }
 
     public function test_office_issued_farmer_is_listed_for_office_triage(): void

@@ -38,9 +38,9 @@ class DistrictAccessTest extends TestCase
         $this->assertDatabaseCount('personal_access_tokens', 0);
         $user = User::factory()->farmer()->create();
         $token = app(IssueMobileToken::class)->handle($user, 'Farmer device', 'farmer-device');
-        $this->assertSame(['account:security', 'farmer:inquiry'], $token->accessToken->abilities);
+        $this->assertSame(['account:security', 'farmer:inquiry', 'farmer:advisory'], $token->accessToken->abilities);
         $this->withToken($token->plainTextToken)->getJson('/api/v1/mobile/auth/me')->assertOk()
-            ->assertJsonPath('user.role', 'farmer')->assertJsonPath('user.capabilities', ['farmer:inquiry']);
+            ->assertJsonPath('user.role', 'farmer')->assertJsonPath('user.capabilities', ['farmer:inquiry', 'farmer:advisory']);
         $this->assertTrue($token->accessToken->expires_at->equalTo($token->accessToken->created_at->copy()->addDays(30)));
     }
 

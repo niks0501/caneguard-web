@@ -7,6 +7,7 @@ import { Button } from "../components/ui/Button";
 import { Modal } from "../components/ui/Modal";
 import { Pagination } from "../components/ui/Pagination";
 import { ErrorState, LoadingState } from "../components/ui/States";
+import { FarmerBroadcastsSection } from "../components/farmers/FarmerBroadcastsSection";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { env } from "../config/env";
 import { knownBarangays } from "../domain/locationScope";
@@ -57,6 +58,7 @@ export function FarmerRequestsPage() {
       </table>}
       <Pagination currentPage={result.meta.page} pageCount={Math.max(1, Math.ceil(result.meta.total / result.meta.per_page))} itemCount={result.meta.total} itemLabel="farmer requests" onPageChange={page => setFilters({ ...filters, page })} />
     </> : null}
+    <FarmerBroadcastsSection />
     {open ? <RequestDialog key={`${open.uuid}:${open.lock_version}`} item={open} onClose={() => setOpenUuid(null)} onNotice={setNotice} onChanged={refresh} /> : null}
   </PageContent>;
 }

@@ -10,7 +10,7 @@ import { adminAccount } from "../test/accountFixtures";
 import { FarmerRequestsPage } from "./FarmerRequestsPage";
 
 vi.mock("../auth/useAuth", () => ({ useAuth: vi.fn() }));
-vi.mock("../services/farmerInquiries.api", async original => ({ ...await original<typeof api>(), listFarmerInquiries: vi.fn(), startInquiryReview: vi.fn(), replyToInquiry: vi.fn(), listValidatedAdvisories: vi.fn() }));
+vi.mock("../services/farmerInquiries.api", async original => ({ ...await original<typeof api>(), listFarmerInquiries: vi.fn(), startInquiryReview: vi.fn(), replyToInquiry: vi.fn(), listValidatedAdvisories: vi.fn(), listFarmerBroadcasts: vi.fn() }));
 const base: api.FarmerInquiry = {
   uuid: "00000000-0000-4000-8000-000000000601", status: "new", lock_version: 1, farmer: { uuid: "00000000-0000-4000-8000-000000000501", name: "Marites Dalisay" },
   barangay: "Lumbangan", landmark: "Tabing sapa", concern: "spreading", note: "May itim na usbong", ai_hint: { label: "smut", confidence_percent: 91, verified: false },
@@ -27,6 +27,7 @@ describe("Farmer requests", () => {
     vi.mocked(useAuth).mockReturnValue({ user: adminAccount, status: "authenticated", reason: null, restoreSession: vi.fn(), login: vi.fn(), logout: vi.fn() });
     vi.mocked(api.listFarmerInquiries).mockResolvedValue({ data: [base, replied], meta: { page: 1, per_page: 25, total: 2, waiting: 1 } });
     vi.mocked(api.listValidatedAdvisories).mockResolvedValue([advisory]);
+    vi.mocked(api.listFarmerBroadcasts).mockResolvedValue([]);
   });
   it("lists requests with an unverified AI hint and says they are outside cases and reports", async () => {
     renderPage();
