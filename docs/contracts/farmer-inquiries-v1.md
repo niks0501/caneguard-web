@@ -6,7 +6,7 @@ A farmer may ask the office to look at a plant. This is an opt-in early look, ne
 
 - `CANEGUARD_FARMER_INQUIRIES_ENABLED` (default on) pauses the farmer endpoints and the office queue with `503 FEATURE_PAUSED`. Inspector and office flows never read it.
 - `CANEGUARD_FARMER_INQUIRY_OPEN_CAP` (default 5): requests a farmer may have waiting for a reply within a rolling week; beyond it `429 INQUIRY_LIMIT`.
-- A farmer Mobile token carries `account:security` and `farmer:inquiry`. It never carries `report:submit`, `survey:submit`, `report:status`, `assignment:*` or `notification:read`. Existing farmer tokens gain the ability on their next request and are never narrowed. `user.capabilities` on the Mobile session lists `farmer:inquiry` while the feature is on.
+- A farmer Mobile token carries `account:security`, `farmer:inquiry` and `farmer:advisory` (the last is used by the separate barangay-broadcast feature and does nothing here). It never carries `report:submit`, `survey:submit`, `report:status`, `assignment:*` or `notification:read`. Existing farmer tokens gain the ability on their next request and are never narrowed. `user.capabilities` on the Mobile session lists `farmer:inquiry` and `farmer:advisory` while their switches are on.
 
 ## Farmer (Mobile bearer, `farmer:inquiry`)
 
