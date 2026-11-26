@@ -7,7 +7,23 @@ import type { DiseaseReport } from "../../domain/report.types";
 import { aerialCheckLive, aerialGateReadCount, aerialSettingsKey, isCaseDetailQuery, recordAerialGate, reportKeys } from "../../hooks/reportQueries";
 import { Button } from "../ui/Button";
 
-const schema = z.object({ data: z.object({ installed: z.boolean(), enabled: z.boolean() }) });
+const schema = z.object({
+  data: z.object({
+    installed: z.boolean(),
+    enabled: z.boolean(),
+    model_version: z.string().optional(),
+    retention_days: z.number().int().positive().optional(),
+    counts: z.object({
+      active: z.number().int().nonnegative(),
+      removed: z.number().int().nonnegative(),
+    }).optional(),
+    readiness: z.object({
+      model_configured: z.boolean(),
+      storage_writable: z.boolean(),
+      timeout_seconds: z.number().int().positive(),
+    }).optional(),
+  }),
+});
 type AerialSettings = z.infer<typeof schema>["data"];
 const url = "/api/v1/admin/aerial-analysis";
 
@@ -71,15 +87,75 @@ export function AerialAnalysisSettings() {
   if (env.dataSource !== "api") return null;
   const settings = query.data;
   const error = save.error ?? query.error;
-  return <section className="settings-card settings-card--wide" aria-labelledby="aerial-settings-heading">
-    <div className="section-heading"><h2 id="aerial-settings-heading">Aerial canopy check</h2></div>
-    {query.isLoading ? <p role="status">Loading aerial check...</p> : null}
-    {settings ? <p>{settings.installed ? (settings.enabled ? "On" : "Off") : "Not installed on this server"}</p> : null}
-    {settings?.installed ? <div className="settings-form__actions">
-      <Button type="button" disabled={save.isPending} onClick={() => save.mutate(!settings.enabled)}>
-        {settings.enabled ? "Turn off aerial check" : "Turn on aerial check"}
-      </Button>
-    </div> : null}
-    {error ? <p role="alert">{toApiError(error).status === 403 ? "Your Admin access could not be verified." : "The aerial check setting could not be saved or loaded. Try again when online."}</p> : null}
-  </section>;
+  return (
+    <section className="settings-card settings-card--wide" aria-labelledby="aerial-settings-heading">
+      <div className="section-heading">
+        <h2 id="aerial-settings-heading">Aerial canopy check</h2>
+      </div>
+      {query.isLoading ? <p role="status">Loading aerial check...</p> : null}
+      {settings ? (
+        <div className="aerial-settings">
+          <p className="aerial-settings__status">
+            <strong>{settings.installed ? (settings.enabled ? "On" : "Off") : "Not installed on this server"}</strong>
+          </p>
+          {settings.readiness || settings.counts ? (
+            <dl className="aerial-settings__grid">
+              <div>
+                <dt>Server install</dt>
+                <dd>
+                  {settings.installed
+                    ? `Installed${settings.model_version ? ` · ${settings.model_version}` : ""}`
+                    : "Not installed"}
+                </dd>
+              </div>
+              {settings.readiness ? (
+                <>
+                  <div>
+                    <dt>Model file</dt>
+                    <dd>{settings.readiness.model_configured ? "Readable" : "Missing or unreadable"}</dd>
+                  </div>
+                  <div>
+                    <dt>Private storage</dt>
+                    <dd>{settings.readiness.storage_writable ? "Writable" : "Not writable"}</dd>
+                  </div>
+                  <div>
+                    <dt>Inference timeout</dt>
+                    <dd>{settings.readiness.timeout_seconds}s</dd>
+                  </div>
+                </>
+              ) : null}
+              {settings.counts ? (
+                <div>
+                  <dt>Stored checks</dt>
+                  <dd>
+                    {settings.counts.active} active · {settings.counts.removed} removed
+                    {settings.retention_days ? ` (pruned after ${settings.retention_days} days)` : ""}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+          ) : null}
+          {settings.installed ? (
+            <div className="settings-form__actions">
+              <Button type="button" disabled={save.isPending} onClick={() => save.mutate(!settings.enabled)}>
+                {settings.enabled ? "Turn off aerial check" : "Turn on aerial check"}
+              </Button>
+              <p className="aerial-settings__note">
+                {settings.enabled
+                  ? "Turning off hides the Aerial tab immediately; stored photos stay safe."
+                  : "Turning on enables the Aerial tab for office reviewers."}
+              </p>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      {error ? (
+        <p role="alert">
+          {toApiError(error).status === 403
+            ? "Your Admin access could not be verified."
+            : "The aerial check setting could not be saved or loaded. Try again when online."}
+        </p>
+      ) : null}
+    </section>
+  );
 }

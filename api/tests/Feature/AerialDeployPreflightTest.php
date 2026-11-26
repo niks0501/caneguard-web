@@ -87,4 +87,15 @@ class AerialDeployPreflightTest extends TestCase
         $this->assertSame(1, $run->getExitCode());
         $this->assertStringContainsString('does not match the pinned', $run->getErrorOutput());
     }
+
+    public function test_preflight_verifies_managed_server_timeout_limits(): void
+    {
+        $run = $this->preflight([
+            'CANEGUARD_AERIAL_PYTHON' => '/nonexistent/python',
+            'CANEGUARD_AERIAL_MODEL_PATH' => '/nonexistent/model.onnx',
+        ]);
+
+        $this->assertStringContainsString('PASS managed PHP max_execution_time (90s)', $run->getOutput());
+        $this->assertStringContainsString('PASS managed Nginx fastcgi_read_timeout (90s)', $run->getOutput());
+    }
 }

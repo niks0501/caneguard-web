@@ -9,6 +9,7 @@ Preprocessing mirrors model-assets/v3/preprocessor_config.json.
 import argparse
 import hashlib
 import json
+from pathlib import Path
 import sys
 import time
 
@@ -21,14 +22,6 @@ MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
 STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 MASK_LONG_SIDE = 2048
 Image.MAX_IMAGE_PIXELS = 150_000_000
-
-
-def sha256_of(path):
-    digest = hashlib.sha256()
-    with open(path, "rb") as handle:
-        for chunk in iter(lambda: handle.read(1 << 20), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def preprocess(image):
@@ -74,7 +67,10 @@ def main():
     parser.add_argument("--sha256", required=True)
     args = parser.parse_args()
 
-    model_sha = sha256_of(args.model)
+    # Read model bytes once so SHA-256 verification and ORT loading operate on
+    # the exact same payload without double-reading disk or risking TOCTOU swap.
+    model_bytes = Path(args.model).read_bytes()
+    model_sha = hashlib.sha256(model_bytes).hexdigest()
     if model_sha != args.sha256.lower():
         raise SystemExit("model SHA-256 does not match the pinned value")
 
@@ -87,7 +83,7 @@ def main():
     options.enable_cpu_mem_arena = False
     options.intra_op_num_threads = 2
     session = ort.InferenceSession(
-        args.model, options, providers=["CPUExecutionProvider"]
+        model_bytes, options, providers=["CPUExecutionProvider"]
     )
     logits = session.run(None, {session.get_inputs()[0].name: preprocess(image)})[0][0]
 

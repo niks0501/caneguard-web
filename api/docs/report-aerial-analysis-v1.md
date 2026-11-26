@@ -18,23 +18,24 @@ payloads. For production staging and enablement, follow the
 An active verified Admin reads and writes the switch through
 `GET` and `PUT /api/v1/admin/aerial-analysis`, the only aerial routes that stay
 reachable while the check is off. Both answer
-`{"data":{"installed":bool,"enabled":bool}}`. `PUT` takes `{"enabled":bool}`
-and returns the same shape; it answers `409` while the install gate is off, so
-the switch can only be changed on a server that is already installed.
+`{"data":{"installed":bool,"enabled":bool,"model_version":string,"retention_days":int,"counts":{"active":int,"removed":int},"readiness":{"model_configured":bool,"storage_writable":bool,"timeout_seconds":int}}}`.
+`PUT` takes `{"enabled":bool}` and returns the same shape; it answers `409`
+while the install gate is off, so the switch can only be changed on a server
+that is already installed.
 
 ## Case-page use
 
-When the check is live, the Aerial check card appears after Affected field
-boundaries.
-Choose a photo while online; the latest result shows canopy shares and photo
-highlights, opening on Problem areas. Use Highlights and the Photo / Problem
-areas compare slider to inspect the overlay, or expand Earlier aerial checks
-to see previous uploads. Remove hides a check from the case but retains its
-files and answers with the removal identity; Undo, shown after a removal, puts
-the check back with that identity, and adding a photo ends that offer. If
-someone else changed the check in the meantime, Undo is refused and the case
-must be refreshed. If an upload's outcome is unknown, refresh the case before
-trying again to avoid a duplicate.
+When the check is off, the Aerial tab is hidden from Case Review. When the
+check is live, the Aerial tab opens the workbench directly (supporting file
+browse and drag-and-drop). The reviewer can switch between all uploaded aerial
+checks, inspect the overlay with an on-canvas split handle (disabled in Photo
+only mode), and compare Ground vs. Photo figures kept strictly separate.
+Uploads, removals, and restores are refused with `423` while another reviewer
+holds an active review claim on the case; viewing existing images and masks
+stays allowed. Upload and removal events appear in `case_history` while the
+check is live. Soft-removed rows and their private files are retained for
+`CANEGUARD_AERIAL_REMOVED_RETENTION_DAYS` (default `30` days) and pruned daily
+by `caneguard:prune-removed-aerial-analyses`.
 
 ## Authorization
 
@@ -55,7 +56,8 @@ Errors: `404` the check off (including when it is switched off while an upload
 is running, which saves nothing), unknown analysis, or a removed analysis on any
 route but restore; `409` the well-formed restore identity no longer names the
 analysis's current removal; `422` a missing or malformed removal identity, or a
-bad file; `429` another check is running (single-run lock) or the upload rate
+bad file; `423` another reviewer holds the case review claim; `429` another
+check is running (`code: "AERIAL_BUSY"`, `Retry-After: 10`) or the upload rate
 limit was reached; `503` the check could not run. On failure the server attempts
 to delete the image and mask; cleanup failures are logged and can leave orphaned
 files.

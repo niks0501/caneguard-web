@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ReportAerialAnalysisResource;
 use App\Models\Report;
 use App\Models\ReportAerialAnalysis;
+use App\Models\User;
 use App\Support\AerialSwitch;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,7 +25,7 @@ class ReportAerialAnalysisController extends Controller
 {
     public function store(Request $request, Report $report, AnalyzeAerialImage $analyze): JsonResponse
     {
-        $this->gate($report);
+        $this->gate($report, actor: $request->user(), requireClaimFree: true);
 
         $max = (int) config('caneguard.aerial.max_side_px', 10000);
         $request->validate([
@@ -59,7 +60,7 @@ class ReportAerialAnalysisController extends Controller
 
     public function destroy(Request $request, Report $report, ReportAerialAnalysis $analysis): JsonResponse
     {
-        $this->gate($report, $analysis);
+        $this->gate($report, $analysis, actor: $request->user(), requireClaimFree: true);
 
         $removalId = (string) Str::uuid();
         $removed = ReportAerialAnalysis::query()
@@ -79,7 +80,7 @@ class ReportAerialAnalysisController extends Controller
     /** Undoes the named removal; restoring an active check is a no-op. */
     public function restore(Request $request, Report $report, ReportAerialAnalysis $analysis): JsonResponse
     {
-        $this->gate($report, $analysis, allowRemoved: true);
+        $this->gate($report, $analysis, allowRemoved: true, actor: $request->user(), requireClaimFree: true);
 
         $request->validate(['removal_id' => ['required', 'uuid']]);
         $removalId = (string) $request->input('removal_id');
@@ -105,14 +106,24 @@ class ReportAerialAnalysisController extends Controller
         return (new ReportAerialAnalysisResource($analysis->load(['report', 'uploader'])))->response();
     }
 
-    private function gate(Report $report, ?ReportAerialAnalysis $analysis = null, bool $allowRemoved = false): void
-    {
+    private function gate(
+        Report $report,
+        ?ReportAerialAnalysis $analysis = null,
+        bool $allowRemoved = false,
+        ?User $actor = null,
+        bool $requireClaimFree = false,
+    ): void {
         abort_unless(AerialSwitch::enabled(), 404);
         $this->authorize('review', $report);
         abort_if(
             $analysis !== null
                 && ($analysis->report_id !== $report->getKey() || (! $allowRemoved && $analysis->removed_at !== null)),
             404,
+        );
+        abort_if(
+            $requireClaimFree && $actor !== null && $report->reviewClaimedByAnother($actor),
+            423,
+            'This case is being reviewed by another reviewer.',
         );
     }
 

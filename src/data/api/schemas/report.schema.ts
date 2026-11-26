@@ -330,7 +330,7 @@ export const reportMachineFactsSchema = z.object({
 
 export const reportCaseHistoryEntrySchema = z.object({
   id: z.string(),
-  type: z.enum(["review", "field_validation", "referral", "correction"]),
+  type: z.enum(["review", "field_validation", "referral", "correction", "aerial"]),
   type_label: z.string(),
   timestamp: z.iso.datetime({ offset: true }),
   actor: z.string(),

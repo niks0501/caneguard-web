@@ -6,6 +6,7 @@ use App\Models\Report;
 use App\Models\ReportAerialAnalysis;
 use App\Models\User;
 use App\Support\AerialSwitch;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +30,14 @@ class AnalyzeAerialImage
     public function handle(Report $report, User $uploader, UploadedFile $image): ReportAerialAnalysis
     {
         $lock = Cache::lock(self::LOCK_KEY, $this->timeout() + 30);
-        abort_unless($lock->get(), 429, 'Another aerial check is running. Try again shortly.');
+        if (! $lock->get()) {
+            throw new HttpResponseException(
+                response()->json([
+                    'message' => 'Another aerial check is running. Try again shortly.',
+                    'code' => 'AERIAL_BUSY',
+                ], 429)->header('Retry-After', '10'),
+            );
+        }
 
         $disk = Storage::disk('local');
         $uuid = (string) Str::uuid7();

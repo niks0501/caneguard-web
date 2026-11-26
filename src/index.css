@@ -7629,6 +7629,45 @@ body {
   line-height: 1.5;
 }
 
+.aerial-settings {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.aerial-settings__status {
+  margin: 0;
+}
+
+.aerial-settings__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.aerial-settings__grid > div {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+}
+
+.aerial-settings__grid dt {
+  font-size: var(--text-body-sm);
+  color: var(--color-muted);
+}
+
+.aerial-settings__grid dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.aerial-settings__note {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-body-sm);
+}
+
 /* Appearance choice (QF-11): the dashboard scope ruler's quiet pill shape. */
 .theme-choice {
   margin: 0;

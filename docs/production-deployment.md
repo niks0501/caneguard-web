@@ -95,9 +95,10 @@ If a test fails, remove the two installed files, fix the cause, and repeat. The 
 | Layer | Setting | Needs | Check |
 |---|---|---|---|
 | nginx | `client_max_body_size` | `24m` or more (default 1 MB answers 413 with an HTML page) | `sudo nginx -T 2>/dev/null \| grep client_max_body_size` |
-| PHP-FPM | `upload_max_filesize` | `20M` or more (default 2M) | `php-fpm8.3 -i \| grep -E '^(upload_max_filesize\|post_max_size)'` on the FPM binary, not the CLI |
+| PHP-FPM | `upload_max_filesize` | `20M` or more (default 2M) | `php-fpm8.3 -i \| grep -E '^(upload_max_filesize\|post_max_size\|max_execution_time)'` on the FPM binary, not the CLI |
 | PHP-FPM | `post_max_size` | `24M` or more (default 8M) | same command |
-| nginx | `fastcgi_read_timeout` | above `60s` only if aerial analysis is on (it runs inside the web request) | `sudo nginx -T 2>/dev/null \| grep fastcgi_read_timeout` |
+| PHP-FPM | `max_execution_time` | `90` seconds or more when aerial analysis is on (default 30s kills synchronous inference) | same command |
+| nginx | `fastcgi_read_timeout` | `90s` or more when aerial analysis is on (default 60s cuts off slow CPU inference) | `sudo nginx -T 2>/dev/null \| grep fastcgi_read_timeout` |
 
 A limit that is too low makes the phone file the report as a non-retryable failure, so it stays on the phone. Verify with a real photo near 10 MiB, and an aerial photo near the 20 MiB aerial maximum, after changing a limit: the upload should answer `201`, not `413` or `422`.
 
@@ -192,7 +193,7 @@ The saved reminder day and time (Asia/Manila) only fire if the Laravel scheduler
 * * * * * cd /var/www/caneguard/current/api && php artisan schedule:run >> /dev/null 2>&1 # caneguard-scheduler
 ```
 
-Two prune commands also run from the scheduler, daily in Asia/Manila: `auth:prune-security-audits` at 02:00 (retention `CANEGUARD_SECURITY_AUDIT_RETENTION_DAYS`) and `caneguard:prune-api-tokens` at 02:30, which removes API tokens expired for more than 24 hours. Each successful run writes a `prune_run` audit row.
+Three prune commands also run from the scheduler, daily in Asia/Manila: `auth:prune-security-audits` at 02:00 (retention `CANEGUARD_SECURITY_AUDIT_RETENTION_DAYS`), `caneguard:prune-api-tokens` at 02:30 (removes API tokens expired for more than 24 hours), and `caneguard:prune-removed-aerial-analyses` at 02:45 (deletes soft-removed aerial rows and their private files older than `CANEGUARD_AERIAL_REMOVED_RETENTION_DAYS`, default 30 days). Each successful run writes a `prune_run` audit row.
 
 `reports:send-weekly-reminders` then runs every 15 minutes. From the saved slot until the end of that Manila day, if the previous ISO week has no approved current version, it creates one in-app notification per active Admin and Reviewer, once per week. It never prepares, approves or sends, and needs no queue worker or mail. Without the cron entry, saved reminders silently never fire.
 

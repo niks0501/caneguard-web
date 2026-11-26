@@ -60,4 +60,12 @@ class ReportAerialAnalysis extends Model
     {
         return $this->belongsTo(User::class, 'uploaded_by');
     }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function remover(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'removed_by');
+    }
 }

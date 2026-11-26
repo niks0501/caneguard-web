@@ -115,7 +115,22 @@ if (! is_string($model) || $model === '') {
     }
 }
 
-// 4. Private aerial storage directory is writable.
+// 4. Managed server timeout limits cover the synchronous inference window.
+$minServerTimeout = $timeout + 15;
+$phpIni = $release.'/deploy/server/php/caneguard-upload-limits.ini';
+if (! is_file($phpIni) || ! preg_match('/^\s*max_execution_time\s*=\s*(\d+)/m', (string) file_get_contents($phpIni), $m) || (int) $m[1] < $minServerTimeout) {
+    $fail("Managed PHP-FPM config '{$phpIni}' must declare max_execution_time >= {$minServerTimeout}s for synchronous aerial analysis.");
+} else {
+    echo "PASS managed PHP max_execution_time ({$m[1]}s)\n";
+}
+$nginxConf = $release.'/deploy/server/nginx/caneguard-upload-limits.conf';
+if (! is_file($nginxConf) || ! preg_match('/^\s*fastcgi_read_timeout\s+(\d+)s\s*;/m', (string) file_get_contents($nginxConf), $m) || (int) $m[1] < $minServerTimeout) {
+    $fail("Managed Nginx config '{$nginxConf}' must declare fastcgi_read_timeout >= {$minServerTimeout}s for synchronous aerial analysis.");
+} else {
+    echo "PASS managed Nginx fastcgi_read_timeout ({$m[1]}s)\n";
+}
+
+// 5. Private aerial storage directory is writable.
 try {
     $storage = Storage::disk('local')->path('aerial');
     if (! is_dir($storage)) {

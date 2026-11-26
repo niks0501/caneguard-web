@@ -3,6 +3,7 @@
 namespace App\Actions\Reports;
 
 use App\Models\Report;
+use App\Support\AerialSwitch;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -182,6 +183,42 @@ final class BuildReportCaseHistory
                         $consult->finding_details,
                     );
                 }
+            }
+        }
+
+        if (AerialSwitch::enabled() && $report->relationLoaded('aerialAnalysisHistory')) {
+            $floor = (float) config('caneguard.aerial.min_canopy_coverage_percent', 10);
+            foreach ($report->aerialAnalysisHistory as $analysis) {
+                if ($analysis->removed_at !== null) {
+                    $entries[] = $this->entry(
+                        'aerial-remove-'.$analysis->uuid,
+                        'aerial',
+                        'Aerial check',
+                        $analysis->removed_at,
+                        $analysis->remover?->name ?? 'Office reviewer',
+                        [
+                            ['label' => 'Action', 'value' => 'Aerial check removed from case'],
+                        ],
+                    );
+                }
+
+                $enough = $analysis->canopy_coverage_percent >= $floor;
+                $summary = $enough
+                    ? round($analysis->abnormal_canopy_percent).'% of visible cane abnormal ('.round($analysis->canopy_coverage_percent).'% cane visible)'
+                    : 'Not enough cane visible ('.round($analysis->canopy_coverage_percent).'% cane visible)';
+
+                $entries[] = $this->entry(
+                    'aerial-upload-'.$analysis->uuid,
+                    'aerial',
+                    'Aerial check',
+                    $analysis->created_at,
+                    $analysis->uploader?->name ?? 'Office reviewer',
+                    [
+                        ['label' => 'Action', 'value' => 'Aerial photo analyzed'],
+                        ['label' => 'Result', 'value' => $summary],
+                        ['label' => 'Model', 'value' => $analysis->model_version],
+                    ],
+                );
             }
         }
 

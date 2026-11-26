@@ -31,6 +31,13 @@ final class AerialSwitch
     /** @return list<string> */
     public static function relations(): array
     {
-        return self::enabled() ? ['aerialAnalyses.uploader', 'aerialAnalyses.report'] : [];
+        return self::enabled()
+            ? [
+                'aerialAnalyses.uploader',
+                'aerialAnalyses.report',
+                'aerialAnalysisHistory.uploader',
+                'aerialAnalysisHistory.remover',
+            ]
+            : [];
     }
 }

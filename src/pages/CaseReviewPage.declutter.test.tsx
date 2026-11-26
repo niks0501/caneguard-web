@@ -25,6 +25,10 @@ vi.mock("../hooks/useReviewClaim", () => ({
 }));
 vi.mock("../hooks/useReports", () => ({
   useAdvisories: vi.fn(),
+  useAddAerialAnalysis: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+  useRemoveAerialAnalysis: vi.fn(() => ({ mutate: vi.fn(), isPending: false, isError: false })),
+  useRestoreAerialAnalysis: vi.fn(() => ({ mutate: vi.fn(), isPending: false, isError: false })),
+  useAerialMask: vi.fn(() => ({ data: undefined, isPending: false, isError: false })),
   useRecordHandoffNote: vi.fn(),
   useLinkDuplicateReport: vi.fn(),
   usePossibleRecentMatches: vi.fn(),
@@ -362,22 +366,20 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     expect(screen.getByText("Case history is not available for this older record.")).toBeVisible();
   });
 
-  it("keeps Aerial in the evidence tabs when the server feature is unavailable", async () => {
+  it("hides the Aerial tab when the server feature is off", async () => {
     const user = userEvent.setup();
     renderPage({ ...baseReport, aerialAnalyses: undefined });
 
     const tabs = screen.getAllByRole("tab");
-    expect(tabs.map((tab) => tab.textContent)).toEqual(["Photo1", "Aerial0", "Field map0", expect.stringMatching(/^History\d+$/)]);
-    const aerialTab = screen.getByRole("tab", { name: /Aerial/ });
-    expect(aerialTab).toBeDisabled();
-    expect(aerialTab).toHaveAttribute("aria-selected", "false");
+    expect(tabs.map((tab) => tab.textContent)).toEqual(["Photo1", "Field map0", expect.stringMatching(/^History\d+$/)]);
+    expect(screen.queryByRole("tab", { name: /Aerial/ })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: /Photo/ }));
     await user.keyboard("{ArrowRight}");
     expect(screen.getByRole("tab", { name: /Field map/ })).toHaveAttribute("aria-selected", "true");
   });
 
-  it("moves selection to an enabled tab when a refresh disables Aerial", async () => {
+  it("moves selection back to Photo when a refresh turns Aerial off", async () => {
     const user = userEvent.setup();
     const reportWithAerial = { ...baseReport, aerialAnalyses: [] };
     const view = renderPage(reportWithAerial);
@@ -396,8 +398,7 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     );
 
     const photoTab = screen.getByRole("tab", { name: /Photo/ });
-    const aerialTab = screen.getByRole("tab", { name: /Aerial/ });
-    expect(aerialTab).toBeDisabled();
+    expect(screen.queryByRole("tab", { name: /Aerial/ })).not.toBeInTheDocument();
     expect(photoTab).toHaveAttribute("aria-selected", "true");
     expect(photoTab).toHaveAttribute("tabindex", "0");
     expect(screen.getByRole("tabpanel", { name: /^Photo/ })).toBeVisible();
@@ -421,7 +422,7 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     expect(screen.queryByText("No field map yet")).toBeNull();
   });
 
-  it("collapses empty boundary and aerial tools to one line until asked for", async () => {
+  it("collapses empty boundary tools to one line and opens Aerial directly in one click", async () => {
     const user = userEvent.setup();
     renderPage({ ...baseReport, affectedFields: [], aerialAnalyses: [] });
 
@@ -432,8 +433,8 @@ describe("Evidence declutter bottom unification (Phase 4 / C1-C6)", () => {
     expect(screen.getByRole("heading", { name: "Field measurement" })).toBeVisible();
 
     await user.click(screen.getByRole("tab", { name: /Aerial/ }));
-    expect(screen.getByText("No aerial photo yet")).toBeVisible();
-    expect(screen.queryByRole("heading", { name: "Aerial check" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Aerial check" })).toBeVisible();
+    expect(screen.queryByText("No aerial photo yet")).toBeNull();
   });
 
 });

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Undo2 } from "lucide-react";
+import { useEffect, useRef, useState, type DragEvent, type PointerEvent } from "react";
+import { MoveHorizontal, Undo2, Upload } from "lucide-react";
 import { ApiError } from "../../api/ApiError";
 import type { AerialAnalysis, DiseaseReport } from "../../domain/report.types";
 import {
@@ -21,11 +21,21 @@ type Highlights = "off" | "abnormal" | "both";
 
 type UndoTarget = { analysis: AerialAnalysis; removalId: string; removalSeq: number };
 type UndoState = { target: UndoTarget; notice: "failed" | "stale" | null };
+type DecodedMask = { width: number; height: number; classes: Uint8Array };
 
 function errorMessage(error: unknown): string {
   const status = error instanceof ApiError ? error.status : undefined;
+  const code = error instanceof ApiError ? error.code : undefined;
   if (status === 422) return fileHint;
-  if (status === 429) return "Another photo is being checked. Try again in a moment.";
+  if (status === 423) {
+    return "This case is being reviewed by another reviewer. Refresh or wait until they finish.";
+  }
+  if (status === 429) {
+    if (code === "AERIAL_BUSY") {
+      return "Another photo is being checked right now. Wait a few seconds and retry.";
+    }
+    return "Upload limit reached (6 per minute). Wait a minute before trying again.";
+  }
   return "We could not confirm the photo was added. Refresh the case and check before adding it again.";
 }
 
@@ -56,78 +66,205 @@ function useThemeVersion() {
   return version;
 }
 
-/** Paints the server's class mask (0 background, 1 normal, 2 abnormal) with the band solids. */
-function MaskOverlay({ mask, highlights }: { mask: Blob; highlights: Highlights }) {
+/**
+ * Decodes the server's 8-bit class mask once per Blob (closing the ImageBitmap
+ * immediately to prevent GPU memory leaks) and repaints fast when toggling
+ * highlight modes or themes using flat --kpi-band-* solids.
+ */
+function MaskOverlay({
+  mask,
+  highlights,
+  onDecodeError,
+}: {
+  mask: Blob;
+  highlights: Highlights;
+  onDecodeError: () => void;
+}) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  const [decoded, setDecoded] = useState<DecodedMask | null>(null);
   const theme = useThemeVersion();
+
+  useEffect(() => {
+    if (typeof createImageBitmap !== "function") return;
+    let cancelled = false;
+    void createImageBitmap(mask)
+      .then((bitmap) => {
+        try {
+          if (cancelled) return;
+          const scratch = document.createElement("canvas");
+          scratch.width = bitmap.width;
+          scratch.height = bitmap.height;
+          const ctx = scratch.getContext("2d");
+          if (!ctx) return;
+          ctx.drawImage(bitmap, 0, 0);
+          const rgba = ctx.getImageData(0, 0, bitmap.width, bitmap.height).data;
+          const classes = new Uint8Array(bitmap.width * bitmap.height);
+          for (let i = 0, p = 0; i < rgba.length; i += 4, p += 1) {
+            classes[p] = rgba[i];
+          }
+          setDecoded({ width: bitmap.width, height: bitmap.height, classes });
+        } finally {
+          bitmap.close?.();
+        }
+      })
+      .catch(() => {
+        if (!cancelled) onDecodeError();
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mask, onDecodeError]);
 
   useEffect(() => {
     const target = canvas.current;
     const context = target?.getContext("2d");
-    if (!target || !context || typeof createImageBitmap !== "function") return;
-    let cancelled = false;
-    void createImageBitmap(mask).then((bitmap) => {
-      if (cancelled) return;
-      target.width = bitmap.width;
-      target.height = bitmap.height;
-      context.clearRect(0, 0, bitmap.width, bitmap.height);
-      if (highlights === "off") return;
-      context.drawImage(bitmap, 0, 0);
-      const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height);
-      const normal = tokenRgb("--kpi-band-2");
-      const abnormal = tokenRgb("--kpi-band-3");
-      const data = pixels.data;
-      for (let index = 0; index < data.length; index += 4) {
-        const klass = data[index];
-        const color = klass === 2 ? abnormal : klass === 1 && highlights === "both" ? normal : null;
-        if (color) {
-          data[index] = color[0];
-          data[index + 1] = color[1];
-          data[index + 2] = color[2];
-          data[index + 3] = 150;
-        } else {
-          data[index + 3] = 0;
-        }
+    if (!target || !context || !decoded) return;
+    target.width = decoded.width;
+    target.height = decoded.height;
+    context.clearRect(0, 0, decoded.width, decoded.height);
+    if (highlights === "off") return;
+
+    const normal = tokenRgb("--kpi-band-2");
+    const abnormal = tokenRgb("--kpi-band-3");
+    const output = context.createImageData(decoded.width, decoded.height);
+    const data = output.data;
+    const classes = decoded.classes;
+    for (let p = 0, i = 0; p < classes.length; p += 1, i += 4) {
+      const klass = classes[p];
+      const color = klass === 2 ? abnormal : klass === 1 && highlights === "both" ? normal : null;
+      if (color) {
+        data[i] = color[0];
+        data[i + 1] = color[1];
+        data[i + 2] = color[2];
+        data[i + 3] = 155;
+      } else {
+        data[i + 3] = 0;
       }
-      context.putImageData(pixels, 0, 0);
-    }).catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [mask, highlights, theme]);
+    }
+    context.putImageData(output, 0, 0);
+  }, [decoded, highlights, theme]);
 
   return <canvas ref={canvas} className="aerial-check__overlay" aria-hidden="true" />;
 }
 
 function AerialResult({
   analysis,
+  isLatest,
+  locked,
   onRemove,
   removing,
 }: {
   analysis: AerialAnalysis;
+  isLatest: boolean;
+  locked: boolean;
   onRemove: () => void;
   removing: boolean;
 }) {
   const [highlights, setHighlights] = useState<Highlights>("abnormal");
   const [reveal, setReveal] = useState(100);
+  const [photoError, setPhotoError] = useState(false);
+  const [photoRetry, setPhotoRetry] = useState(0);
+  const [maskDecodeError, setMaskDecodeError] = useState(false);
+  const frameRef = useRef<HTMLDivElement>(null);
   const mask = useAerialMask(analysis.maskUrl);
   const abnormal = analysis.abnormalCanopyPercent;
   const normal = analysis.normalCanopyPercent;
+  const highlightsOff = highlights === "off";
+  const showCurtain = !highlightsOff && Boolean(mask.data) && !maskDecodeError;
+
+  const updateRevealFromClientX = (clientX: number) => {
+    const rect = frameRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0) return;
+    const next = Math.round(((clientX - rect.left) / rect.width) * 100);
+    setReveal(Math.max(0, Math.min(100, next)));
+  };
+
+  const handleStagePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (!showCurtain) return;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    updateRevealFromClientX(event.clientX);
+  };
+
+  const handleStagePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (!showCurtain || event.buttons === 0) return;
+    updateRevealFromClientX(event.clientX);
+  };
 
   return (
     <div className="aerial-check__result">
-      <div
-        className="aerial-check__stage"
-        style={{ aspectRatio: `${analysis.imageWidth} / ${analysis.imageHeight}` }}
-      >
-        <img src={analysis.imageUrl} alt="Aerial photo" className="aerial-check__photo" />
-        {mask.data ? (
-          <div className="aerial-check__reveal" style={{ clipPath: `inset(0 ${100 - reveal}% 0 0)` }}>
-            <MaskOverlay mask={mask.data} highlights={highlights} />
-          </div>
-        ) : null}
+      <div className="aerial-check__stage">
+        <div
+          ref={frameRef}
+          className={`aerial-check__frame ${showCurtain ? "aerial-check__frame--interactive" : ""}`}
+          style={{
+            aspectRatio: `${analysis.imageWidth} / ${analysis.imageHeight}`,
+            width: `min(100%, calc(28rem * ${analysis.imageWidth / analysis.imageHeight}))`,
+          }}
+          onPointerDown={handleStagePointerDown}
+          onPointerMove={handleStagePointerMove}
+        >
+          {photoError ? (
+            <div className="aerial-check__photo-error" role="alert">
+              <p>Aerial photo could not be loaded.</p>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setPhotoError(false);
+                  setPhotoRetry((count) => count + 1);
+                }}
+              >
+                Retry photo
+              </Button>
+            </div>
+          ) : (
+            <img
+              key={photoRetry}
+              src={analysis.imageUrl}
+              alt="Aerial photo"
+              className="aerial-check__photo"
+              onError={() => setPhotoError(true)}
+            />
+          )}
+          {mask.data && !photoError && !maskDecodeError ? (
+            <div
+              className="aerial-check__reveal"
+              style={{ clipPath: `inset(0 ${100 - reveal}% 0 0)` }}
+            >
+              <MaskOverlay
+                mask={mask.data}
+                highlights={highlights}
+                onDecodeError={() => setMaskDecodeError(true)}
+              />
+            </div>
+          ) : null}
+          {showCurtain ? (
+            <>
+              <div
+                className="aerial-check__divider"
+                style={{ left: `${reveal}%` }}
+                aria-hidden="true"
+              />
+              <span
+                className="aerial-check__handle"
+                style={{ left: `${reveal}%` }}
+                aria-hidden="true"
+              >
+                <MoveHorizontal size={16} />
+              </span>
+            </>
+          ) : null}
+          {mask.isPending && !highlightsOff ? (
+            <p className="aerial-check__stage-status" role="status">
+              Loading highlights…
+            </p>
+          ) : null}
+        </div>
       </div>
-      {mask.isError ? <p className="form-error" role="alert">Highlights could not be loaded.</p> : null}
+
+      {mask.isError || maskDecodeError ? (
+        <p className="form-error" role="alert">Highlights could not be loaded.</p>
+      ) : null}
 
       <div className="aerial-check__controls">
         <fieldset className="aerial-check__switch">
@@ -140,21 +277,28 @@ function AerialResult({
                 checked={highlights === value}
                 onChange={() => setHighlights(value)}
               />
-              <span>{value === "off" ? "Photo only" : value === "abnormal" ? "Problem areas" : "Problem and healthy"}</span>
+              <span>
+                {value === "off"
+                  ? "Photo only"
+                  : value === "abnormal"
+                    ? "Problem areas"
+                    : "Problem and healthy"}
+              </span>
             </label>
           ))}
         </fieldset>
-        <label className="aerial-check__compare">
+        <label className={`aerial-check__compare ${highlightsOff ? "is-disabled" : ""}`}>
           <span>Photo</span>
           <input
             type="range"
             min={0}
             max={100}
             value={reveal}
+            disabled={highlightsOff}
             onChange={(event) => setReveal(Number(event.currentTarget.value))}
             aria-label="Highlight reveal"
           />
-          <span>Problem areas</span>
+          <span>{highlights === "both" ? "Problem and healthy" : "Problem areas"}</span>
         </label>
       </div>
 
@@ -163,7 +307,11 @@ function AerialResult({
           <p className="aerial-check__headline">
             <strong>{Math.round(abnormal)}%</strong> of the visible cane looks abnormal
           </p>
-          <div className="aerial-check__bar" role="img" aria-label={`Normal ${Math.round(normal)}%, abnormal ${Math.round(abnormal)}%`}>
+          <div
+            className="aerial-check__bar"
+            role="img"
+            aria-label={`Normal ${Math.round(normal)}%, abnormal ${Math.round(abnormal)}%`}
+          >
             <span className="kpi-band-fill--2" style={{ width: `${normal}%` }} />
             <span className="kpi-band-fill--3" style={{ width: `${abnormal}%` }} />
           </div>
@@ -175,13 +323,17 @@ function AerialResult({
       ) : (
         <p className="aerial-check__headline">Not enough cane visible to estimate</p>
       )}
-      <p className="aerial-check__coverage">Cane visible in photo: {Math.round(analysis.canopyCoveragePercent)}%</p>
+      <p className="aerial-check__coverage">
+        Cane visible in photo: {Math.round(analysis.canopyCoveragePercent)}%
+      </p>
 
       <p className="aerial-check__meta">
+        {isLatest ? <span className="aerial-check__tag">Latest</span> : <span className="aerial-check__tag">Earlier check</span>}
         <span>{analysis.uploadedBy.name}</span>
         <time dateTime={analysis.createdAt}>{formatDateTime(analysis.createdAt)}</time>
         <span>{analysis.modelVersion}</span>
-        <Button type="button" variant="quiet" onClick={onRemove} disabled={removing}>
+        <span>{analysis.imageWidth} × {analysis.imageHeight} px</span>
+        <Button type="button" variant="quiet" onClick={onRemove} disabled={removing || locked}>
           Remove
         </Button>
       </p>
@@ -202,7 +354,8 @@ function GroundVersusPhoto({ report, analysis }: { report: DiseaseReport; analys
           <ul>
             {boundaries.map((field) => (
               <li key={field.fieldSurveyId}>
-                Boundary {field.fieldSurveyId}: {(field.areaSqm / 10000).toFixed(2)} ha{field.affectedPercent === null ? "" : ` · ${field.affectedPercent}% affected`}
+                Boundary {field.fieldSurveyId}: {(field.areaSqm / 10000).toFixed(2)} ha
+                {field.affectedPercent === null ? "" : ` · ${field.affectedPercent}% affected`}
               </li>
             ))}
           </ul>
@@ -223,7 +376,13 @@ function GroundVersusPhoto({ report, analysis }: { report: DiseaseReport; analys
   );
 }
 
-export function AerialCheckCard({ report }: { report: DiseaseReport }) {
+export function AerialCheckCard({
+  report,
+  locked = false,
+}: {
+  report: DiseaseReport;
+  locked?: boolean;
+}) {
   const online = useOnlineStatus();
   const add = useAddAerialAnalysis(report.uuid);
   const remove = useRemoveAerialAnalysis(report.uuid);
@@ -233,10 +392,16 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
   const lastUploadSeq = useRef(0);
   const [problem, setProblem] = useState<string | null>(null);
   const [lastFile, setLastFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [selectedUuid, setSelectedUuid] = useState<string | null>(null);
   const analyses = report.aerialAnalyses ?? [];
   const [latest, ...earlier] = analyses;
+  const activeAnalysis =
+    (selectedUuid ? analyses.find((item) => item.uuid === selectedUuid) : null) ?? latest;
+  const uploadDisabled = !online || add.isPending || locked;
 
   const submit = (file: File) => {
+    if (locked) return;
     setLastFile(file);
     if (!ACCEPTED_TYPES.includes(file.type) || file.size > MAX_BYTES) {
       setProblem(fileHint);
@@ -245,8 +410,9 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
     setProblem(null);
     const uploadSeq = ++nextOperation.current;
     add.mutate(file, {
-      onSuccess: () => {
+      onSuccess: (created) => {
         setLastFile(null);
+        setSelectedUuid(created?.uuid ?? null);
         lastUploadSeq.current = Math.max(lastUploadSeq.current, uploadSeq);
         setUndo((current) => (current && current.target.removalSeq < uploadSeq ? null : current));
       },
@@ -257,13 +423,35 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
     });
   };
 
+  const handleDragOver = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    if (!uploadDisabled) setIsDragging(true);
+  };
+
+  const handleDragLeave = (event: DragEvent<HTMLLabelElement>) => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    setIsDragging(false);
+    if (uploadDisabled) return;
+    const file = event.dataTransfer.files?.[0];
+    if (file) submit(file);
+  };
+
   const [pendingRemoval, setPendingRemoval] = useState<AerialAnalysis | null>(null);
-  const confirmRemove = (analysis: AerialAnalysis) => setPendingRemoval(analysis);
+  const confirmRemove = (analysis: AerialAnalysis) => {
+    if (!locked) setPendingRemoval(analysis);
+  };
   const closeRemoval = () => setPendingRemoval(null);
   const removeConfirmed = (analysis: AerialAnalysis) => {
     const removalSeq = ++nextOperation.current;
     remove.mutate(analysis.uuid, {
       onSuccess: (removal) => {
+        if (selectedUuid === analysis.uuid) setSelectedUuid(null);
         if (removalSeq < lastUploadSeq.current) return;
         setUndo({ target: { analysis, removalId: removal.removalId, removalSeq }, notice: null });
       },
@@ -290,29 +478,48 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
         Supporting evidence from one aerial photo. Experimental; not a ground measurement.
       </p>
 
-      <label className="aerial-check__drop">
-        <span>{latest ? "Add another aerial photo" : "Add aerial photo"}</span>
-        <small>JPG, PNG or WebP, up to 20 MB</small>
-        <input
-          type="file"
-          accept={ACCEPTED_TYPES.join(",")}
-          disabled={!online || add.isPending}
-          onChange={(event) => {
-            const file = event.currentTarget.files?.[0];
-            event.currentTarget.value = "";
-            if (file) submit(file);
-          }}
-        />
-      </label>
+      {locked ? (
+        <p className="aerial-check__locked" role="status">
+          Read-only while another reviewer holds this case. Existing checks stay viewable.
+        </p>
+      ) : (
+        <label
+          className={`aerial-check__drop ${isDragging ? "is-dragging" : ""}`}
+          onDragEnter={handleDragOver}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <span className="aerial-check__drop-title">
+            <Upload aria-hidden="true" size={18} />
+            <span>{latest ? "Add another aerial photo" : "Add aerial photo"}</span>
+          </span>
+          <small>Drop a JPG, PNG or WebP here, or choose a file (up to 20 MB)</small>
+          <input
+            type="file"
+            accept={ACCEPTED_TYPES.join(",")}
+            disabled={uploadDisabled}
+            onChange={(event) => {
+              const file = event.currentTarget.files?.[0];
+              event.currentTarget.value = "";
+              if (file) submit(file);
+            }}
+          />
+        </label>
+      )}
       {!online ? <p className="aerial-check__offline" role="status">Offline. Reconnect to add a photo.</p> : null}
-      {add.isPending ? <p role="status" aria-busy="true">Checking the photo…</p> : null}
+      {add.isPending ? (
+        <p role="status" aria-busy="true">
+          Checking the photo…{lastFile ? ` (${lastFile.name})` : ""}
+        </p>
+      ) : null}
       {problem ? (
         <p className="form-error" role="alert">
           {problem}
           {lastFile && problem !== fileHint ? (
             <>
               {" "}
-              <Button type="button" variant="secondary" onClick={() => submit(lastFile)} disabled={!online}>
+              <Button type="button" variant="secondary" onClick={() => submit(lastFile)} disabled={!online || locked}>
                 Retry
               </Button>
             </>
@@ -320,19 +527,27 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
         </p>
       ) : null}
 
-      {latest ? (
+      {activeAnalysis ? (
         <AerialResult
-          key={latest.uuid}
-          analysis={latest}
+          key={activeAnalysis.uuid}
+          analysis={activeAnalysis}
+          isLatest={activeAnalysis.uuid === latest?.uuid}
+          locked={locked}
           removing={remove.isPending}
-          onRemove={() => confirmRemove(latest)}
+          onRemove={() => confirmRemove(activeAnalysis)}
         />
       ) : null}
       {remove.isError ? <p className="form-error" role="alert">Could not remove the check. Try again.</p> : null}
       {undo && undo.notice !== "stale" ? (
         <p className="aerial-check__undo" role="status">
           Check removed.{" "}
-          <Button type="button" variant="secondary" icon={<Undo2 aria-hidden="true" size={16} />} onClick={() => undoRemoval(undo.target)} disabled={restore.isPending}>
+          <Button
+            type="button"
+            variant="secondary"
+            icon={<Undo2 aria-hidden="true" size={16} />}
+            onClick={() => undoRemoval(undo.target)}
+            disabled={restore.isPending || locked}
+          >
             Undo
           </Button>
         </p>
@@ -370,27 +585,54 @@ export function AerialCheckCard({ report }: { report: DiseaseReport }) {
         {pendingRemoval ? <p>Added {formatDateTime(pendingRemoval.createdAt)}</p> : null}
       </Modal>
 
-      <GroundVersusPhoto report={report} analysis={latest} />
+      <GroundVersusPhoto report={report} analysis={activeAnalysis} />
 
       {earlier.length > 0 ? (
-        <details className="aerial-check__earlier">
-          <summary>Earlier aerial checks ({earlier.length})</summary>
+        <section className="aerial-check__earlier" aria-labelledby="aerial-earlier-heading">
+          <h3 id="aerial-earlier-heading">Earlier aerial checks ({earlier.length})</h3>
+          {activeAnalysis && activeAnalysis.uuid !== latest.uuid ? (
+            <p className="aerial-check__viewing-note">
+              Viewing an earlier check.{" "}
+              <button
+                type="button"
+                className="table-action"
+                onClick={() => setSelectedUuid(latest.uuid)}
+              >
+                Back to latest
+              </button>
+            </p>
+          ) : null}
           <ul>
-            {earlier.map((analysis) => (
-              <li key={analysis.uuid}>
-                <time dateTime={analysis.createdAt}>{formatDateTime(analysis.createdAt)}</time>
-                <span>
-                  {analysis.enoughCanopy && analysis.abnormalCanopyPercent !== null
-                    ? ` · ${Math.round(analysis.abnormalCanopyPercent)}% of visible cane abnormal`
-                    : " · Not enough cane visible"}
-                </span>
-                <Button type="button" variant="quiet" onClick={() => confirmRemove(analysis)} disabled={remove.isPending}>
-                  Remove
-                </Button>
-              </li>
-            ))}
+            {earlier.map((analysis) => {
+              const selected = activeAnalysis?.uuid === analysis.uuid;
+              return (
+                <li key={analysis.uuid} className={selected ? "is-selected" : undefined}>
+                  <button
+                    type="button"
+                    className="aerial-check__earlier-select"
+                    aria-pressed={selected}
+                    onClick={() => setSelectedUuid(analysis.uuid)}
+                  >
+                    <time dateTime={analysis.createdAt}>{formatDateTime(analysis.createdAt)}</time>
+                    <span>
+                      {analysis.enoughCanopy && analysis.abnormalCanopyPercent !== null
+                        ? ` · ${Math.round(analysis.abnormalCanopyPercent)}% of visible cane abnormal`
+                        : " · Not enough cane visible"}
+                    </span>
+                  </button>
+                  <Button
+                    type="button"
+                    variant="quiet"
+                    onClick={() => confirmRemove(analysis)}
+                    disabled={remove.isPending || locked}
+                  >
+                    Remove
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
-        </details>
+        </section>
       ) : null}
     </section>
   );
