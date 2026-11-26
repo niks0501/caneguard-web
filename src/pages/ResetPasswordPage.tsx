@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { KeyRound } from "lucide-react";
-import { Link, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import { ApiError } from "../api/ApiError";
 import { resetPasswordRequest } from "../auth/auth.api";
 import type { PasswordResetCredentials } from "../auth/auth.types";
-import { routes } from "../app/routes";
 import { Button } from "../components/ui/Button";
 import { PasswordInput } from "../components/ui/FormControls";
 import { AuthPageFrame } from "./AuthPageFrame";
+import { SignInHandoff } from "./MobileSignInHandoff";
+import type { LocaleHint, SignInSurface } from "./MobileSignInHandoff";
 
 export function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
@@ -18,7 +19,7 @@ export function ResetPasswordPage() {
     password_confirmation: "",
   });
   const [isSubmitting, setSubmitting] = useState(false);
-  const [isReset, setReset] = useState(false);
+  const [reset, setReset] = useState<{ surface?: SignInSurface; locale?: LocaleHint } | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const update = (
@@ -34,8 +35,8 @@ export function ResetPasswordPage() {
     setErrorMessage(null);
 
     try {
-      await resetPasswordRequest(form);
-      setReset(true);
+      const result = await resetPasswordRequest(form);
+      setReset({ surface: result.sign_in_surface, locale: result.locale_hint });
     } catch (error) {
       if (error instanceof ApiError && error.status === 422) {
         setErrorMessage("This recovery link is invalid, expired, or already used.");
@@ -57,14 +58,8 @@ export function ResetPasswordPage() {
       description="Use the one-time recovery link from your email to secure your account again."
       icon={<KeyRound aria-hidden="true" />}
     >
-      {isReset ? (
-        <div className="auth-success" role="status">
-          <strong>Password updated.</strong>
-          <span>All existing sessions were signed out. Sign in again with the new password.</span>
-          <Link className="button button--primary" to={routes.login}>
-            Return to sign in
-          </Link>
-        </div>
+      {reset ? (
+        <SignInHandoff kind="reset" surface={reset.surface} locale={reset.locale} />
       ) : !form.token ? (
         <div className="auth-error" role="alert">
           This recovery link is missing its one-time value. Request a new link to continue.
@@ -115,6 +110,9 @@ export function ResetPasswordPage() {
           </label>
           <p className="auth-form__hint">
             Use 15 to 128 characters. A phrase is fine; no symbol or number pattern is required.
+          </p>
+          <p className="auth-form__hint" lang="tl">
+            Gumamit ng 3 madaling salita (hal. tubo sa bukid 2026) — 15 letra o higit pa, walang kailangang simbolo.
           </p>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Updating password..." : "Update password"}

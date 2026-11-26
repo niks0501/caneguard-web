@@ -58,6 +58,8 @@ class EmailVerificationController extends Controller
         return response()->json([
             'message' => 'Email address verified. You may now sign in.',
             'code' => 'EMAIL_VERIFIED',
+            'sign_in_surface' => $user->signInSurface(),
+            'locale_hint' => $user->localeHint(),
         ]);
     }
 }

@@ -129,4 +129,67 @@ describe("public authentication pages", () => {
       password_confirmation: "A replacement passphrase",
     });
   });
+
+  it("hands a mobile account to the app after a reset instead of the web sign-in", async () => {
+    server.use(
+      http.get(`${baseUrl}/sanctum/csrf-cookie`, () => new HttpResponse(null, { status: 204 })),
+      http.post(`${baseUrl}/reset-password`, () =>
+        HttpResponse.json({
+          message: "Password updated.",
+          code: "PASSWORD_RESET",
+          sign_in_surface: "mobile",
+          locale_hint: "tl",
+        }),
+      ),
+    );
+    const user = await renderAuthPage("/reset-password?email=farmer%40example.test&token=one-time-token");
+
+    await user.type(screen.getByLabelText("New password"), "tubo sa bukid 2026");
+    await user.type(screen.getByLabelText("Confirm password"), "tubo sa bukid 2026");
+    await user.click(screen.getByRole("button", { name: "Update password" }));
+
+    expect(await screen.findByText("Na-save na ang iyong bagong password.")).toBeInTheDocument();
+    expect(screen.getByText(/Buksan ang CaneGuard Mobile/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Return to sign in" })).not.toBeInTheDocument();
+  });
+
+  it("shows the Tagalog passphrase tip on the reset form", async () => {
+    await renderAuthPage("/reset-password?email=farmer%40example.test&token=one-time-token");
+
+    expect(screen.getByText(/Gumamit ng 3 madaling salita/)).toBeInTheDocument();
+  });
+
+  it("hands an inspector to the app after verification in English", async () => {
+    server.use(
+      http.get(`${baseUrl}/email/verify/42/email-hash`, () =>
+        HttpResponse.json({
+          message: "Email address verified.",
+          code: "EMAIL_VERIFIED",
+          sign_in_surface: "mobile",
+          locale_hint: "en",
+        }),
+      ),
+    );
+    await renderAuthPage("/verify-email?id=42&hash=email-hash&expires=9999999999&signature=signature");
+
+    expect(await screen.findByText("Your email is verified.")).toBeInTheDocument();
+    expect(screen.getByText(/Open the CaneGuard Mobile app/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Return to sign in" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the web sign-in for web accounts after verification", async () => {
+    server.use(
+      http.get(`${baseUrl}/email/verify/42/email-hash`, () =>
+        HttpResponse.json({
+          message: "Email address verified.",
+          code: "EMAIL_VERIFIED",
+          sign_in_surface: "web",
+          locale_hint: "en",
+        }),
+      ),
+    );
+    await renderAuthPage("/verify-email?id=42&hash=email-hash&expires=9999999999&signature=signature");
+
+    expect(await screen.findByRole("link", { name: "Return to sign in" })).toBeInTheDocument();
+  });
 });
