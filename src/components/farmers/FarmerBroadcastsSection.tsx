@@ -6,7 +6,7 @@ import { useAuth } from "../../auth/useAuth";
 import { knownBarangays } from "../../domain/locationScope";
 import { formatDateTime } from "../../lib/formatters";
 import { listFarmerBroadcasts, listValidatedAdvisories, publishFarmerBroadcast, retireFarmerBroadcast } from "../../services/farmerBroadcasts.api";
-import type { BroadcastCommand, FarmerBroadcast } from "../../services/farmerInquiries.api";
+import type { BroadcastCommand, FarmerBroadcast } from "../../services/farmerBroadcasts.api";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 import { ErrorState, LoadingState } from "../ui/States";
