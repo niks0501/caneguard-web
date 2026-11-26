@@ -595,7 +595,7 @@ describe("CaseReviewPage", () => {
     expect(screen.getByText("Juan Dela Cruz")).toBeInTheDocument();
     const locationField = screen.getByText("Location").closest(".detail-field");
     expect(locationField).toHaveTextContent("Brgy. Balaytigui, Nasugbu, Batangas");
-    expect(screen.getByRole("link", { name: "View on map" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Open in Google Maps" })).toHaveAttribute(
       "href",
       expect.stringContaining("google.com/maps"),
     );
@@ -2095,5 +2095,104 @@ describe("CaseReviewPage", () => {
     // The page back link and the save receipt both name where the reviewer came from.
     expect(screen.getAllByRole("link", { name: "Back to Cases" })).toHaveLength(2);
 
+  });
+
+  describe("map navigation", () => {
+    const plot = (id: number, capturedAt: string) => ({
+      fieldSurveyId: id,
+      geometry: { type: "Polygon" as const, coordinates: [[[122.95, 10.7], [122.951, 10.7], [122.951, 10.701], [122.95, 10.7]]] },
+      capturedAt,
+      areaSqm: 10_000,
+      areaSource: "device_reported" as const,
+      inspector: { uuid: "i1", name: "Inspector" },
+      affectedAreaSqm: null,
+      affectedPercent: null,
+      lossRatePercent: null,
+    });
+    const withFields = (extra: Record<string, unknown>) =>
+      vi.mocked(useReport).mockReturnValue(queryResult({ data: { ...report, ...extra } }));
+
+    function RouteProbe() {
+      const location = useLocation();
+      return <output data-testid="probe">{`${location.pathname}${location.search}|${JSON.stringify(location.state)}`}</output>;
+    }
+
+    it("keeps Google Maps secondary and links in-app maps with return context", async () => {
+      const user = userEvent.setup();
+      withFields({ affectedFields: [plot(7, "2026-10-01T02:00:00.000Z")] });
+      render(
+        <MemoryRouter initialEntries={[`/reports/${report.uuid}`]}>
+          <Routes>
+            <Route path="/reports/:reportId" element={<CaseReviewPage />} />
+            <Route path="/monitoring" element={<RouteProbe />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      const location = screen.getByText("Location").closest(".detail-field") as HTMLElement;
+      expect(within(location).getByRole("link", { name: "View Field Map" })).toHaveAttribute(
+        "href", `/monitoring?view=boundaries&report=${report.uuid}&boundary=7`,
+      );
+      expect(within(location).getByRole("link", { name: "View on Monitoring Map" })).toHaveAttribute(
+        "href", `/monitoring?view=map&report=${report.uuid}`,
+      );
+      const google = within(location).getByRole("link", { name: "Open in Google Maps" });
+      expect(google).toHaveAttribute("target", "_blank");
+      expect(screen.queryByRole("link", { name: "View on map" })).not.toBeInTheDocument();
+
+      await user.click(within(location).getByRole("link", { name: "View on Monitoring Map" }));
+      const [path, state] = screen.getByTestId("probe").textContent!.split("|");
+      expect(path).toBe(`/monitoring?view=map&report=${report.uuid}`);
+      expect(JSON.parse(state)).toEqual({ returnContext: { to: `/reports/${report.uuid}`, label: `Case ${report.referenceCode}` } });
+    });
+
+    it("labels multiple plots and waiting confirmation", () => {
+      withFields({ affectedFields: [plot(7, "2026-10-01T02:00:00.000Z"), plot(8, "2026-10-02T02:00:00.000Z")] });
+      const { unmount } = renderPage();
+      expect(screen.getByRole("link", { name: "View Field Map (2 plots)" })).toHaveAttribute(
+        "href", `/monitoring?view=boundaries&report=${report.uuid}&boundary=8`,
+      );
+      unmount();
+      const waiting = plot(9, "2026-10-03T02:00:00.000Z");
+      withFields({
+        affectedFields: [],
+        inspectorAttachment: { clientUuid: "c", arrived: true, confirmed: false, boundary: waiting },
+      });
+      renderPage();
+      expect(screen.getByRole("link", { name: "View Field Map (waiting confirmation)" })).toBeInTheDocument();
+    });
+
+    it("shows syncing status with a boundary-free link, and a plain link with no plot", () => {
+      withFields({
+        affectedFields: [],
+        inspectorAttachment: { clientUuid: "c", arrived: false, confirmed: false, boundary: null },
+      });
+      const { unmount } = renderPage();
+      const location = screen.getByText("Location").closest(".detail-field") as HTMLElement;
+      expect(within(location).getByText("Field map syncing from phone")).toBeInTheDocument();
+      expect(within(location).getByRole("link", { name: "View Field Map" }).getAttribute("href")).toBe(
+        `/monitoring?view=boundaries&report=${report.uuid}`,
+      );
+      unmount();
+      withFields({ affectedFields: [], inspectorAttachment: undefined });
+      renderPage();
+      const none = screen.getByText("Location").closest(".detail-field") as HTMLElement;
+      expect(within(none).queryByText("Field map syncing from phone")).not.toBeInTheDocument();
+      expect(within(none).getByRole("link", { name: "View Field Map" }).getAttribute("href")).not.toContain("boundary=");
+    });
+
+    it("returns from the case to the map with its filters intact", () => {
+      withFields({ affectedFields: [] });
+      render(
+        <MemoryRouter initialEntries={[{
+          pathname: `/reports/${report.uuid}`,
+          state: { returnContext: { to: "/monitoring?view=boundaries&barangay=Mabini", label: "Field maps" } },
+        }]}>
+          <Routes><Route path="/reports/:reportId" element={<CaseReviewPage />} /></Routes>
+        </MemoryRouter>,
+      );
+      expect(screen.getByRole("link", { name: /Back to Field maps/ })).toHaveAttribute(
+        "href", "/monitoring?view=boundaries&barangay=Mabini",
+      );
+    });
   });
 });

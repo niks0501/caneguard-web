@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, useLocation } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../../api/ApiError";
 import type {
@@ -144,6 +144,11 @@ function renderLinkage(currentReport: DiseaseReport, onRefresh = vi.fn().mockRes
   );
 }
 
+function LocationProbe() {
+  const location = useLocation();
+  return <output data-testid="loc">{JSON.stringify({ path: `${location.pathname}${location.search}`, state: location.state })}</output>;
+}
+
 beforeEach(() => {
   vi.mocked(useFieldSurveys).mockReturnValue(surveysResult([feature(201, farPlot), feature(202, nearPlot, 10_000, 1_200)]));
   vi.mocked(useUpdateReportAffectedFields).mockReturnValue(mutation());
@@ -275,5 +280,58 @@ describe("AffectedFieldLinkage", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("This case changed while the field map was being saved.");
     await user.click(screen.getByRole("button", { name: "Refresh case and discard changes" }));
     expect(onRefresh).toHaveBeenCalledTimes(1);
+  });
+
+  describe("navigation", () => {
+    const returnContext = { to: "/reports/case-123", label: "Case CG-2026-0123" };
+
+    it("links the header and a confirmed card to the Field Map with return context", async () => {
+      const user = userEvent.setup();
+      render(
+        <MemoryRouter>
+          <AffectedFieldLinkage report={report({ affectedFields: [linkedField(123, nearPlot)] })} onRefresh={vi.fn()} />
+          <LocationProbe />
+        </MemoryRouter>,
+      );
+      const header = screen.getByRole("link", { name: "View Field Map" });
+      expect(header).toHaveAttribute("href", "/monitoring?view=boundaries&report=case-123&boundary=123");
+      const card = screen.getByRole("article", { name: "Field map 123" });
+      await user.click(within(card).getByRole("link", { name: "View on Field Map" }));
+      const loc = JSON.parse(screen.getByTestId("loc").textContent!);
+      expect(loc.path).toBe("/monitoring?view=boundaries&report=case-123&boundary=123");
+      expect(loc.state).toEqual({ returnContext });
+      expect(within(card).queryByText("Latest")).not.toBeInTheDocument();
+    });
+
+    it("offers View on Field Map on the awaiting-confirmation card", () => {
+      const field = linkedField(123, nearPlot);
+      renderLinkage(report({ inspectorAttachment: attachmentFor(field) }));
+      const card = screen.getByRole("article", { name: "Field map 123" });
+      expect(within(card).getByRole("link", { name: "View on Field Map" })).toHaveAttribute(
+        "href", "/monitoring?view=boundaries&report=case-123&boundary=123",
+      );
+      expect(within(card).getByRole("button", { name: "Confirm field" })).toBeInTheDocument();
+    });
+
+    it("sorts multiple plots newest first, badges the latest and flags the superseded one", () => {
+      const older = { ...linkedField(10, nearPlot), capturedAt: "2026-09-01T02:00:00.000Z" };
+      const newer = { ...linkedField(11, nearPlot), capturedAt: "2026-10-01T02:00:00.000Z", outlineFromSurveyId: 10 };
+      renderLinkage(report({ affectedFields: [older, newer] }));
+      const cards = screen.getAllByRole("article");
+      expect(cards.map((c) => c.getAttribute("aria-label"))).toEqual(["Field map 11", "Field map 10"]);
+      expect(within(cards[0]).getByText("Latest")).toBeInTheDocument();
+      expect(within(cards[0]).getByText("Plot outline reused from Map 10")).toBeInTheDocument();
+      expect(within(cards[1]).queryByText("Latest")).not.toBeInTheDocument();
+      expect(within(cards[1]).getByText("Newer survey exists: Map 11")).toBeInTheDocument();
+    });
+
+    it("never builds a boundary link while the map is still syncing or absent", () => {
+      const { unmount } = renderLinkage(report({ inspectorAttachment: attachmentFor(null, { arrived: false }) }));
+      expect(screen.getByRole("link", { name: "View Field Map" })).toHaveAttribute("href", "/monitoring?view=boundaries&report=case-123");
+      expect(screen.queryByRole("link", { name: "View on Field Map" })).not.toBeInTheDocument();
+      unmount();
+      renderLinkage(report());
+      expect(screen.getByRole("link", { name: "View Field Map" }).getAttribute("href")).not.toContain("boundary=");
+    });
   });
 });
