@@ -8,6 +8,11 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+Schedule::command('reports:generate-weekly')
+    ->everyFifteenMinutes()
+    ->timezone('Asia/Manila')
+    ->withoutOverlapping(15);
+
 Schedule::command('reports:send-weekly-reminders')
     ->everyFifteenMinutes()
     ->timezone('Asia/Manila')

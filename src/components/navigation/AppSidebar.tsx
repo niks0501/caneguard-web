@@ -6,7 +6,6 @@ import {
   LogOut,
   MapPinned,
   Settings,
-  ShieldCheck,
   Users,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -105,9 +104,6 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
         {auth.user?.role === "admin" ? (
           <div className="sidebar__group" role="group" aria-label="Administration">
             <p>Administration</p>
-            <SidebarLink to={routes.reportApproval} icon={<ShieldCheck aria-hidden="true" />} onNavigate={onNavigate}>
-              Report Approval
-            </SidebarLink>
             <SidebarLink to={routes.accounts} icon={<Users aria-hidden="true" />} onNavigate={onNavigate}>
               User Management
             </SidebarLink>

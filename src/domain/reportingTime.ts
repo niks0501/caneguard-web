@@ -37,3 +37,21 @@ export function previousManilaIsoWeekAt(now: Date = new Date()): string {
 export function recentManilaIsoWeeks(count: number, now: Date = new Date()): string[] {
   return Array.from({ length: count }, (_, index) => previousManilaIsoWeekAt(new Date(now.getTime() - index * 7 * DAY_MS)));
 }
+
+const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** Format an ISO week (YYYY-Www) as a readable Mon–Sun date range (e.g. "Nov 16 – Nov 22"). */
+export function isoWeekDateRangeLabel(week: string, includeYear = false): string {
+  const match = /^(\d{4})-W(\d{2})$/.exec(week);
+  if (!match) return week;
+  const isoYear = Number(match[1]);
+  const isoWeek = Number(match[2]);
+  const jan4 = new Date(Date.UTC(isoYear, 0, 4));
+  const jan4Weekday = jan4.getUTCDay() || 7;
+  const monday = new Date(jan4.getTime() + ((isoWeek - 1) * 7 - (jan4Weekday - 1)) * DAY_MS);
+  const sunday = new Date(monday.getTime() + 6 * DAY_MS);
+
+  const startText = `${shortMonths[monday.getUTCMonth()]} ${monday.getUTCDate()}`;
+  const endText = `${shortMonths[sunday.getUTCMonth()]} ${sunday.getUTCDate()}`;
+  return includeYear ? `${startText} – ${endText}, ${sunday.getUTCFullYear()}` : `${startText} – ${endText}`;
+}

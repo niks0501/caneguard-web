@@ -34,30 +34,29 @@ function renderPage(entry = "/reports/print") {
 }
 
 describe("PrintableReportsPage", () => {
-  it("offers three entries and opens the official weekly report first", () => {
+  it("opens the unified weekly reports hub first with two clean workspace entries", () => {
     renderPage();
 
-    const group = screen.getByRole("group", { name: "Report type" });
-    expect(group.querySelectorAll("button")).toHaveLength(3);
-    expect(screen.getByRole("button", { name: "This week's official report" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("button", { name: "RSSI weekly" })).toBeInTheDocument();
+    const group = screen.getByRole("group", { name: "Report workspace" });
+    expect(group.querySelectorAll("button")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Weekly reports" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "Custom list" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Official weekly version" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Weekly reports" })).toBeInTheDocument();
   });
 
-  it("switches between the three documents", async () => {
+  it("switches cleanly between weekly reports and custom list", async () => {
     const user = userEvent.setup();
     renderPage();
-
-    await user.click(screen.getByRole("button", { name: "RSSI weekly" }));
-    expect(screen.getByRole("region", { name: "Weekly RSSI export" })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Custom list" }));
     expect(screen.getByRole("region", { name: "Custom list" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Custom list" })).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("button", { name: "Weekly reports" }));
+    expect(screen.getByRole("region", { name: "Weekly reports" })).toBeInTheDocument();
   });
 
-  it("keeps the arriving work scope in the URL when switching report types", async () => {
+  it("keeps the arriving work scope in the URL when switching from legacy type=rssi to Custom list", async () => {
     const user = userEvent.setup();
     renderPage("/reports/print?type=rssi&barangay=Bacoor&queue=needs_review&from=2026-08-01&to=2026-08-31");
 

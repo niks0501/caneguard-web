@@ -59,6 +59,8 @@ class SecurityAudit extends Model
 
     public const ACTION_OPERATOR_LINK = 'operator_link_issued';
 
+    public const ACTION_WEEKLY_REPORTS_GENERATED = 'weekly_reports_generated';
+
     public $timestamps = false;
 
     /**

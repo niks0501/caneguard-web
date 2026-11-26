@@ -46,9 +46,8 @@ describe("role-only workspace guards", () => {
   it.each(["/accounts", "/report-approval", "/admin-settings"])("allows Admin %s without capability or service flags", async path => {
     renderRoute(path, adminAccount);
     expect(await screen.findByRole("heading", { name: "Administrative page" })).toBeInTheDocument();
-    for (const label of ["User Management", "Report Approval"]) {
-      expect(screen.getByRole("link", { name: label })).toBeInTheDocument();
-    }
+    expect(screen.getByRole("link", { name: "User Management" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Report Approval" })).not.toBeInTheDocument();
   });
   it.each(["/dashboard", "/reports", "/settings"])("allows reviewer operational route %s", async path => {
     renderRoute(path);

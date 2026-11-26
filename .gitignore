@@ -86,3 +86,6 @@ graphify-out/.graphify_uncached.txt
 
 # Generated Graphify outputs (local-only)
 graphify-out/
+
+# Generated Lavish review artifacts (local-only)
+.lavish/

@@ -6,7 +6,6 @@ use App\Actions\Reports\DistrictReportWorkflow;
 use App\Models\District;
 use App\Models\DistrictGrant;
 use App\Models\DistrictRecipientSet;
-use App\Models\DistrictReportTransmission;
 use App\Models\DistrictReportVersion;
 use App\Models\Report;
 use App\Models\User;
@@ -53,7 +52,7 @@ class DistrictReportWorkflowTest extends TestCase
         $this->assertDatabaseMissing('district_report_events', ['action' => 'send_requested']);
     }
 
-    public function test_named_officer_approves_exact_version_then_records_one_idempotent_send_intent_without_mail(): void
+    public function test_named_officer_approves_exact_version_and_retired_send_endpoint_returns_410_without_mail(): void
     {
         Mail::fake();
         config(['caneguard.weekly_send_enabled' => true]);
@@ -65,26 +64,18 @@ class DistrictReportWorkflowTest extends TestCase
         $payload = ['content_hash' => $version['content_hash'], 'idempotency_key' => (string) Str::uuid(),
             'sender_id' => 99999, 'recipients' => ['forged@example.test']];
         $path = '/api/v1/district-reports/'.$version['uuid'];
-        $this->getJson('/api/v1/district-reports')->assertOk()->assertJsonPath('meta.recipient_count', 1);
-        $this->postJson($path.'/send', $payload)->assertConflict();
+        $this->getJson('/api/v1/district-reports')->assertOk()->assertJsonPath('meta.email_send_retired', true);
         $this->postJson($path.'/approve', ['content_hash' => str_repeat('0', 64)])->assertConflict();
         $this->postJson($path.'/approve', $payload)->assertOk()->assertJsonPath('data.approved_by_id', $officer->id);
-        $intent = $this->postJson($path.'/send', $payload)->assertStatus(202)->assertJsonPath('data.state', 'pending')
-            ->assertJsonPath('data.requested_by_id', $officer->id)->json('data');
-        $this->postJson($path.'/send', $payload)->assertStatus(202)->assertJsonPath('data.id', $intent['id']);
-        $this->postJson($path.'/send', [...$payload, 'idempotency_key' => (string) Str::uuid()])->assertConflict();
-        $this->assertDatabaseCount('district_report_transmissions', 1);
+        $this->postJson($path.'/send', $payload)->assertStatus(410);
+        $this->assertDatabaseCount('district_report_transmissions', 0);
         $this->assertDatabaseHas('district_report_events', ['action' => 'approved', 'actor_id' => $officer->id, 'actor_role' => 'admin', 'content_hash' => $version['content_hash']]);
-        $this->assertDatabaseHas('district_report_events', ['action' => 'send_requested', 'idempotency_key' => $payload['idempotency_key']]);
-        $stored = DistrictReportTransmission::findOrFail($intent['id']);
-        $this->assertTrue(app(DistrictReportWorkflow::class)->checkPending($stored));
-        $this->assertSame(['authorized@example.test'], DistrictRecipientSet::findOrFail($stored->district_recipient_set_id)->recipients);
         $this->get($path.'/document')->assertOk()->assertHeader('cache-control', 'no-store, private');
         Mail::assertNothingSent();
         Mail::assertNothingQueued();
     }
 
-    public function test_send_gate_and_missing_recipient_contract_never_queue_placeholder_authority(): void
+    public function test_send_endpoint_is_retired_regardless_of_gate_or_recipients(): void
     {
         [$officer] = $this->officer();
         $this->actingAs($officer, 'web');
@@ -92,9 +83,9 @@ class DistrictReportWorkflowTest extends TestCase
         $payload = ['content_hash' => $version['content_hash'], 'idempotency_key' => (string) Str::uuid()];
         $path = '/api/v1/district-reports/'.$version['uuid'];
         $this->postJson($path.'/approve', $payload)->assertOk();
-        $this->postJson($path.'/send', $payload)->assertStatus(503);
+        $this->postJson($path.'/send', $payload)->assertStatus(410);
         config(['caneguard.weekly_send_enabled' => true]);
-        $this->postJson($path.'/send', $payload)->assertConflict();
+        $this->postJson($path.'/send', $payload)->assertStatus(410);
         $this->assertDatabaseCount('district_report_transmissions', 0);
         $this->assertDatabaseCount('district_recipient_sets', 0);
     }
@@ -110,34 +101,32 @@ class DistrictReportWorkflowTest extends TestCase
         $this->postJson($path.'/approve', $payload)->assertOk();
         Report::factory()->inDistrict($district)->create(['submitted_at' => '2026-09-29 10:00:00']);
         $this->prepare();
-        $this->postJson($path.'/send', $payload)->assertConflict();
         $foreign = District::query()->create(['code' => 'foreign', 'name' => 'Foreign district']);
         $foreignVersion = DistrictReportVersion::query()->create([
             'district_id' => $foreign->id, 'week_start' => '2026-09-28', 'version' => 1,
             'content' => [], 'source_refs' => [], 'content_hash' => str_repeat('a', 64), 'prepared_by_id' => $officer->id,
         ]);
-        foreach (['approve', 'send'] as $action) {
-            $this->postJson('/api/v1/district-reports/'.$foreignVersion->uuid.'/'.$action, $payload)->assertConflict();
-        }
+        $this->postJson('/api/v1/district-reports/'.$foreignVersion->uuid.'/approve', $payload)->assertConflict();
         $this->get('/api/v1/district-reports/'.$foreignVersion->uuid.'/document')->assertConflict();
         $this->getJson('/api/v1/district-reports')->assertOk()->assertJsonCount(2, 'data');
         $this->assertDatabaseCount('district_report_transmissions', 0);
         $this->assertDatabaseCount('district_grants', 2);
     }
 
-    public function test_changed_source_evidence_invalidates_an_approved_version(): void
+    public function test_changed_source_evidence_marks_approved_version_stale(): void
     {
-        config(['caneguard.weekly_send_enabled' => true]);
         [$officer, $district] = $this->officer();
         $report = Report::factory()->inDistrict($district)->create(['submitted_at' => '2026-09-29 10:00:00']);
         $this->actingAs($officer, 'web');
         $version = $this->prepare();
-        $payload = ['content_hash' => $version['content_hash'], 'idempotency_key' => (string) Str::uuid()];
+        $payload = ['content_hash' => $version['content_hash']];
         $path = '/api/v1/district-reports/'.$version['uuid'];
         $this->postJson($path.'/approve', $payload)->assertOk();
         $report->update(['review_notes' => 'Updated office decision', 'lock_version' => 1]);
-        $this->postJson($path.'/send', $payload)->assertConflict();
-        $this->assertDatabaseCount('district_report_transmissions', 0);
+        $this->getJson('/api/v1/district-reports?week=2026-W40')
+            ->assertOk()
+            ->assertJsonPath('data.0.is_current', false)
+            ->assertJsonPath('data.0.stale_reason', 'evidence_changed');
     }
 
     public function test_index_exposes_currency_stale_reason_and_a_counts_only_headline(): void
@@ -168,21 +157,18 @@ class DistrictReportWorkflowTest extends TestCase
         config(['caneguard.weekly_send_enabled' => true]);
         [$officer, $district] = $this->officer();
         DistrictRecipientSet::query()->create(['district_id' => $district->id, 'recipients' => ['authorized@example.test'], 'office_reference' => 'test-recipient-decision']);
-        $this->actingAs($officer, 'web');
-        $version = $this->prepare();
-        $payload = ['content_hash' => $version['content_hash'], 'idempotency_key' => (string) Str::uuid()];
-        $path = '/api/v1/district-reports/'.$version['uuid'];
-        $this->postJson($path.'/approve', $payload)->assertOk();
-        $id = $this->postJson($path.'/send', $payload)->assertStatus(202)->json('data.id');
+        $workflow = app(DistrictReportWorkflow::class);
+        $version = $workflow->prepare($officer, '2026-W40');
+        $version = $workflow->approve($officer, $version, $version->content_hash);
+        $intent = $workflow->requestSend($officer, $version, $version->content_hash, (string) Str::uuid());
         $token = $officer->createToken('old');
         $officer->forceFill(['is_active' => false])->save();
         $this->assertDatabaseMissing('personal_access_tokens', ['id' => $token->accessToken->id]);
-        $intent = DistrictReportTransmission::findOrFail($id);
-        $this->assertFalse(app(DistrictReportWorkflow::class)->checkPending($intent));
+        $this->assertFalse($workflow->checkPending($intent));
         $this->assertSame('cancelled', $intent->fresh()->state);
         $this->assertDatabaseHas('district_report_events', ['action' => 'cancelled', 'actor_id' => $officer->id]);
         $officer->forceFill(['is_active' => true])->save();
-        $this->assertFalse(app(DistrictReportWorkflow::class)->checkPending($intent));
+        $this->assertFalse($workflow->checkPending($intent));
     }
 
     public function test_office_roles_are_cookie_web_only_and_self_changes_are_validation_errors(): void

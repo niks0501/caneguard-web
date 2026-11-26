@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Actions\Reports\DistrictReportWorkflow;
 use App\Models\DistrictRecipientSet;
-use App\Models\DistrictReportTransmission;
 use App\Models\DistrictReportVersion;
 use App\Models\Report;
 use App\Models\User;
@@ -157,7 +156,7 @@ class SimplifiedWebRbacTest extends TestCase
         $this->postJson($path.'/approve', $payload)->assertOk()->assertJsonMissingPath('data.approved_grant_id')->assertJsonMissingPath('data.district_id');
         config(['caneguard.weekly_send_enabled' => true]);
         DistrictRecipientSet::create(['district_id' => $district->id, 'recipients' => ['synthetic@example.test'], 'office_reference' => 'synthetic']);
-        $this->postJson($path.'/send', $payload)->assertStatus(202)->assertJsonMissingPath('data.send_grant_id');
+        $this->postJson($path.'/send', $payload)->assertStatus(410);
         $this->assertDatabaseCount('district_grants', 0);
         $admin->forceFill(['is_active' => false])->save();
         Auth::forgetGuards();
@@ -166,23 +165,20 @@ class SimplifiedWebRbacTest extends TestCase
         $this->assertFalse($admin->fresh()->can('approve', DistrictReportVersion::where('uuid', $version['uuid'])->sole()));
     }
 
-    public function test_another_active_admin_can_send_a_sealed_approval_after_original_approver_is_disabled(): void
+    public function test_sealed_approval_remains_intact_and_downloadable_after_original_approver_is_disabled(): void
     {
-        Queue::fake();
-        config(['caneguard.weekly_send_enabled' => true]);
         $district = $this->pilotDistrict();
         $approver = User::factory()->admin()->create();
-        $sender = User::factory()->admin()->create();
+        $otherAdmin = User::factory()->admin()->create();
         $workflow = app(DistrictReportWorkflow::class);
         $version = $workflow->prepare($approver, '2026-W40');
         $version = $workflow->approve($approver, $version, $version->content_hash);
         $approver->forceFill(['is_active' => false])->save();
-        DistrictRecipientSet::create(['district_id' => $district->id, 'recipients' => ['synthetic@example.test'], 'office_reference' => 'synthetic']);
-        $this->actingAs($sender, 'web');
-        $id = $this->postJson('/api/v1/district-reports/'.$version->uuid.'/send', [
+        $this->actingAs($otherAdmin, 'web');
+        $this->get('/api/v1/district-reports/'.$version->uuid.'/pdf')->assertOk();
+        $this->postJson('/api/v1/district-reports/'.$version->uuid.'/send', [
             'content_hash' => $version->content_hash, 'idempotency_key' => (string) Str::uuid(),
-        ])->assertStatus(202)->json('data.id');
-        $this->assertTrue($workflow->checkPending(DistrictReportTransmission::findOrFail($id)));
+        ])->assertStatus(410);
         $this->assertSame($approver->id, $version->fresh()->approved_by_id);
     }
 
