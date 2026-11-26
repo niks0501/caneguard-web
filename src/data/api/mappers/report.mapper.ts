@@ -465,6 +465,7 @@ export function mapReportDetail(
           linkedBy: dto.duplicate_linkage.linked_by,
           linkedAt: dto.duplicate_linkage.linked_at ?? undefined,
           reason: dto.duplicate_linkage.reason ?? undefined,
+          linkBlockedReason: dto.duplicate_linkage.link_blocked_reason,
         }
       : undefined,
     reviewStatus: dto.review.status,

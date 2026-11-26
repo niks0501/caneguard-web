@@ -133,11 +133,83 @@ function pickerReport(overrides: Record<string, unknown> = {}) {
     uuid: "target-report-uuid",
     referenceCode: "CG-2026-0007",
     barangay: "Mabini",
+    farmerOrFarmOwnerName: "Pedro Search Farmer",
     submittedByName: "Ana Reporter",
     submittedAt: "2026-08-12T10:00:00.000Z",
     predictedDisease: "rust",
+    imageStatus: "unavailable",
+    reviewStatus: "submitted_unverified",
     ...overrides,
   };
+}
+
+function nearbyMatch(overrides: Record<string, unknown> = {}) {
+  return {
+    uuid: "original-report",
+    referenceCode: "CG-2026-0002",
+    submittedAt: "2026-07-20T10:00:00.000Z",
+    condition: "rust" as const,
+    distanceMeters: 24.4,
+    basis: ["same_condition", "nearby_location", "recent_submission"] as const,
+    message: "Possible recent match. Compare this case before deciding.",
+    barangay: "Lumbangan",
+    farmerOrFarmOwnerName: "Roberto Mendoza",
+    submittedByName: "Elena Reyes",
+    workflowStatus: "needs_review" as const,
+    imageUrl: null,
+    imageStatus: "none" as const,
+    ...overrides,
+  };
+}
+
+function withNearbyMatches(matches: Array<ReturnType<typeof nearbyMatch>> = [nearbyMatch()]) {
+  vi.mocked(usePossibleRecentMatches).mockReturnValue(
+    possibleMatchesResult({
+      data: {
+        matches,
+        message: "Possible recent matches found.",
+        possibleMatch: matches.length > 0,
+        canSubmit: true,
+        assessment: "condition_and_location",
+        recentWindowHours: 72,
+        locationRadiusMeters: 100,
+      },
+    }),
+  );
+}
+
+const linkage = {
+  isDuplicate: true,
+  canonicalCase: {
+    uuid: "original-report",
+    referenceCode: "CG-2026-0002",
+    submittedAt: "2026-07-20T10:00:00.000Z",
+  },
+  linkedBy: { uuid: "reviewer-1", name: "Maria Reviewer" },
+  linkedAt: "2026-07-20T11:00:00.000Z",
+  reason: "The cases may describe the same field observation.",
+};
+
+function withLinkage(overrides: Record<string, unknown> = {}) {
+  vi.mocked(useReport).mockReturnValue(
+    queryResult({ data: { ...report, canonicalLinkage: { ...linkage, ...overrides } } }),
+  );
+}
+
+function withBlockedReason(linkBlockedReason: "closed" | "visit_completed") {
+  vi.mocked(useReport).mockReturnValue(
+    queryResult({
+      data: {
+        ...report,
+        canonicalLinkage: {
+          isDuplicate: false,
+          canonicalCase: null,
+          linkedBy: null,
+          linkBlockedReason,
+        },
+      },
+    }),
+  );
 }
 
 function reportsListResult(
@@ -1007,97 +1079,198 @@ describe("CaseReviewPage", () => {
     );
   });
 
-  it("keeps possible matching advisory and explicit linkage separate", async () => {
+  it("shows nearby matches at the top without opening any disclosure and compares side by side", async () => {
     const user = userEvent.setup();
-    const match = {
-      uuid: "canonical-report",
-      referenceCode: "CG-2026-0002",
-      submittedAt: "2026-07-20T10:00:00.000Z",
-      condition: "rust" as const,
-      distanceMeters: 12.4,
-      basis: ["same_condition", "nearby_location", "recent_submission"] as const,
-      message: "Possible recent match. Compare this case before deciding.",
-    };
-    const mutateAsync = vi.fn().mockResolvedValue(report);
-    vi.mocked(usePossibleRecentMatches).mockReturnValue(
-      possibleMatchesResult({
-        data: {
-          matches: [match],
-          message: "Possible recent matches found.",
-          possibleMatch: true,
-          canSubmit: true,
-          assessment: "condition_and_location",
-          recentWindowHours: 72,
-          locationRadiusMeters: 100,
-        },
-      }),
-    );
-    vi.mocked(useLinkDuplicateReport).mockReturnValue(
-      duplicateMutationResult({ mutateAsync }),
-    );
+    withNearbyMatches();
     renderPage();
 
-    await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
-    const modal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
-    expect(within(modal).getByText(/nothing is merged, deleted, or blocked automatically/i)).toBeInTheDocument();
-    await user.click(within(modal).getByRole("button", { name: "Use as canonical" }));
-    expect(within(modal).getByTestId("report-picker-selection")).toHaveTextContent("CG-2026-0002");
-    await user.type(
-      within(modal).getByLabelText(/^Link reason \(optional\)/),
-      " The cases may describe the same field observation. ",
-    );
-    await user.click(within(modal).getByRole("button", { name: "Link as possible duplicate" }));
+    const strip = screen.getByRole("region", { name: /1 similar case reported nearby within 72 hours/i });
+    expect(strip).toHaveTextContent("CG-2026-0002");
+    expect(strip).toHaveTextContent("24 m away");
+    expect(strip).toHaveTextContent("Possible Rust");
+    expect(strip).toHaveTextContent("Lumbangan");
+    expect(strip).toHaveTextContent("Jul 20, 2026, 6:00 PM");
+    expect(screen.getByText("Other case actions").closest("details")).not.toHaveAttribute("open");
+    // The strip sits above the evidence and the decision form.
+    const decision = screen.getByRole("form", { name: "Report Evidence Review" });
+    expect(strip.compareDocumentPosition(decision) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
-    expect(mutateAsync).toHaveBeenCalledWith({
-      canonicalReportUuid: "canonical-report",
-      reason: "The cases may describe the same field observation.",
-      expectedVersion: report.reviewVersion,
-    });
-    expect(await screen.findByText(/submitted record remains preserved/i)).toBeInTheDocument();
+    await user.click(within(strip).getByRole("button", { name: "Compare & link duplicate" }));
+
+    const modal = screen.getByRole("dialog", { name: "Compare with original case" });
+    const mine = within(modal).getByRole("region", { name: /^This case/ });
+    const original = within(modal).getByRole("region", { name: /^Original case/ });
+    expect(mine).toHaveTextContent(report.referenceCode);
+    expect(original).toHaveTextContent("CG-2026-0002");
+    expect(original).toHaveTextContent("Roberto Mendoza");
+    expect(original).toHaveTextContent("Lumbangan");
+    expect(original).toHaveTextContent("Rust");
+    expect(original).toHaveTextContent("Jul 20, 2026, 6:00 PM");
+    expect(original).toHaveTextContent("Elena Reyes");
+    expect(original).toHaveTextContent("Needs Review");
+    expect(original).toHaveTextContent("24 m away");
+    // Comparing never navigates away from the case under review.
+    expect(screen.getByRole("heading", { level: 1, name: report.referenceCode })).toBeInTheDocument();
   });
 
-  it("requires a canonical case before explicit linkage", async () => {
+  it("uses plain wording and never shows a raw case ID by default", async () => {
+    const user = userEvent.setup();
+    withNearbyMatches();
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Compare & link duplicate" }));
+    const modal = screen.getByRole("dialog", { name: "Compare with original case" });
+
+    expect(document.body).not.toHaveTextContent(/canonical/i);
+    expect(modal).not.toHaveTextContent("original-report");
+    expect(within(modal).queryByLabelText("Case reference")).not.toBeVisible();
+    expect(within(modal).getByText("Advanced: paste a case reference")).toBeInTheDocument();
+  });
+
+  it("hides the match strip for this page view when the reviewer says it is not a duplicate", async () => {
     const user = userEvent.setup();
     const mutateAsync = vi.fn();
-    vi.mocked(useLinkDuplicateReport).mockReturnValue(
-      duplicateMutationResult({ mutateAsync }),
-    );
+    vi.mocked(useLinkDuplicateReport).mockReturnValue(duplicateMutationResult({ mutateAsync }));
+    withNearbyMatches();
     renderPage();
 
-    await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
-    const modal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
+    await user.click(screen.getByRole("button", { name: "Not a duplicate" }));
 
+    expect(screen.queryByRole("region", { name: /similar case/i })).not.toBeInTheDocument();
+    expect(mutateAsync).not.toHaveBeenCalled();
+    // The Step-1 card still offers the comparison, with the match count.
+    expect(screen.getByRole("button", { name: /Mark as duplicate of an existing case/ })).toBeInTheDocument();
+  });
+
+  it("links without closing the duplicate case by default", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue(report);
+    vi.mocked(useLinkDuplicateReport).mockReturnValue(duplicateMutationResult({ mutateAsync }));
+    withNearbyMatches();
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Compare & link duplicate" }));
+    const modal = screen.getByRole("dialog", { name: "Compare with original case" });
+    await user.type(
+      within(modal).getByLabelText(/^Reason \(optional\)/),
+      " The cases may describe the same field observation. ",
+    );
+    expect(within(modal).getByRole("checkbox", { name: "Also close this duplicate case" })).not.toBeChecked();
+    await user.click(within(modal).getByRole("button", { name: "Link as duplicate of CG-2026-0002" }));
+
+    expect(mutateAsync).toHaveBeenCalledWith({
+      canonicalReportUuid: "original-report",
+      reason: "The cases may describe the same field observation.",
+      expectedVersion: report.reviewVersion,
+      closeDuplicate: false,
+    });
+    expect(screen.queryByRole("dialog", { name: "Compare with original case" })).not.toBeInTheDocument();
+    expect(await screen.findByText(/Marked as a duplicate of CG-2026-0002\. The submitted record remains preserved/)).toBeInTheDocument();
+  });
+
+  it("sends close_duplicate when the reviewer also closes the duplicate case", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue(report);
+    vi.mocked(useLinkDuplicateReport).mockReturnValue(duplicateMutationResult({ mutateAsync }));
+    withNearbyMatches();
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Compare & link duplicate" }));
+    const modal = screen.getByRole("dialog", { name: "Compare with original case" });
+    await user.click(within(modal).getByRole("checkbox", { name: "Also close this duplicate case" }));
+    await user.click(within(modal).getByRole("button", { name: "Link as duplicate of CG-2026-0002" }));
+
+    expect(mutateAsync).toHaveBeenCalledWith({
+      canonicalReportUuid: "original-report",
+      reason: undefined,
+      expectedVersion: report.reviewVersion,
+      closeDuplicate: true,
+    });
+    expect(await screen.findByText(/Marked as a duplicate of CG-2026-0002 and closed/)).toBeInTheDocument();
+  });
+
+  it("switches between nearby matches without leaving the comparison", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue(report);
+    vi.mocked(useLinkDuplicateReport).mockReturnValue(duplicateMutationResult({ mutateAsync }));
+    withNearbyMatches([
+      nearbyMatch(),
+      nearbyMatch({ uuid: "second-report", referenceCode: "CG-2026-0003", distanceMeters: 61, farmerOrFarmOwnerName: null }),
+    ]);
+    renderPage();
+
+    expect(screen.getByRole("region", { name: /2 similar cases reported nearby/i })).toHaveTextContent("+1 more");
+    await user.click(screen.getByRole("button", { name: "Compare & link duplicate" }));
+    const modal = screen.getByRole("dialog", { name: "Compare with original case" });
+    expect(within(modal).getByRole("radio", { name: /CG-2026-0002/ })).toBeChecked();
+
+    await user.click(within(modal).getByRole("radio", { name: /CG-2026-0003/ }));
+    expect(within(modal).getByRole("region", { name: /^Original case/ })).toHaveTextContent("Not provided");
+    await user.click(within(modal).getByRole("button", { name: "Link as duplicate of CG-2026-0003" }));
+
+    expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ canonicalReportUuid: "second-report" }));
+  });
+
+  it("opens the comparison from the Step-1 duplicate card without choosing a review action", async () => {
+    const user = userEvent.setup();
+    const reviewMutate = vi.fn();
+    vi.mocked(useUpdateReportReview).mockReturnValue(mutationResult({ mutateAsync: reviewMutate }));
+    withNearbyMatches();
+    renderPage();
+
+    const card = screen.getByRole("button", { name: /Mark as duplicate of an existing case/ });
+    expect(card).toHaveTextContent("1 nearby match");
+    await user.click(card);
+
+    expect(screen.getByRole("dialog", { name: "Compare with original case" })).toBeInTheDocument();
+    for (const radio of screen.getAllByRole("radio", { name: /Send someone|Provide Advisory|No Further Action/ })) {
+      expect(radio).not.toBeChecked();
+    }
+    expect(reviewMutate).not.toHaveBeenCalled();
+  });
+
+  it("offers the Step-1 duplicate card with no matches and a disabled link until a case is chosen", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn();
+    vi.mocked(useLinkDuplicateReport).mockReturnValue(duplicateMutationResult({ mutateAsync }));
+    renderPage();
+
+    expect(screen.queryByRole("region", { name: /similar case/i })).not.toBeInTheDocument();
+    const card = screen.getByRole("button", { name: /Mark as duplicate of an existing case/ });
+    expect(card).not.toHaveTextContent("nearby match");
+    await user.click(card);
+    const modal = screen.getByRole("dialog", { name: "Compare with original case" });
+
+    expect(within(modal).getByText("Choose an original case to compare.")).toBeInTheDocument();
     expect(within(modal).getByRole("combobox", { name: "Search cases" })).toBeInTheDocument();
-    await user.click(within(modal).getByRole("button", { name: "Link as possible duplicate" }));
-
-    expect(within(modal).getByText(/enter a canonical case ID/i)).toBeInTheDocument();
+    expect(within(modal).getByRole("button", { name: "Link as duplicate" })).toBeDisabled();
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
-  it("selects a duplicate link target from case search and renders the reference-code chip", async () => {
+  it("links to a case found by search and compares it first", async () => {
     const user = userEvent.setup();
-    const target = pickerReport();
-    vi.mocked(useReports).mockReturnValue(reportsListResult([target]));
+    vi.mocked(useReports).mockReturnValue(reportsListResult([pickerReport()]));
     const mutateAsync = vi.fn().mockResolvedValue(report);
-    vi.mocked(useLinkDuplicateReport).mockReturnValue(
-      duplicateMutationResult({ mutateAsync }),
-    );
+    vi.mocked(useLinkDuplicateReport).mockReturnValue(duplicateMutationResult({ mutateAsync }));
     renderPage();
 
-    await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
-    const modal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
+    await user.click(screen.getByRole("button", { name: /Mark as duplicate of an existing case/ }));
+    const modal = screen.getByRole("dialog", { name: "Compare with original case" });
     await user.click(within(modal).getByRole("combobox", { name: "Search cases" }));
     await user.click(await within(modal).findByRole("option", { name: /CG-2026-0007/ }));
 
-    expect(within(modal).getByTestId("report-picker-selection")).toHaveTextContent("CG-2026-0007");
-    await user.click(within(modal).getByRole("button", { name: "Link as possible duplicate" }));
+    const original = within(modal).getByRole("region", { name: /^Original case/ });
+    expect(original).toHaveTextContent("CG-2026-0007");
+    expect(original).toHaveTextContent("Pedro Search Farmer");
+    expect(original).toHaveTextContent("Mabini");
+    expect(modal).not.toHaveTextContent("target-report-uuid");
+    await user.click(within(modal).getByRole("button", { name: "Link as duplicate of CG-2026-0007" }));
 
     expect(mutateAsync).toHaveBeenCalledWith({
       canonicalReportUuid: "target-report-uuid",
       reason: undefined,
       expectedVersion: report.reviewVersion,
+      closeDuplicate: false,
     });
-    expect(await screen.findByText(/submitted record remains preserved/i)).toBeInTheDocument();
   });
 
   it("excludes the case under review from case search results", async () => {
@@ -1107,8 +1280,8 @@ describe("CaseReviewPage", () => {
     vi.mocked(useReports).mockReturnValue(reportsListResult([current, other]));
     renderPage();
 
-    await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
-    const modal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
+    await user.click(screen.getByRole("button", { name: /Mark as duplicate of an existing case/ }));
+    const modal = screen.getByRole("dialog", { name: "Compare with original case" });
     await user.click(within(modal).getByRole("combobox", { name: "Search cases" }));
 
     expect(await within(modal).findByRole("option", { name: /CG-2026-0007/ })).toBeInTheDocument();
@@ -1117,105 +1290,172 @@ describe("CaseReviewPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("links with a pasted case ID from the collapsed fallback", async () => {
+  it("links with a pasted case reference from the advanced fallback", async () => {
     const user = userEvent.setup();
     const mutateAsync = vi.fn().mockResolvedValue(report);
-    vi.mocked(useLinkDuplicateReport).mockReturnValue(
-      duplicateMutationResult({ mutateAsync }),
-    );
+    vi.mocked(useLinkDuplicateReport).mockReturnValue(duplicateMutationResult({ mutateAsync }));
     renderPage();
 
-    await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
-    const modal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
-    await user.click(within(modal).getByText("Paste a case ID instead"));
+    await user.click(screen.getByRole("button", { name: /Mark as duplicate of an existing case/ }));
+    const modal = screen.getByRole("dialog", { name: "Compare with original case" });
+    await user.click(within(modal).getByText("Advanced: paste a case reference"));
     await user.type(
-      within(modal).getByLabelText("Canonical case ID"),
+      within(modal).getByLabelText("Case reference"),
       "123e4567-e89b-12d3-a456-426614174000",
     );
-    await user.click(within(modal).getByRole("button", { name: "Link as possible duplicate" }));
+    await user.click(within(modal).getByRole("button", { name: "Link as duplicate" }));
 
     expect(mutateAsync).toHaveBeenCalledWith({
       canonicalReportUuid: "123e4567-e89b-12d3-a456-426614174000",
       reason: undefined,
       expectedVersion: report.reviewVersion,
+      closeDuplicate: false,
     });
   });
 
-  it("surfaces the server report error for duplicate linking", async () => {
+  it.each([
+    [409, undefined, /already linked to a different original case/i],
+    [422, { report: ["This case already has linked duplicates of its own."] }, /already has linked duplicates of its own/i],
+    [422, { case_state: ["Duplicate links can only be changed while a case is open."] }, /case is closed/i],
+    [423, undefined, /Another reviewer is reviewing this case, so it cannot be closed right now/i],
+    [403, undefined, /do not have permission to link duplicate cases/i],
+  ])("explains a %s link failure inline and keeps the comparison open", async (status, errors, message) => {
     const user = userEvent.setup();
+    withNearbyMatches();
     vi.mocked(useLinkDuplicateReport).mockReturnValue(
       duplicateMutationResult({
-        error: new ApiError("The duplicate could not be recorded.", {
-          status: 422,
-          errors: { report: ["This case already has linked duplicates of its own."] },
-        }),
+        error: new ApiError("The duplicate could not be recorded.", { status, errors }),
         isError: true,
       }),
     );
     renderPage();
 
-    await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
-    const modal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
-    expect(
-      within(modal).getByText("This case already has linked duplicates of its own."),
-    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Compare & link duplicate" }));
+    const modal = screen.getByRole("dialog", { name: "Compare with original case" });
+
+    expect(within(modal).getByRole("alert")).toHaveTextContent(message);
     expect(within(modal).queryByText(/service is unavailable/i)).not.toBeInTheDocument();
+    expect(within(modal).getByRole("region", { name: /^Original case/ })).toHaveTextContent("CG-2026-0002");
   });
 
-  it("keeps the reason field usable when case search is empty or unavailable", async () => {
+  it("offers a refresh after a stale-version conflict", async () => {
     const user = userEvent.setup();
-    vi.mocked(useReports).mockReturnValue(reportsListResult([]));
+    const refetch = vi.fn();
+    vi.mocked(useReport).mockReturnValue(queryResult({ refetch }));
+    withNearbyMatches();
+    vi.mocked(useLinkDuplicateReport).mockReturnValue(
+      duplicateMutationResult({ error: new ApiError("Conflict", { status: 409 }), isError: true }),
+    );
     renderPage();
 
-    await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
-    screen.getByRole("dialog", { name: "Link as possible duplicate" });
-    await user.click(screen.getByRole("combobox", { name: "Search cases" }));
-    expect(await screen.findByText(/No cases match this search/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Link reason \(optional\)/)).toBeInTheDocument();
-    await user.keyboard("{Escape}");
-    expect(screen.getByRole("dialog", { name: "Link as possible duplicate" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(screen.getByRole("button", { name: "Compare & link duplicate" }));
+    await user.click(within(screen.getByRole("dialog", { name: "Compare with original case" })).getByRole("button", { name: "Refresh case" }));
 
-    vi.mocked(useReports).mockReturnValue(
-      reportsListResult([], {
-        data: undefined,
-        error: new Error("offline"),
-        isError: true,
-      }),
-    );
-    await user.click(screen.getByRole("button", { name: "Link as possible duplicate" }));
-    screen.getByRole("dialog", { name: "Link as possible duplicate" });
-    await user.click(screen.getByRole("combobox", { name: "Search cases" }));
-    screen.getByRole("dialog", { name: "Link as possible duplicate" });
-    expect(await screen.findByText(/Case search is unavailable/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Link reason \(optional\)/)).toBeInTheDocument();
+    expect(refetch).toHaveBeenCalled();
   });
 
-  it("shows the preserved relationship after a case is linked", () => {
-    vi.mocked(useReport).mockReturnValue(
-      queryResult({
-        data: {
-          ...report,
-          canonicalLinkage: {
-            isDuplicate: true,
-            canonicalCase: {
-              uuid: "canonical-report",
-              referenceCode: "CG-2026-0002",
-              submittedAt: "2026-07-20T10:00:00.000Z",
-            },
-            linkedBy: { uuid: "reviewer-1", name: "Maria Reviewer" },
-            linkedAt: "2026-07-20T11:00:00.000Z",
-            reason: "The cases may describe the same field observation.",
-          },
-        },
-      }),
+  it("closes the comparison with Escape and returns focus to the control that opened it", async () => {
+    const user = userEvent.setup();
+    withNearbyMatches();
+    renderPage();
+
+    const compare = screen.getByRole("button", { name: "Compare & link duplicate" });
+    await user.click(compare);
+    expect(screen.getByRole("dialog", { name: "Compare with original case" })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog", { name: "Compare with original case" })).not.toBeInTheDocument();
+    expect(compare).toHaveFocus();
+  });
+
+  it("keeps Tab focus inside the comparison", async () => {
+    const user = userEvent.setup();
+    withNearbyMatches();
+    renderPage();
+    await user.click(screen.getByRole("button", { name: "Compare & link duplicate" }));
+    const modal = screen.getByRole("dialog", { name: "Compare with original case" });
+
+    for (let step = 0; step < 24; step += 1) {
+      await user.tab();
+      expect(modal).toContainElement(document.activeElement as HTMLElement);
+    }
+    for (let step = 0; step < 24; step += 1) {
+      await user.tab({ shift: true });
+      expect(modal).toContainElement(document.activeElement as HTMLElement);
+    }
+  });
+
+  it("shows the linked banner at the top with the original case link and removes the link", async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue(report);
+    vi.mocked(useUnlinkDuplicateReport).mockReturnValue(duplicateUnlinkMutationResult({ mutateAsync }));
+    withNearbyMatches();
+    withLinkage();
+    renderPage();
+
+    const banner = screen.getByRole("status", { name: /Marked as duplicate of CG-2026-0002/ });
+    expect(within(banner).getByRole("link", { name: "CG-2026-0002" })).toHaveAttribute("href", "/reports/original-report");
+    expect(banner).toHaveTextContent("Linked by Maria Reviewer · Jul 20, 2026, 7:00 PM");
+    expect(banner).toHaveTextContent("Reason: The cases may describe the same field observation.");
+    expect(banner).not.toHaveTextContent(/canonical/i);
+    // The banner replaces the match strip, the Step-1 card, and the bottom-disclosure summary.
+    expect(screen.queryByRole("region", { name: /similar case/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Mark as duplicate of an existing case/ })).not.toBeInTheDocument();
+    expect(screen.queryByText("Linked as a possible duplicate")).not.toBeInTheDocument();
+    const decision = screen.getByRole("form", { name: "Report Evidence Review" });
+    expect(banner.compareDocumentPosition(decision) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    await user.click(within(banner).getByRole("button", { name: "Remove duplicate link" }));
+
+    expect(mutateAsync).toHaveBeenCalledWith({ expectedVersion: report.reviewVersion });
+    expect(await screen.findByText(/Duplicate link removed\. The submitted record remains preserved/)).toBeInTheDocument();
+  });
+
+  it("explains a failed link removal inside the banner", () => {
+    withLinkage();
+    vi.mocked(useUnlinkDuplicateReport).mockReturnValue(
+      duplicateUnlinkMutationResult({ error: new ApiError("Blocked", { status: 422 }), isError: true }),
     );
     renderPage();
 
-    expect(screen.getByText("Linked as a possible duplicate")).toBeInTheDocument();
-    expect(screen.getByText(/Canonical case CG-2026-0002/)).toBeInTheDocument();
-    expect(screen.getByText(/submitted record and its audit history remain preserved/i)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Link as possible duplicate" })).not.toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(/cannot be removed while the case is closed or its field visit is completed/i);
+  });
+
+  it.each([
+    ["closed" as const, /This case is closed\. Reopen it to change duplicate links\./],
+    ["visit_completed" as const, /field visit is completed, so duplicate links can no longer change/],
+  ])("disables linking upfront when the server reports %s", async (reason, message) => {
+    const user = userEvent.setup();
+    withNearbyMatches();
+    withBlockedReason(reason);
+    renderPage();
+
+    const strip = screen.getByRole("region", { name: /similar case/i });
+    expect(within(strip).getByRole("button", { name: "Compare & link duplicate" })).toBeDisabled();
+    expect(strip).toHaveTextContent(message);
+    const card = screen.getByRole("button", { name: /Mark as duplicate of an existing case/ });
+    expect(card).toBeDisabled();
+    expect(card).toHaveTextContent(message);
+    await user.click(card);
+    expect(screen.queryByRole("dialog", { name: "Compare with original case" })).not.toBeInTheDocument();
+  });
+
+  it("disables linking upfront while another reviewer holds the case", () => {
+    vi.mocked(useReviewClaim).mockReturnValue({ refused: true, takeOver: () => Promise.resolve(), release: () => Promise.resolve() });
+    withNearbyMatches();
+    renderPage();
+
+    expect(screen.getByRole("button", { name: "Compare & link duplicate" })).toBeDisabled();
+    expect(screen.getByRole("region", { name: /similar case/i })).toHaveTextContent(/Another reviewer is reviewing this case\. Linking is unavailable/);
+    expect(screen.getByRole("button", { name: /Mark as duplicate of an existing case/ })).toBeDisabled();
+  });
+
+  it("disables removing a link once the case is closed", () => {
+    withLinkage({ linkBlockedReason: "closed" });
+    renderPage();
+
+    expect(screen.getByRole("button", { name: "Remove duplicate link" })).toBeDisabled();
+    expect(screen.getByRole("status", { name: /Marked as duplicate/ })).toHaveTextContent(/This case is closed\. Reopen it to change duplicate links/);
   });
 
   it("can remove a preserved duplicate relationship with the current version", async () => {
@@ -1707,8 +1947,9 @@ describe("CaseReviewPage", () => {
   });
 
 
-  it("keeps duplicate linking and case information correction under Other case actions", async () => {
+  it("keeps only case information correction under Other case actions", async () => {
     const user = userEvent.setup();
+    withNearbyMatches();
     renderPage();
     await chooseAdvisory(user);
     await user.click(screen.getByRole("button", { name: "Next" }));
@@ -1717,29 +1958,16 @@ describe("CaseReviewPage", () => {
     expect(moreActions.closest("details")).toBeInTheDocument();
     const decision = screen.getByRole("region", { name: "Review Summary" });
     expect(
-      within(decision).queryByRole("button", { name: "Link as possible duplicate" }),
-    ).not.toBeInTheDocument();
-    expect(
       within(decision).queryByRole("button", { name: "Correct case information" }),
     ).not.toBeInTheDocument();
     expect(
-      within(moreActions).getByRole("button", { name: "Link as possible duplicate" }),
-    ).toBeInTheDocument();
-    expect(
       within(moreActions).getByRole("button", { name: "Correct case information" }),
     ).toBeInTheDocument();
+    // Duplicate linking moved to the top strip, the Step-1 card and the linked banner.
+    expect(within(moreActions).queryByRole("button", { name: /duplicate/i })).not.toBeInTheDocument();
+    expect(within(moreActions).queryByText(/duplicate/i)).not.toBeInTheDocument();
 
-    expect(screen.queryByLabelText(/Search cases/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Farmer or farm owner")).not.toBeInTheDocument();
-
-    await user.click(within(moreActions).getByRole("button", { name: "Link as possible duplicate" }));
-    const dupModal = screen.getByRole("dialog", { name: "Link as possible duplicate" });
-    expect(within(dupModal).getByLabelText(/Search cases/i)).toBeInTheDocument();
-    expect(within(dupModal).getByText("Paste a case ID instead")).toBeInTheDocument();
-    await user.click(within(dupModal).getByRole("button", { name: "Cancel" }));
-    expect(screen.queryByRole("dialog", { name: "Link as possible duplicate" })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/Search cases/i)).not.toBeInTheDocument();
-
     await user.click(within(moreActions).getByRole("button", { name: "Correct case information" }));
     const metaModal = screen.getByRole("dialog", { name: "Correct case information" });
     expect(within(metaModal).getByLabelText("Farmer or farm owner")).toBeInTheDocument();

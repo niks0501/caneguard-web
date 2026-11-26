@@ -88,4 +88,78 @@ describe("mock review persistence", () => {
     expect(unlinked.canonicalLinkage?.isDuplicate).toBe(false);
     expect(unlinked.reviewVersion).toBe((linked.reviewVersion ?? 0) + 1);
   });
+
+  it("offers realistic nearby matches in demo mode and omits a candidate that is already a duplicate", async () => {
+    const repository = new MockReportsRepository();
+    const reports = (await repository.listReports()).reports;
+    const first = reports.find((report) => report.referenceCode === "CG-2026-0718")!;
+
+    const result = await repository.getPossibleRecentMatches(first.uuid);
+
+    expect(result.possibleMatch).toBe(true);
+    expect(result.matches.map((match) => match.referenceCode)).toEqual(["CG-2026-0714", "CG-2026-0706"]);
+    expect(result.matches[0]).toMatchObject({
+      barangay: expect.any(String),
+      farmerOrFarmOwnerName: "R. Mendoza",
+      workflowStatus: "needs_review",
+      imageStatus: "missing",
+    });
+    expect(result.matches[1].workflowStatus).toBe("resolved");
+
+    const noMatches = await repository.getPossibleRecentMatches(reports.find((report) => report.referenceCode === "CG-2026-0717")!.uuid);
+    expect(noMatches.matches).toEqual([]);
+    expect(noMatches.possibleMatch).toBe(false);
+
+    await repository.linkDuplicate(result.matches[0].uuid, {
+      canonicalReportUuid: first.uuid,
+      expectedVersion: (await repository.getReportById(result.matches[0].uuid))!.reviewVersion ?? 0,
+    });
+    const afterLink = await repository.getPossibleRecentMatches(first.uuid);
+    expect(afterLink.matches.map((match) => match.referenceCode)).toEqual(["CG-2026-0706"]);
+
+    // The mock store is shared across this file's tests; leave it as found.
+    await repository.unlinkDuplicate(result.matches[0].uuid, {
+      expectedVersion: (await repository.getReportById(result.matches[0].uuid))!.reviewVersion ?? 0,
+    });
+  });
+
+  it("links without closing by default and closes the duplicate case in one save when asked", async () => {
+    const repository = new MockReportsRepository();
+    const reports = (await repository.listReports()).reports;
+    const open = reports.find((report) => report.referenceCode === "CG-2026-0717")!;
+    const original = reports.find((report) => report.referenceCode === "CG-2026-0718")!;
+
+    const closed = await repository.linkDuplicate(open.uuid, {
+      canonicalReportUuid: original.uuid,
+      expectedVersion: open.reviewVersion ?? 0,
+      closeDuplicate: true,
+    });
+
+    expect(closed.lifecycle?.caseState).toBe("closed");
+    expect(closed.canonicalLinkage?.linkBlockedReason).toBe("closed");
+    expect(closed.reviewVersion).toBe((open.reviewVersion ?? 0) + 1);
+    await expect(repository.unlinkDuplicate(open.uuid, {
+      expectedVersion: closed.reviewVersion ?? 0,
+    })).rejects.toMatchObject({ status: 422 });
+
+    const other = (await repository.listReports()).reports.find((report) => report.referenceCode === "CG-2026-0709")!;
+    const kept = await repository.linkDuplicate(other.uuid, {
+      canonicalReportUuid: original.uuid,
+      expectedVersion: other.reviewVersion ?? 0,
+    });
+    expect(kept.lifecycle?.caseState).toBe("open");
+    expect(kept.canonicalLinkage?.linkBlockedReason).toBeNull();
+  });
+
+  it("rejects linking a closed case or one with a completed visit, as the server guard does", async () => {
+    const repository = new MockReportsRepository();
+    const reports = (await repository.listReports()).reports;
+    const closedCase = reports.find((report) => report.lifecycle?.caseState === "closed")!;
+    const original = reports.find((report) => report.lifecycle?.caseState === "open")!;
+
+    await expect(repository.linkDuplicate(closedCase.uuid, {
+      canonicalReportUuid: original.uuid,
+      expectedVersion: closedCase.reviewVersion ?? 0,
+    })).rejects.toMatchObject({ status: 422, errors: { case_state: expect.any(Array) } });
+  });
 });

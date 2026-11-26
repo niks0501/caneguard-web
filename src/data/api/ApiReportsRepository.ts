@@ -305,6 +305,8 @@ export class ApiReportsRepository implements ReportsRepository {
         canonical_report_uuid: input.canonicalReportUuid,
         reason: input.reason?.trim() || undefined,
         expected_version: input.expectedVersion,
+        // Omitted unless set: linking stays non-destructive by default.
+        close_duplicate: input.closeDuplicate ? true : undefined,
       },
     );
 

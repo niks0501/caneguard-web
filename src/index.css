@@ -5166,86 +5166,6 @@ textarea:focus-visible {
   line-height: 1.5;
 }
 
-.duplicate-link-card {
-  border-top: 4px solid var(--color-accent-dark);
-  background: var(--color-surface-soft);
-}
-
-.duplicate-link-card .section-heading > svg {
-  color: var(--color-accent-dark);
-}
-
-.duplicate-linkage-summary {
-  display: grid;
-  gap: 8px;
-  padding: 14px;
-  border: 1px solid var(--color-primary-light);
-  border-radius: var(--radius-sm);
-  background: var(--color-primary-tint);
-}
-
-.duplicate-linkage-summary strong {
-  color: var(--color-primary-dark);
-}
-
-.duplicate-linkage-summary p,
-.duplicate-linkage-summary small,
-.possible-match-list small,
-.duplicate-link-status {
-  color: var(--color-muted);
-  font-size: var(--text-body-sm);
-  line-height: 1.5;
-}
-
-.duplicate-linkage-summary a,
-.possible-match-list a {
-  color: var(--color-primary-dark);
-  font-weight: 700;
-}
-
-.possible-match-list {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.possible-match-list li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 11px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-}
-
-.possible-match-list li > div {
-  display: grid;
-  gap: 3px;
-  min-width: 0;
-}
-
-.possible-match-list .button {
-  flex: 0 0 auto;
-  min-height: 34px;
-  padding: 7px 10px;
-  font-size: var(--text-body-sm);
-}
-
-.duplicate-link-card > .select-filter,
-.duplicate-link-card > .text-area {
-  margin-top: 12px;
-}
-
-.duplicate-link-card > .button {
-  width: 100%;
-  min-height: 43px;
-  margin-top: 14px;
-}
-
 .report-picker {
   position: relative;
   margin-top: 12px;
@@ -5591,16 +5511,7 @@ body {
 
 
 
-  .possible-match-list li {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
   .report-picker-chip .button {
-    width: 100%;
-  }
-
-  .possible-match-list .button {
     width: 100%;
   }
 
@@ -5755,16 +5666,6 @@ body {
 .case-confirmation small {
   color: var(--color-muted);
   font-size: var(--text-body-sm);
-}
-
-.more-actions .duplicate-link-card {
-  padding: 0;
-  background: none;
-  border: 0;
-}
-
-.more-actions .duplicate-link-card .section-heading {
-  margin-bottom: 12px;
 }
 
 @media (max-width: 900px) {

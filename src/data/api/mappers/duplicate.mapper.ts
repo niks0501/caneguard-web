@@ -2,6 +2,8 @@ import type {
   PossibleRecentMatch,
   PossibleRecentMatches,
 } from "../../../domain/report.types";
+import { env } from "../../../config/env";
+import { resolveReportImageUrl } from "./report.mapper";
 import type {
   PossibleRecentMatchesResponseDto,
   PossibleRecentMatchDto,
@@ -18,6 +20,12 @@ export function mapPossibleRecentMatch(
     distanceMeters: dto.match.distance_meters,
     basis: dto.match.basis,
     message: dto.message,
+    barangay: dto.case.barangay,
+    farmerOrFarmOwnerName: dto.case.farmer_or_farm_owner_name,
+    submittedByName: dto.case.submitted_by_name,
+    workflowStatus: dto.case.workflow_status,
+    imageUrl: resolveReportImageUrl(dto.case.image_url, env.apiBaseUrl) ?? null,
+    imageStatus: dto.case.image_status,
   };
 }
 

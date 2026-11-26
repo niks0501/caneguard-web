@@ -7,6 +7,7 @@ import type {
   Advisory,
   DiseaseReport,
   PaginatedReports,
+  PossibleRecentMatch,
   PossibleRecentMatches,
   ReportFilters,
   ReportReviewEvent,
@@ -24,6 +25,7 @@ import {
   legacyLifecycleForReviewStatus,
   legacyReviewStatusForLifecycle,
 } from "../api/mappers/lifecycle.mapper";
+import { duplicateLinkBlockedReason } from "../../domain/duplicateLink";
 import { isCanonicalWorkReport, isInOperationalQueue } from "./mockOperationalQueues";
 import { cloneMockReport, mockReportStore } from "./mockReportStore";
 
@@ -60,6 +62,40 @@ function reportersForMockAssignment(uuid: string) {
   return {
     uuid,
     name: "Field Inspector",
+  };
+}
+
+// Demo-mode nearby matches: fixed pairs of mock cases with the server-style
+// distance, so the strip, the comparison and the linked banner can be tried
+// without the API. The candidate details come from the same mock store.
+const mockNearbyMatches: Record<string, { uuid: string; distanceMeters: number }[]> = {
+  "00000000-0000-4000-8000-000000000001": [
+    { uuid: "00000000-0000-4000-8000-000000000004", distanceMeters: 38.2 },
+    { uuid: "00000000-0000-4000-8000-000000000008", distanceMeters: 86.5 },
+  ],
+  "00000000-0000-4000-8000-000000000003": [
+    { uuid: "00000000-0000-4000-8000-000000000007", distanceMeters: 24.1 },
+  ],
+  "00000000-0000-4000-8000-000000000007": [
+    { uuid: "00000000-0000-4000-8000-000000000003", distanceMeters: 24.1 },
+  ],
+};
+
+function mockPossibleMatch(candidate: DiseaseReport, distanceMeters: number): PossibleRecentMatch {
+  return {
+    uuid: candidate.uuid,
+    referenceCode: candidate.referenceCode,
+    submittedAt: candidate.submittedAt,
+    condition: candidate.predictedDisease ?? "healthy",
+    distanceMeters,
+    basis: ["same_condition", "nearby_location", "recent_submission"],
+    message: "Possible recent match. Compare this case before deciding.",
+    barangay: candidate.barangay,
+    farmerOrFarmOwnerName: candidate.farmerOrFarmOwnerName ?? null,
+    submittedByName: candidate.submittedByName,
+    workflowStatus: deriveWorkflowStatus(candidate),
+    imageUrl: candidate.imageStatus === "available" ? candidate.imageUrl ?? null : null,
+    imageStatus: candidate.imageStatus === "available" ? "available" : "missing",
   };
 }
 
@@ -254,13 +290,23 @@ export class MockReportsRepository implements ReportsRepository {
     return { firstReviewedAt: report.firstReviewedAt ?? null };
   }
 
-  async getPossibleRecentMatches(): Promise<PossibleRecentMatches> {
+  async getPossibleRecentMatches(reportId: string): Promise<PossibleRecentMatches> {
+    const matches = (mockNearbyMatches[reportId] ?? []).flatMap(({ uuid, distanceMeters }) => {
+      const candidate = this.reports.find((report) => report.uuid === uuid);
+      // A candidate already linked as someone's duplicate is not an original case.
+      return candidate && !candidate.canonicalLinkage?.isDuplicate
+        ? [mockPossibleMatch(candidate, distanceMeters)]
+        : [];
+    });
+
     return {
-      matches: [],
-      message: "No possible recent match was found for this case.",
-      possibleMatch: false,
+      matches,
+      message: matches.length
+        ? "Possible recent matches found. You can still submit a new case."
+        : "No possible recent match was found for this case.",
+      possibleMatch: matches.length > 0,
       canSubmit: true,
-      assessment: "location_unavailable",
+      assessment: "condition_and_location",
       recentWindowHours: 72,
       locationRadiusMeters: 100,
     };
@@ -406,10 +452,31 @@ export class MockReportsRepository implements ReportsRepository {
     if (current.canonicalLinkage?.isDuplicate) {
       return cloneMockReport(current);
     }
+    const blockedReason = duplicateLinkBlockedReason(current);
+    if (blockedReason) {
+      throw new ApiError("Duplicate links can only be changed while a case is open.", {
+        status: 422,
+        errors: blockedReason === "closed"
+          ? { case_state: ["Duplicate links can only be changed while a case is open."] }
+          : { field_validation_state: ["Duplicate links cannot be changed after field evidence is completed."] },
+      });
+    }
 
     const now = new Date().toISOString();
+    const currentLifecycle = current.lifecycle ?? legacyLifecycleForReviewStatus(current.reviewStatus);
+    const nextLifecycle = input.closeDuplicate
+      ? { ...currentLifecycle, caseState: "closed" as const }
+      : currentLifecycle;
     const updated: DiseaseReport = {
       ...current,
+      ...(input.closeDuplicate
+        ? {
+            lifecycle: nextLifecycle,
+            reviewStatus: legacyReviewStatusForLifecycle(nextLifecycle),
+            reviewedAt: now,
+            reviewedBy: "Maria Santos",
+          }
+        : {}),
       canonicalLinkage: {
         isDuplicate: true,
         canonicalCase: {
@@ -423,6 +490,7 @@ export class MockReportsRepository implements ReportsRepository {
         },
         linkedAt: now,
         reason: input.reason?.trim() || "Possible duplicate linkage recorded after authorized review.",
+        linkBlockedReason: input.closeDuplicate ? "closed" : null,
       },
       reviewVersion: (current.reviewVersion ?? 0) + 1,
       updatedAt: now,
@@ -499,6 +567,9 @@ export class MockReportsRepository implements ReportsRepository {
     if (!current.canonicalLinkage?.isDuplicate) {
       return cloneMockReport(current);
     }
+    if (duplicateLinkBlockedReason(current)) {
+      throw new ApiError("Duplicate links can only be changed while a case is open.", { status: 422 });
+    }
 
     const updated: DiseaseReport = {
       ...current,
@@ -509,6 +580,7 @@ export class MockReportsRepository implements ReportsRepository {
         linkedBy: null,
         linkedAt: undefined,
         reason: undefined,
+        linkBlockedReason: null,
       },
       reviewVersion: (current.reviewVersion ?? 0) + 1,
       updatedAt: new Date().toISOString(),

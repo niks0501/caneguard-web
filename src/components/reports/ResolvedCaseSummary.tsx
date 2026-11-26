@@ -28,8 +28,8 @@ export function ResolvedCaseSummary({ report, onReopen }: { report: DiseaseRepor
           <p>{reviewer} · {stamp(report.reviewedAt)}</p>
         </div>
         <div className="resolved-summary__actions">
-          <Button type="button" variant="secondary" onClick={() => window.print()}><Printer aria-hidden="true" />Print</Button>
-          <Button type="button" onClick={onReopen}><RotateCcw aria-hidden="true" />Reopen…</Button>
+          <Button type="button" variant="secondary" icon={<Printer aria-hidden="true" />} onClick={() => window.print()}>Print</Button>
+          <Button type="button" icon={<RotateCcw aria-hidden="true" />} onClick={onReopen}>Reopen…</Button>
         </div>
       </div>
       <ol className="resolved-summary__timeline" aria-label="Case timeline">

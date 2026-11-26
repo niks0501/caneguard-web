@@ -16,6 +16,8 @@ interface ReportPickerProps {
   excludeUuid?: string;
   value: ReportPickerSelection | null;
   onSelect: (selection: ReportPickerSelection | null) => void;
+  /** Also hands over the whole chosen case, for callers that compare it. */
+  onSelectReport?: (report: DiseaseReport) => void;
   disabled?: boolean;
 }
 
@@ -28,7 +30,13 @@ function contactName(report: DiseaseReport): string {
  * selecting a case from the register (reference code, farmer/farm, barangay,
  * or reporter name); the UUID never appears as the primary label.
  */
-export function ReportPicker({ excludeUuid, value, onSelect, disabled = false }: ReportPickerProps) {
+export function ReportPicker({
+  excludeUuid,
+  value,
+  onSelect,
+  onSelectReport,
+  disabled = false,
+}: ReportPickerProps) {
   const inputId = useId();
   const listboxId = useId();
   const [search, setSearch] = useState("");
@@ -50,6 +58,7 @@ export function ReportPicker({ excludeUuid, value, onSelect, disabled = false }:
 
   const selectReport = (report: DiseaseReport) => {
     onSelect({ uuid: report.uuid, label: buildReportPickerLabel(report) });
+    onSelectReport?.(report);
     setSearch("");
     setListOpen(false);
     setActiveIndex(-1);

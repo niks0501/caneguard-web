@@ -200,6 +200,9 @@ export type PossibleMatchAssessment =
   | "condition_and_location"
   | "location_unavailable";
 
+/** Whether a candidate's stored photo can be shown; `none` means no photo was submitted. */
+export type PossibleMatchImageStatus = "available" | "missing" | "none";
+
 export interface PossibleRecentMatch {
   uuid: string;
   referenceCode: string;
@@ -208,6 +211,12 @@ export interface PossibleRecentMatch {
   distanceMeters: number;
   basis: PossibleMatchBasis[];
   message: string;
+  barangay: string;
+  farmerOrFarmOwnerName: string | null;
+  submittedByName: string | null;
+  workflowStatus: WorkflowStatus;
+  imageUrl: string | null;
+  imageStatus: PossibleMatchImageStatus;
 }
 
 export interface PossibleRecentMatches {
@@ -220,6 +229,9 @@ export interface PossibleRecentMatches {
   locationRadiusMeters: number;
 }
 
+/** Why a case's duplicate link cannot change right now (server guard). */
+export type DuplicateLinkBlockedReason = "closed" | "visit_completed";
+
 export interface CanonicalCaseLink {
   isDuplicate: boolean;
   canonicalCase: {
@@ -230,7 +242,8 @@ export interface CanonicalCaseLink {
   linkedBy: { uuid: string; name: string } | null;
   linkedAt?: string;
   reason?: string;
-
+  /** Absent on older payloads and mock data; `null` means linking can change. */
+  linkBlockedReason?: DuplicateLinkBlockedReason | null;
 }
 
 export interface FieldValidationCompletion {

@@ -80,6 +80,21 @@ describe("ReportPicker", () => {
     });
   });
 
+  it("also hands over the whole chosen case for callers that compare it", async () => {
+    const user = userEvent.setup();
+    const target = pickerReport();
+    vi.mocked(useReports).mockReturnValue(listResult([target]));
+    const onSelect = vi.fn();
+    const onSelectReport = vi.fn();
+    render(<ReportPicker value={null} onSelect={onSelect} onSelectReport={onSelectReport} />);
+
+    await user.click(screen.getByRole("combobox", { name: "Search cases" }));
+    await user.click(await screen.findByRole("option", { name: /CG-2026-0007/ }));
+
+    expect(onSelectReport).toHaveBeenCalledWith(target);
+    expect(onSelect).toHaveBeenCalledWith({ uuid: target.uuid, label: expect.stringContaining("CG-2026-0007") });
+  });
+
   it("selects a case with the keyboard and renders the reference-code chip", async () => {
     const user = userEvent.setup();
     const target = pickerReport();

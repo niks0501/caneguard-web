@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CircleCheckBig, HandHelping, MapPinned, type LucideIcon } from "lucide-react";
+import { CircleCheckBig, GitBranch, HandHelping, MapPinned, type LucideIcon } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { ZodError } from "zod";
 import { ApiError } from "../../api/ApiError";
@@ -52,10 +52,16 @@ const actions: { value: NextAction; label: string; consequence: string; icon: Lu
   { value: "close", icon: CircleCheckBig, label: "No Further Action", consequence: "The case is closed." },
 ];
 
-export function ReviewDecisionForm({ report, onRefresh, locked = false }: {
+export function ReviewDecisionForm({ report, onRefresh, locked = false, onMarkDuplicate, duplicateMatchCount = 0, duplicateBlockedMessage = null }: {
   report: DiseaseReport;
   /** Another reviewer holds the case: keep the form visible but inert. */
   locked?: boolean;
+  /** Opens the duplicate comparison. The card is not a review choice and never joins the saved decision. */
+  onMarkDuplicate?: () => void;
+  /** Nearby matches found for this case; shown as a chip on the duplicate card. */
+  duplicateMatchCount?: number;
+  /** Why linking is unavailable right now; disables the duplicate card. */
+  duplicateBlockedMessage?: string | null;
   onRefresh: () => Promise<{ data?: DiseaseReport | null; isError?: boolean }> | void;
 }) {
   const [reconciledReport, setReconciledReport] = useState<DiseaseReport | null>(null);
@@ -449,7 +455,15 @@ export function ReviewDecisionForm({ report, onRefresh, locked = false }: {
             disabled={item.value === "field" && completedValidation}
             onChange={() => { setAction(item.value); if (item.value === "field") setVerification("not_determined"); setClosedConfirmed(false); setReopenConfirmed(false); changed(); }} />
           <span className="review-action-pill__text"><strong id={`next-action-${item.value}-label`}><item.icon aria-hidden="true" size={16} />{item.label}</strong><small id={`next-action-${item.value}-consequence`}>{item.consequence}</small></span>
-        </label>)}</div>
+        </label>)}
+        {onMarkDuplicate ? <button type="button" className="review-action-pill review-action-pill--duplicate"
+          disabled={Boolean(duplicateBlockedMessage)} aria-describedby="duplicate-action-consequence" onClick={onMarkDuplicate}>
+          <span className="review-action-pill__text">
+            <strong><span className="review-action-pill__title"><GitBranch aria-hidden="true" size={16} />Mark as duplicate of an existing case</span>
+              {duplicateMatchCount > 0 ? <span className="review-action-pill__chip">{duplicateMatchCount === 1 ? "1 nearby match" : `${duplicateMatchCount} nearby matches`}</span> : null}</strong>
+            <small id="duplicate-action-consequence">{duplicateBlockedMessage ?? "Link to the original case without deleting or merging submitted evidence."}</small>
+          </span>
+        </button> : null}</div>
       </fieldset>{error("action")}
       {consequence ? <p className="review-consequence" role="status">{consequence}</p> : null}
     </section>
