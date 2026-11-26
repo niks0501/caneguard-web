@@ -99,6 +99,33 @@ class FarmerBroadcastTest extends TestCase
         $this->assertSame(0, FarmerAdvisoryBroadcast::query()->count());
     }
 
+    public function test_archiving_an_advisory_keeps_its_broadcast_readable_to_the_office_and_off_the_phone(): void
+    {
+        $this->office();
+        $advisory = Advisory::factory()->validated()->create();
+        $uuid = $this->postJson('/api/v1/farmer-broadcasts', $this->payload($advisory))->assertCreated()->json('data.uuid');
+        [, $aga] = $this->farmerToken('Aga');
+        $this->office();
+
+        // The restrictOnDelete key never fires: a referenced advisory is archived, not removed.
+        $this->deleteJson("/api/v1/advisories/{$advisory->uuid}")
+            ->assertOk()
+            ->assertExactJson(['data' => ['uuid' => $advisory->uuid, 'deleted' => 'archived']]);
+        $this->assertSoftDeleted('advisories', ['id' => $advisory->getKey()]);
+        $this->assertSame(1, FarmerAdvisoryBroadcast::query()->count());
+
+        $this->getJson('/api/v1/farmer-broadcasts')->assertOk()
+            ->assertJsonPath('data.0.uuid', $uuid)
+            ->assertJsonPath('data.0.advisory.uuid', $advisory->uuid)
+            ->assertJsonPath('data.0.advisory.title', $advisory->title)
+            ->assertJsonPath('data.0.live', false);
+        $this->postJson("/api/v1/farmer-broadcasts/{$uuid}/retire")->assertOk()->assertJsonPath('data.advisory.code', $advisory->code);
+        $this->postJson('/api/v1/farmer-broadcasts', $this->payload($advisory))
+            ->assertUnprocessable()->assertJsonPath('errors.advisory_uuid.0', Advisory::REMOVED_FROM_LIBRARY_MESSAGE);
+
+        $this->assertSame([], $this->asToken($aga)->getJson('/api/v1/mobile/farmer/advisories')->assertOk()->json('data'));
+    }
+
     public function test_a_farmer_reads_guidance_for_their_home_barangay_in_both_languages(): void
     {
         $this->office();

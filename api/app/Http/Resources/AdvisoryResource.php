@@ -16,6 +16,7 @@ class AdvisoryResource extends JsonResource
             'code' => $this->code,
             'title' => $this->title,
             'content' => $this->content,
+            'category' => $this->category,
             'status' => $this->status,
             'validation_provenance' => $this->validation_provenance,
             'validated_by' => $this->when($this->relationLoaded('validatedBy'), fn () => $this->validatedBy ? [

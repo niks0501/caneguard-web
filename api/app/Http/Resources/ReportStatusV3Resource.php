@@ -25,8 +25,9 @@ class ReportStatusV3Resource extends JsonResource
             'advisory' => $advisory ? [
                 'uuid' => $advisory->uuid,
                 'code' => $advisory->code,
-                'title' => $advisory->title,
-                'content' => $advisory->content,
+                // The wording sent to the reporter; later library edits never rewrite it.
+                'title' => $this->advisory_title_snapshot ?? $advisory->title,
+                'content' => $this->advisory_content_snapshot ?? $advisory->content,
                 'status' => $advisory->status,
                 'selected_at' => $this->advisory_selected_at?->utc()->toISOString(),
                 'delivery_state' => $this->advisory_delivery_state,

@@ -152,8 +152,13 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'access.identity', 'verified'])
             ->name('api.v1.advisories.store');
         Route::get('/advisories/{advisory}', [AdvisoryController::class, 'show'])
             ->name('api.v1.advisories.show');
+        // Resolved with archived rows so editing or deleting one answers a clear 422 or an idempotent 200, not a 404.
         Route::patch('/advisories/{advisory}', [AdvisoryController::class, 'update'])
+            ->withTrashed()
             ->name('api.v1.advisories.update');
+        Route::delete('/advisories/{advisory}', [AdvisoryController::class, 'destroy'])
+            ->withTrashed()
+            ->name('api.v1.advisories.destroy');
         Route::post('/advisories/{advisory}/validate', [AdvisoryController::class, 'validate'])
             ->name('api.v1.advisories.validate');
         Route::post('/advisories/{advisory}/retire', [AdvisoryController::class, 'retire'])

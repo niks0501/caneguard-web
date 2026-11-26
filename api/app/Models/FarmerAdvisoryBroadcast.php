@@ -29,7 +29,8 @@ class FarmerAdvisoryBroadcast extends Model
     /** @return BelongsTo<Advisory, $this> */
     public function advisory(): BelongsTo
     {
-        return $this->belongsTo(Advisory::class);
+        // Archived advisories stay readable so the office can still see what was broadcast.
+        return $this->belongsTo(Advisory::class)->withTrashed();
     }
 
     /** @return BelongsTo<User, $this> */
@@ -40,20 +41,22 @@ class FarmerAdvisoryBroadcast extends Model
 
     /**
      * What farmers may see: not withdrawn, not expired, and still built on a
-     * validated advisory, so retiring an advisory hides its broadcasts at once.
+     * validated, library-resident advisory, so retiring or archiving an advisory
+     * hides its broadcasts at once.
      *
      * @param  Builder<FarmerAdvisoryBroadcast>  $query
      */
     public function scopeLive(Builder $query): void
     {
         $query->whereNull('retired_at')->where('expires_at', '>', now())
-            ->whereHas('advisory', fn (Builder $advisory) => $advisory->where('status', Advisory::STATUS_VALIDATED));
+            ->whereHas('advisory', fn (Builder $advisory) => $advisory->where('status', Advisory::STATUS_VALIDATED)->whereNull('deleted_at'));
     }
 
     public function isLive(): bool
     {
         return $this->retired_at === null && $this->expires_at->isFuture()
-            && $this->advisory?->status === Advisory::STATUS_VALIDATED;
+            && $this->advisory?->status === Advisory::STATUS_VALIDATED
+            && ! $this->advisory->trashed();
     }
 
     /** Whether a farmer in this barangay is addressed. A farmer with no home barangay only receives all-barangay broadcasts. */
