@@ -49,7 +49,7 @@ describe("mock data mode", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: "Home" }),
+      await screen.findByRole("heading", { level: 1, name: "SRA Don Pedro Mill District Office" }),
     ).toBeInTheDocument();
     expect(window.location.pathname).toBe("/dashboard");
     expect(

@@ -862,7 +862,7 @@ describe("DashboardPage", () => {
     expect(
       screen.getByText("SRA Don Pedro Mill District Office"),
     ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "SRA Don Pedro Mill District Office" })).toBeInTheDocument();
     expect(screen.getByText("Last updated")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Refresh dashboard" }),

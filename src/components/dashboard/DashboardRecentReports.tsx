@@ -49,6 +49,14 @@ export function DashboardRecentReports({
     <>
     <div className="table-scroll">
       <table className="report-table report-table--queue dashboard-report-table">
+        <colgroup>
+          <col className="dashboard-report-table__col-case" />
+          <col className="dashboard-report-table__col-location" />
+          <col className="dashboard-report-table__col-condition" />
+          <col className="dashboard-report-table__col-area" />
+          <col className="dashboard-report-table__col-status" />
+          <col className="dashboard-report-table__col-review" />
+        </colgroup>
         <thead>
           <tr>
             {QUEUE_HEADERS.map((header) => (
