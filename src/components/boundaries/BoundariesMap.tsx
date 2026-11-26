@@ -10,8 +10,10 @@ import { routes } from "../../app/routes";
 import { useMapPaint } from "../../theme/mapTheme";
 import { useTheme } from "../../theme/useTheme";
 import { resolveBasemapStyle } from "../fieldValidation/localBasemap";
+import { createReturnContext, withReturnContext, type MapReturnContext } from "../navigation/mapNavigationContext";
 import { boundaryCentroid } from "../reports/boundaryShape";
-import { FIELD_MAP_STATUS_LABEL, fieldMapName, fieldMapStatus, percentAffected } from "./fieldMapStatus";
+import { sortPlotsNewestFirst, supersedingPlotIds } from "./fieldMapFreshness";
+import { FIELD_MAP_STATUS_LABEL, fieldMapName, fieldMapStatus, percentAffected, type FieldMapStatus } from "./fieldMapStatus";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -110,16 +112,34 @@ function BoundaryLegend() {
   );
 }
 
+export interface FocusedCaseLocation {
+  longitude: number;
+  latitude: number;
+  referenceCode: string;
+}
+
+const COMPACT_STATUS_LABEL: Record<FieldMapStatus, string> = {
+  confirmed: "Confirmed",
+  waiting: "Waiting",
+  unlinked: "Not on a case",
+};
+
 export function BoundariesMap({
   data,
   selectedBoundaryId = null,
   popupCoordinates = null,
+  highlightedBoundaryIds = [],
+  focusedCaseLocation = null,
+  returnContext,
   onSelect,
   onClearSelection,
 }: {
   data: FieldSurveyBoundariesData;
   selectedBoundaryId?: string | null;
   popupCoordinates?: FieldSurveyPosition | null;
+  highlightedBoundaryIds?: string[];
+  focusedCaseLocation?: FocusedCaseLocation | null;
+  returnContext?: MapReturnContext;
   onSelect?: (boundaryId: string, coordinates: FieldSurveyPosition) => void;
   onClearSelection?: () => void;
 }) {
@@ -127,10 +147,12 @@ export function BoundariesMap({
   const [transientError, setTransientError] = useState(false);
   const [mapInstanceKey, setMapInstanceKey] = useState(0);
   const [zoom, setZoom] = useState<number>(OPERATING_AREA_VIEW.zoom);
+  const [overlapState, setOverlapState] = useState<{ ids: string[]; coordinates: FieldSurveyPosition } | null>(null);
   const mapRef = useRef<MapRef | null>(null);
   const hasLoadedMap = useRef(false);
   const hasFittedInitialData = useRef(false);
   const lastFittedSelection = useRef<string | null>(null);
+  const lastFocusedLocation = useRef<string | null>(null);
   // The basemap and the polygon paints follow the appearance tokens, so a dark
   // map is a real dark map rather than dimmed paper, and its boundaries stay
   // legible on that ground.
@@ -152,6 +174,18 @@ export function BoundariesMap({
       properties: { boundary_id: String(feature.properties.id) },
     }))),
   }), [data.features]);
+  const highlightedSource = useMemo(() => {
+    const highlightedSet = new Set(highlightedBoundaryIds);
+    return {
+      type: "FeatureCollection" as const,
+      features: data.features
+        .filter((feature) => {
+          const id = String(feature.properties.id);
+          return highlightedSet.has(id) && id !== selectedBoundaryId;
+        })
+        .map((feature) => ({ ...feature, properties: { boundary_id: String(feature.properties.id) } })),
+    };
+  }, [data.features, highlightedBoundaryIds, selectedBoundaryId]);
   const selectedFeature = selectedBoundaryId
     ? data.features.find((feature) => String(feature.properties.id) === selectedBoundaryId) ?? null
     : null;
@@ -161,9 +195,30 @@ export function BoundariesMap({
       ? [{ ...selectedFeature, properties: { boundary_id: String(selectedFeature.properties.id) } }]
       : [],
   }), [selectedFeature]);
+  const supersedingByPlotId = useMemo(
+    () => supersedingPlotIds(
+      data.features.map((feature) => ({
+        id: feature.properties.id,
+        capturedAt: feature.properties.capturedAt,
+        outlineFromSurveyId: feature.properties.outlineFromSurveyId,
+      })),
+    ),
+    [data.features],
+  );
+  const overlappingFeatures = useMemo(() => {
+    if (!overlapState || !selectedBoundaryId || !overlapState.ids.includes(selectedBoundaryId)) return [];
+    const byId = new globalThis.Map(data.features.map((feature) => [String(feature.properties.id), feature]));
+    const resolved = overlapState.ids
+      .map((id) => byId.get(id))
+      .filter((feature): feature is FieldSurveyBoundaryFeature => Boolean(feature));
+    return resolved.length >= 2 ? resolved : [];
+  }, [data.features, overlapState, selectedBoundaryId]);
   const popupPosition = selectedFeature
-    ? popupCoordinates ?? boundsCenter(selectedFeature)
+    ? popupCoordinates ?? (overlappingFeatures.length >= 2 && overlapState ? overlapState.coordinates : boundsCenter(selectedFeature))
     : null;
+  const linkState = withReturnContext(
+    returnContext ?? createReturnContext(`${routes.monitoring}?view=boundaries`, "Field maps"),
+  );
 
   useEffect(() => {
     const map = mapRef.current;
@@ -172,11 +227,11 @@ export function BoundariesMap({
     const bounds = boundsForFeatures(data.features);
     if (bounds) {
       map.fitBounds(bounds, { padding: 60, maxZoom: 14 });
-    } else {
+    } else if (!focusedCaseLocation) {
       map.easeTo({ center: [OPERATING_AREA_VIEW.longitude, OPERATING_AREA_VIEW.latitude], zoom: OPERATING_AREA_VIEW.zoom });
     }
     hasFittedInitialData.current = true;
-  }, [data.features, providerState]);
+  }, [data.features, focusedCaseLocation, providerState]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -193,6 +248,23 @@ export function BoundariesMap({
       lastFittedSelection.current = selectedBoundaryId;
     }
   }, [providerState, selectedBoundaryId, selectedFeature]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (providerState !== "ready" || !map) return;
+    if (selectedFeature || highlightedBoundaryIds.length > 0 || !focusedCaseLocation) {
+      if (!focusedCaseLocation) lastFocusedLocation.current = null;
+      return;
+    }
+    const key = `${focusedCaseLocation.referenceCode}:${focusedCaseLocation.longitude}:${focusedCaseLocation.latitude}`;
+    if (lastFocusedLocation.current === key) return;
+
+    map.easeTo({
+      center: [focusedCaseLocation.longitude, focusedCaseLocation.latitude],
+      zoom: 15,
+    });
+    lastFocusedLocation.current = key;
+  }, [focusedCaseLocation, highlightedBoundaryIds.length, providerState, selectedFeature]);
 
   const handleMapLoad = (event: { target: unknown }) => {
     mapRef.current = event.target as MapRef;
@@ -222,6 +294,7 @@ export function BoundariesMap({
     hasLoadedMap.current = false;
     hasFittedInitialData.current = false;
     lastFittedSelection.current = null;
+    lastFocusedLocation.current = null;
     mapRef.current = null;
     setZoom(OPERATING_AREA_VIEW.zoom);
     setTransientError(false);
@@ -229,13 +302,44 @@ export function BoundariesMap({
     setMapInstanceKey((key) => key + 1);
   };
 
+  const handleClear = () => {
+    setOverlapState(null);
+    onClearSelection?.();
+  };
+
   const handleClick = (event: MapLayerMouseEvent) => {
-    const boundaryId = event.features?.[0]?.properties?.boundary_id;
-    if (boundaryId === undefined || boundaryId === null) {
-      onClearSelection?.();
+    const clickedIds = new Set<string>();
+    for (const item of event.features ?? []) {
+      const rawId = item?.properties?.boundary_id;
+      if (rawId !== undefined && rawId !== null) {
+        clickedIds.add(String(rawId));
+      }
+    }
+    if (clickedIds.size === 0) {
+      handleClear();
       return;
     }
-    onSelect?.(String(boundaryId), [event.lngLat.lng, event.lngLat.lat]);
+
+    const coordinates: FieldSurveyPosition = [event.lngLat.lng, event.lngLat.lat];
+    const matchingFeatures = data.features.filter((feature) => clickedIds.has(String(feature.properties.id)));
+    const sorted = sortPlotsNewestFirst(
+      matchingFeatures.map((feature) => ({
+        id: feature.properties.id,
+        capturedAt: feature.properties.capturedAt,
+        outlineFromSurveyId: feature.properties.outlineFromSurveyId,
+      })),
+    );
+
+    if (sorted.length >= 2) {
+      const orderedIds = sorted.map((item) => String(item.id));
+      setOverlapState({ ids: orderedIds, coordinates });
+      onSelect?.(orderedIds[0], coordinates);
+      return;
+    }
+
+    setOverlapState(null);
+    const firstId = sorted[0] ? String(sorted[0].id) : [...clickedIds][0];
+    onSelect?.(firstId, coordinates);
   };
 
   return (
@@ -300,6 +404,13 @@ export function BoundariesMap({
                   paint={{ "line-color": paint.boundaryDamage, "line-width": 1.5 }}
                 />
               </Source>
+              <Source id="field-boundaries-highlighted" type="geojson" data={highlightedSource}>
+                <Layer
+                  id="field-boundaries-highlighted-line"
+                  type="line"
+                  paint={{ "line-color": paint.boundarySelected, "line-width": 2, "line-dasharray": [3, 2] }}
+                />
+              </Source>
               <Source id="field-boundaries-selected" type="geojson" data={selectedSource}>
                 <Layer
                   id="field-boundaries-selected-line"
@@ -307,6 +418,21 @@ export function BoundariesMap({
                   paint={{ "line-color": paint.boundarySelected, "line-width": 3 }}
                 />
               </Source>
+              {focusedCaseLocation ? (
+                <Marker
+                  longitude={focusedCaseLocation.longitude}
+                  latitude={focusedCaseLocation.latitude}
+                  anchor="center"
+                >
+                  <span
+                    className="boundaries-map__case-pin"
+                    style={{ backgroundColor: paint.ink, borderColor: paint.halo, color: paint.onPin }}
+                    title={`Case ${focusedCaseLocation.referenceCode}`}
+                    aria-label={`Case location ${focusedCaseLocation.referenceCode}`}
+                    data-case-pin={focusedCaseLocation.referenceCode}
+                  />
+                </Marker>
+              ) : null}
               {zoom >= LABEL_MIN_ZOOM ? data.features.map((feature) => {
                 const centre = boundaryCentroid(feature.geometry);
                 if (!centre) return null;
@@ -327,20 +453,56 @@ export function BoundariesMap({
                   </Marker>
                 );
               }) : null}
-              {selectedFeature && popupPosition ? (
+              {selectedFeature && popupPosition ? (() => {
+                const reusedFromId = selectedFeature.properties.outlineFromSurveyId;
+                const newerSurveyIds = supersedingByPlotId.get(selectedFeature.properties.id) ?? [];
+                return (
                 <Popup
                   longitude={popupPosition[0]}
                   latitude={popupPosition[1]}
                   anchor="top"
+                  maxWidth="360px"
                   closeButton={false}
                   closeOnClick={false}
                   closeOnMove={false}
-                  onClose={() => onClearSelection?.()}
+                  onClose={handleClear}
                 >
                   <div className="boundaries-map__popup" role="dialog" aria-labelledby="boundary-popup-heading">
+                    {overlappingFeatures.length >= 2 && overlapState ? (
+                      <div className="boundaries-map__overlap" role="group" aria-label="Overlapping plots at this spot">
+                        <p className="boundaries-map__overlap-title">
+                          {overlappingFeatures.length} overlapping plots at this spot (newest first)
+                        </p>
+                        <div className="boundaries-map__overlap-list">
+                          {overlappingFeatures.map((feature, index) => {
+                            const id = String(feature.properties.id);
+                            const status = fieldMapStatus(feature);
+                            const isActive = id === selectedBoundaryId;
+                            return (
+                              <button
+                                key={id}
+                                type="button"
+                                className="boundaries-map__overlap-pill"
+                                aria-pressed={isActive}
+                                onClick={() => onSelect?.(id, overlapState.coordinates)}
+                              >
+                                <span className="boundaries-map__overlap-name">{fieldMapName(feature)}</span>
+                                {index === 0 ? <span className="field-map-badge field-map-badge--latest">Latest</span> : null}
+                                <time className="boundaries-map__overlap-time" dateTime={feature.properties.capturedAt}>
+                                  {formatDateTime(feature.properties.capturedAt)}
+                                </time>
+                                <span className={`field-map-badge field-map-badge--${status}`}>
+                                  {COMPACT_STATUS_LABEL[status]}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
                     <div className="boundaries-map__popup-heading">
                       <h3 id="boundary-popup-heading">{fieldMapName(selectedFeature)}</h3>
-                      <button type="button" aria-label="Close field map details" onClick={() => onClearSelection?.()}>
+                      <button type="button" aria-label="Close field map details" onClick={handleClear}>
                         <X aria-hidden="true" />
                       </button>
                     </div>
@@ -371,9 +533,18 @@ export function BoundariesMap({
                           <dd>
                             <ul className="boundaries-map__cases">
                               {selectedFeature.properties.cases.map((link) => (
-                                <li key={link.uuid}>
-                                  <Link to={routes.reportDetail(link.uuid)}>{link.referenceCode}</Link>
-                                  {link.link === "attached" ? " · attached" : " · confirmed"}
+                                <li key={link.uuid} className="boundaries-map__case-item">
+                                  <div>
+                                    <Link to={routes.reportDetail(link.uuid)} state={linkState}>{link.referenceCode}</Link>
+                                    {link.link === "attached" ? " · attached" : " · confirmed"}
+                                  </div>
+                                  <Link
+                                    className="boundaries-map__monitoring-link"
+                                    to={routes.monitoringMapForReport(link.uuid)}
+                                    state={linkState}
+                                  >
+                                    Show on Monitoring Map
+                                  </Link>
                                 </li>
                               ))}
                             </ul>
@@ -381,9 +552,20 @@ export function BoundariesMap({
                         </div>
                       ) : null}
                     </dl>
+                    {(reusedFromId !== null && reusedFromId !== undefined) || newerSurveyIds.length > 0 ? (
+                      <div className="boundaries-map__lineage">
+                        {reusedFromId !== null && reusedFromId !== undefined ? (
+                          <p>Reused plot outline from Map {reusedFromId}</p>
+                        ) : null}
+                        {newerSurveyIds.length > 0 ? (
+                          <p>Newer survey exists: {newerSurveyIds.map((id) => `Map ${id}`).join(", ")}</p>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                 </Popup>
-              ) : null}
+                );
+              })() : null}
             </Map>
             <MapProviderStatus state={providerState} transientError={transientError} onRetry={handleRetryMap} />
           </>

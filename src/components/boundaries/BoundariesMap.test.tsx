@@ -1,8 +1,10 @@
-import { createElement, useEffect, type ReactNode } from "react";
+import { createElement, useEffect, useState, type ReactNode } from "react";
 import { act, render, screen, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FieldSurveyBoundariesData, FieldSurveyPolygon, FieldSurveyPosition } from "../../domain/fieldSurvey.types";
+import { createReturnContext, readReturnContext } from "../navigation/mapNavigationContext";
 import { BoundariesMap } from "./BoundariesMap";
 
 type CapturedMapProps = {
@@ -343,5 +345,182 @@ describe("BoundariesMap", () => {
 
     loadMap();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("highlights companion case plots while keeping bold stroke on the selected plot", () => {
+    const data = boundaryData();
+    data.features.push({
+      ...data.features[0],
+      id: "124",
+      properties: { ...data.features[0].properties, id: 124 },
+    });
+
+    render(<BoundariesMap data={data} selectedBoundaryId="123" highlightedBoundaryIds={["123", "124"]} />);
+
+    expect(mapTestState.sources["field-boundaries-highlighted"].data?.features).toHaveLength(1);
+    expect(mapTestState.sources["field-boundaries-highlighted"].data?.features[0]).toMatchObject({
+      properties: { boundary_id: "124" },
+    });
+    expect(mapTestState.layers["field-boundaries-highlighted-line"]).toMatchObject({
+      type: "line",
+      paint: { "line-color": "#b8ad73", "line-width": 2, "line-dasharray": [3, 2] },
+    });
+    expect(mapTestState.sources["field-boundaries-selected"].data?.features).toHaveLength(1);
+  });
+
+  it("renders a pin for focusedCaseLocation and eases camera once when no plots are focused", () => {
+    const empty: FieldSurveyBoundariesData = {
+      type: "FeatureCollection",
+      features: [],
+      metadata: { totalCount: 0, returnedCount: 0, limit: 100, truncated: false, page: 1, pageCount: 1 },
+    };
+    const location = { longitude: 122.96, latitude: 10.71, referenceCode: "CG-2026-0101" };
+
+    const { rerender } = render(<BoundariesMap data={empty} focusedCaseLocation={location} />);
+    loadMap();
+
+    expect(screen.getByLabelText("Case location CG-2026-0101")).toBeInTheDocument();
+    expect(mapTestState.controls.easeTo).toHaveBeenCalledTimes(1);
+    expect(mapTestState.controls.easeTo).toHaveBeenCalledWith({ center: [122.96, 10.71], zoom: 15 });
+
+    // Refetches with the same focused location must not re-ease and fight user panning.
+    rerender(<BoundariesMap data={{ ...empty }} focusedCaseLocation={{ ...location }} />);
+    expect(mapTestState.controls.easeTo).toHaveBeenCalledTimes(1);
+  });
+
+  it("disambiguates overlapping polygons newest-first in the popup and keeps the switcher active when switching", async () => {
+    const user = userEvent.setup();
+    const data = boundaryData();
+    data.features.push(
+      {
+        ...data.features[0],
+        id: "124",
+        properties: {
+          ...data.features[0].properties,
+          id: 124,
+          label: "Newer Plot",
+          capturedAt: "2026-10-06T03:00:00Z",
+          cases: [{ uuid: "case-2", referenceCode: "CG-2", link: "attached" }],
+        },
+      },
+      {
+        ...data.features[0],
+        id: "122",
+        properties: {
+          ...data.features[0].properties,
+          id: 122,
+          label: "Oldest Plot",
+          capturedAt: "2026-09-20T01:00:00Z",
+          cases: [{ uuid: "case-1", referenceCode: "CG-1", link: "confirmed" }],
+        },
+      },
+    );
+
+    const selections: Array<{ id: string; coords: FieldSurveyPosition }> = [];
+    function Controlled() {
+      const [selected, setSelected] = useState<string | null>(null);
+      const [coords, setCoords] = useState<FieldSurveyPosition | null>(null);
+      return (
+        <MemoryRouter>
+          <BoundariesMap
+            data={data}
+            selectedBoundaryId={selected}
+            popupCoordinates={coords}
+            onSelect={(id, c) => {
+              selections.push({ id, coords: c });
+              setSelected(id);
+              setCoords(c);
+            }}
+          />
+        </MemoryRouter>
+      );
+    }
+
+    render(<Controlled />);
+
+    act(() => {
+      mapTestState.latestProps?.onClick?.({
+        features: [
+          { properties: { boundary_id: "122" } },
+          { properties: { boundary_id: "124" } },
+          { properties: { boundary_id: "124" } },
+          { properties: { boundary_id: "123" } },
+        ],
+        lngLat: { lng: 122.9505, lat: 10.7005 },
+      } as never);
+    });
+
+    // Selects newest first (124).
+    expect(selections[0]).toEqual({ id: "124", coords: [122.9505, 10.7005] });
+    const group = screen.getByRole("group", { name: "Overlapping plots at this spot" });
+    expect(within(group).getByText("3 overlapping plots at this spot (newest first)")).toBeInTheDocument();
+    const pills = within(group).getAllByRole("button");
+    expect(pills).toHaveLength(3);
+    expect(pills[0]).toHaveTextContent("Newer Plot");
+    expect(pills[0]).toHaveTextContent("Latest");
+    expect(pills[0]).toHaveTextContent("Oct 6, 2026, 11:00 AM");
+    expect(pills[0]).toHaveTextContent("Waiting");
+    expect(pills[1]).toHaveTextContent("Map 123");
+    expect(pills[1]).toHaveTextContent("Not on a case");
+    expect(pills[2]).toHaveTextContent("Oldest Plot");
+    expect(pills[2]).toHaveTextContent("Confirmed");
+
+    // Clicking another pill switches selectedBoundaryId without losing the overlap bar.
+    await user.click(pills[2]);
+    expect(selections[1]).toEqual({ id: "122", coords: [122.9505, 10.7005] });
+    expect(screen.getByRole("dialog", { name: "Oldest Plot" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Overlapping plots at this spot" })).toBeInTheDocument();
+  });
+
+  it("shows re-measurement lineage cues when outlineFromSurveyId links plots", () => {
+    const data = boundaryData();
+    data.features.push({
+      ...data.features[0],
+      id: "124",
+      properties: {
+        ...data.features[0].properties,
+        id: 124,
+        capturedAt: "2026-10-05T02:30:00Z",
+        outlineFromSurveyId: 123,
+      },
+    });
+
+    const { rerender } = render(<MemoryRouter><BoundariesMap data={data} selectedBoundaryId="123" /></MemoryRouter>);
+    expect(screen.getByText("Newer survey exists: Map 124")).toBeInTheDocument();
+
+    rerender(<MemoryRouter><BoundariesMap data={data} selectedBoundaryId="124" /></MemoryRouter>);
+    expect(screen.getByText("Reused plot outline from Map 123")).toBeInTheDocument();
+  });
+
+  it("attaches returnContext state to popup case links and offers Show on Monitoring Map", async () => {
+    const user = userEvent.setup();
+    const data = boundaryData();
+    data.features[0].properties.cases = [{ uuid: "case-1", referenceCode: "CG-1", link: "confirmed" }];
+    const returnContext = createReturnContext("/monitoring?view=boundaries&fm_status=confirmed", "Field maps");
+
+    function Probe() {
+      const location = useLocation();
+      const ctx = readReturnContext(location.state);
+      return <output data-testid="nav-probe">{location.pathname}{location.search}|{ctx ? `${ctx.label}:${ctx.to}` : "none"}</output>;
+    }
+
+    render(
+      <MemoryRouter initialEntries={["/monitoring?view=boundaries"]}>
+        <Routes>
+          <Route path="/monitoring" element={<BoundariesMap data={data} selectedBoundaryId="123" returnContext={returnContext} />} />
+          <Route path="/reports/:reportId" element={<Probe />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("link", { name: "Show on Monitoring Map" })).toHaveAttribute(
+      "href",
+      "/monitoring?view=map&report=case-1",
+    );
+
+    await user.click(screen.getByRole("link", { name: "CG-1" }));
+    expect(screen.getByTestId("nav-probe")).toHaveTextContent(
+      "/reports/case-1|Field maps:/monitoring?view=boundaries&fm_status=confirmed",
+    );
   });
 });

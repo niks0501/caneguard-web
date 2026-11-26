@@ -1,0 +1,287 @@
+/* Case-focused Field Maps navigation, overlap switcher, and context strip. */
+
+.case-context-strip {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-surface);
+}
+
+.case-context-strip__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.case-context-strip__nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.case-context-strip__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  color: var(--color-primary);
+  font-size: var(--text-body-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.case-context-strip__back:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.case-context-strip__back:focus-visible {
+  outline: none;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--focus-ring);
+}
+
+.case-context-strip__back svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.case-context-strip__identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: var(--text-body-sm);
+}
+
+.case-context-strip__ref {
+  color: var(--color-primary-dark);
+  font-family: var(--font-heading);
+  font-size: var(--text-body);
+  font-weight: 700;
+}
+
+.case-context-strip__barangay {
+  color: var(--color-secondary-text);
+  font-size: var(--text-body-sm);
+}
+
+.case-context-strip__loading,
+.case-context-strip__status {
+  margin: 0;
+  color: var(--color-secondary-text);
+  font-size: var(--text-body-sm);
+}
+
+.case-context-strip__error {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-body-sm);
+}
+
+.case-context-strip__callout {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+  border: 1px solid var(--kpi-band-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+}
+
+.case-context-strip__plots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.case-context-strip__plot-btn {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-size: var(--text-body-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.case-context-strip__plot-btn:hover {
+  background: var(--color-surface-soft);
+  border-color: var(--color-primary);
+}
+
+.case-context-strip__plot-btn[aria-pressed="true"] {
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
+}
+
+.case-context-strip__plot-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.case-context-strip__plot-name {
+  font-weight: 700;
+}
+
+.case-context-strip__plot-time {
+  color: var(--color-secondary-text);
+  font-size: var(--text-body-sm);
+}
+
+.field-map-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-body-sm);
+  font-weight: 700;
+}
+
+.field-map-badge--latest {
+  color: var(--color-inverse-text);
+  background: var(--color-primary-fill);
+  border-color: var(--color-primary-fill);
+}
+
+.field-map-badge--confirmed {
+  color: var(--color-primary-text);
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
+}
+
+.field-map-badge--waiting {
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+  border-color: var(--kpi-band-3);
+}
+
+.field-map-badge--unlinked {
+  color: var(--color-secondary-text);
+  background: var(--color-surface-soft);
+  border-color: var(--color-border-strong);
+}
+
+.boundaries-map__case-pin {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-width: 3px;
+  border-style: solid;
+  border-radius: 50%;
+  box-shadow: var(--shadow-raised);
+}
+
+.boundaries-map__overlap {
+  display: grid;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.boundaries-map__overlap-title {
+  margin: 0;
+  color: var(--color-secondary-text);
+  font-size: var(--text-body-sm);
+  font-weight: 700;
+}
+
+.boundaries-map__overlap-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.boundaries-map__overlap-pill {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-text);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--text-body-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.boundaries-map__overlap-pill:hover {
+  background: var(--color-surface-soft);
+  border-color: var(--color-primary);
+}
+
+.boundaries-map__overlap-pill[aria-pressed="true"] {
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
+}
+
+.boundaries-map__overlap-pill:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.boundaries-map__overlap-name {
+  font-weight: 700;
+}
+
+.boundaries-map__overlap-time {
+  color: var(--color-secondary-text);
+  font-size: var(--text-body-sm);
+}
+
+.boundaries-map__lineage {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-2) 0 0;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-secondary-text);
+  font-size: var(--text-body-sm);
+}
+
+.boundaries-map__lineage p {
+  margin: 0;
+}
+
+.boundaries-map__case-item {
+  display: grid;
+  gap: 2px;
+}
+
+.boundaries-map__case-item + .boundaries-map__case-item {
+  margin-top: var(--space-2);
+}
+
+.boundaries-map__monitoring-link {
+  color: var(--color-primary);
+  font-size: var(--text-body-sm);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
