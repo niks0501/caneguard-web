@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   LogOut,
   MapPinned,
+  Megaphone,
   Settings,
   Users,
 } from "lucide-react";
@@ -99,6 +100,9 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
             onNavigate={onNavigate}
           >
             Reports
+          </SidebarLink>
+          <SidebarLink to={routes.farmerBroadcasts} icon={<Megaphone aria-hidden="true" />} onNavigate={onNavigate}>
+            Barangay broadcasts
           </SidebarLink>
         </div>
         {auth.user?.role === "admin" ? (

@@ -4,7 +4,9 @@ namespace App\Http\Middleware;
 
 use App\Actions\Auth\IssueMobileToken;
 use App\Models\PersonalAccessToken;
+use App\Models\User;
 use App\Security\DistrictAccess;
+use App\Support\FarmerAccess;
 use Carbon\CarbonInterface;
 use Closure;
 use Illuminate\Http\Request;
@@ -60,8 +62,21 @@ class EnsureMobileTokenFresh
             return;
         }
 
-        $current = DistrictAccess::MOBILE_CAPABILITIES;
         $stored = (array) $token->abilities;
+
+        // A farmer's token only ever gains farmer abilities. Never narrowed: a demoted inspector keeps
+        // the token so inspector.access can answer CAPABILITY_REVOKED, and the kill-switch is enforced
+        // by the farmer.feature middleware rather than by editing tokens.
+        if ($user->role === User::ROLE_FARMER) {
+            $merged = array_values(array_unique([...$stored, ...FarmerAccess::abilities()]));
+            if (count($merged) !== count($stored)) {
+                $token->forceFill(['abilities' => $merged])->save();
+            }
+
+            return;
+        }
+
+        $current = DistrictAccess::MOBILE_CAPABILITIES;
 
         if (array_diff($current, $stored) === [] && array_diff($stored, $current) === []) {
             return;

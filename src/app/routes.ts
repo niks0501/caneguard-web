@@ -22,6 +22,7 @@ export const routes = {
   reportDecision: (reportId: string) => `/reports/${reportId}#review-decision`,
   fieldValidationQueue: (queue: FieldValidationQueue) => `/monitoring?view=map&queue=${queue}`,
   reportDetail: (reportId: string) => `/reports/${reportId}`,
+  farmerBroadcasts: "/farmer-broadcasts",
   accounts: "/accounts",
   accountDetail: (uuid: string) => `/accounts/${encodeURIComponent(uuid)}`,
   settings: "/settings",
