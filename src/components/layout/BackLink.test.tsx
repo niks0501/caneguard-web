@@ -13,9 +13,9 @@ function visit(key: string, pathname: string, search = "") {
   trackLocation({ key, pathname, search });
 }
 
-function renderBackLink(props: Parameters<typeof BackLink>[0]) {
+function renderBackLink(props: Parameters<typeof BackLink>[0], state?: unknown) {
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[{ pathname: "/monitoring", state }]}>
       <BackLink {...props} />
     </MemoryRouter>,
   );
@@ -28,6 +28,21 @@ describe("navigation origin", () => {
     expect(sectionLabelForPath("/dashboard")).toBe("Home");
     expect(sectionLabelForPath("/monitoring/")).toBe("Field visits");
     expect(sectionLabelForPath("/reports/abc")).toBeNull();
+  });
+
+  it("labels monitoring views only when the search names one", () => {
+    expect(sectionLabelForPath("/monitoring")).toBe("Field visits");
+    expect(sectionLabelForPath("/monitoring", "?view=boundaries")).toBe("Field maps");
+    expect(sectionLabelForPath("/monitoring", "?view=map")).toBe("Monitoring Map");
+    expect(sectionLabelForPath("/monitoring", "?view=register")).toBe("Field visits");
+  });
+
+  it("records a move between monitoring views as the previous page", () => {
+    visit("a", "/monitoring", "?view=map");
+    visit("b", "/monitoring", "?view=boundaries");
+    expect(previousSection()).toMatchObject({ pathname: "/monitoring", search: "?view=map" });
+    visit("c", "/monitoring", "?view=boundaries&boundary=2");
+    expect(previousSection()).toMatchObject({ search: "?view=map" });
   });
 
   it("remembers the previous page, ignoring same-page changes and repeats", () => {
@@ -60,6 +75,21 @@ describe("BackLink", () => {
     visit("b", "/reports/1");
     renderBackLink({ preferred: { to: "/todo", label: "To do" }, fallback: { to: "/reports", label: "Cases" } });
     expect(screen.getByRole("link", { name: "Back to To do" })).toHaveAttribute("href", "/todo");
+  });
+
+  it("uses a safe return context from router state after preferred, before the tracked origin", () => {
+    visit("a", "/dashboard");
+    visit("b", "/reports/1");
+    const returnContext = { to: "/reports/9?x=1", label: "Back to Case 9" };
+    renderBackLink({ fallback: { to: "/reports", label: "Cases" } }, { returnContext });
+    expect(screen.getByRole("link", { name: "Back to Case 9" })).toHaveAttribute("href", "/reports/9?x=1");
+  });
+
+  it("ignores an unsafe return context and respects accepts", () => {
+    visit("a", "/dashboard");
+    visit("b", "/reports/1");
+    renderBackLink({ fallback: { to: "/reports", label: "Cases" } }, { returnContext: { to: "//evil.com", label: "X" } });
+    expect(screen.getByRole("link", { name: "Back to Home" })).toBeInTheDocument();
   });
 
   it("uses the fallback when the origin is not accepted", () => {

@@ -127,3 +127,21 @@ describe("monitoring default view", () => {
     expect(monitoringViewFromUrl(new URLSearchParams("view=boundaries"))).toBe("boundaries");
   });
 });
+
+describe("field map url keys", () => {
+  const params = new URLSearchParams("fm_inspector=u1&fm_status=waiting&fm_period=30&status=pending");
+
+  it("travel only to the boundaries view", () => {
+    const boundaries = new URLSearchParams(monitoringViewLink("boundaries", params).to.split("?")[1]);
+    expect(boundaries.get("fm_inspector")).toBe("u1");
+    expect(boundaries.get("fm_status")).toBe("waiting");
+    expect(boundaries.get("fm_period")).toBe("30");
+    for (const view of ["map", "register", "calendar", "field-operations"] as const) {
+      expect(monitoringViewLink(view, params).to).not.toContain("fm_");
+    }
+  });
+
+  it("do not change which view a bare URL opens", () => {
+    expect(monitoringViewFromUrl(new URLSearchParams("fm_status=waiting"))).toBe("map");
+  });
+});

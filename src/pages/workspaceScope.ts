@@ -50,6 +50,9 @@ const registerOnlyFilterLabels: Record<string, string> = {
 
 const viewStateKeys = ["calendar_month", "calendar_date"];
 
+/** Field Map filters live in the URL and belong to the boundaries view only. */
+const fieldMapUrlKeys = ["fm_inspector", "fm_status", "fm_period"];
+
 const queueValues = new Set<string>(operationalQueueValues);
 const mapQueueValues = new Set<string>(fieldValidationQueueValues);
 
@@ -100,6 +103,13 @@ export function monitoringViewLink(
   // The calendar owns its own month/date state.
   if (view === "calendar") {
     for (const key of viewStateKeys) {
+      const value = searchParams.get(key)?.trim();
+      if (value) params.set(key, value);
+    }
+  }
+
+  if (view === "boundaries") {
+    for (const key of fieldMapUrlKeys) {
       const value = searchParams.get(key)?.trim();
       if (value) params.set(key, value);
     }
