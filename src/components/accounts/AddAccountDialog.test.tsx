@@ -24,4 +24,19 @@ describe("Add account success copy", () => {
     expect(notice).toContain("1. They set a password from their set-password link. 2. They sign in on the phone. They are added to the pilot district automatically.");
     expect(notice).not.toContain("Tell them to sign in through the mobile app");
   });
+  it("sends an optional home barangay for a farmer and hides it for other roles", async () => {
+    vi.mocked(api.createAccount).mockResolvedValue({ data: { uuid: "00000000-0000-4000-8000-000000000402", name: "Farm Person", email: "farm@example.test", role: "farmer" }, invite_sent: true });
+    const user = userEvent.setup();
+    render(<AddAccountDialog onCreated={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "Add account" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).queryByLabelText("Home barangay (optional)")).not.toBeInTheDocument();
+    await user.type(within(dialog).getByLabelText("Full name"), "Farm Person");
+    await user.type(within(dialog).getByLabelText("Work email"), "farm@example.test");
+    await user.selectOptions(within(dialog).getByLabelText("Role"), "farmer");
+    await user.selectOptions(within(dialog).getByLabelText("Home barangay (optional)"), "Aga");
+    await user.type(within(dialog).getByLabelText("Your current password"), "synthetic-password");
+    await user.click(within(dialog).getByRole("button", { name: "Create account" }));
+    expect(api.createAccount).toHaveBeenCalledWith({ name: "Farm Person", email: "farm@example.test", role: "farmer", barangay: "Aga" }, "synthetic-password");
+  });
 });

@@ -16,7 +16,7 @@ final class ResendWebAccountInvite
     {
         $status = Password::INVALID_USER;
         try {
-            $status = MailDelivery::sendInvite($user, User::ROLE_FIELD_REPORTER);
+            $status = MailDelivery::sendInvite($user, $user->role);
         } catch (\Throwable $e) {
             Log::warning('Account invitation could not be re-sent.', ['user' => $user->uuid, 'exception' => $e::class]);
         }

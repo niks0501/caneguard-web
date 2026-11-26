@@ -15,7 +15,7 @@ export const listSchema = z.object({
 });
 const detailSchema = z.object({ data: accountSchema });
 // Read-only detail also covers field inspectors, whose access is managed from the field accounts list.
-const readSchema = z.object({ data: accountSchema.extend({ role: z.enum(["reviewer", "admin", "field_reporter"]) }) });
+const readSchema = z.object({ data: accountSchema.extend({ role: z.enum(["reviewer", "admin", "field_reporter", "farmer"]), barangay: z.string().nullable().optional() }) });
 const accessSnapshotSchema = z.object({ role: z.string(), is_active: z.boolean() });
 export const eventSchema = z.object({
   id: z.number().int(), action: z.string(), outcome: z.string(), actor_name: z.string(), created_at: z.string(),
@@ -43,7 +43,7 @@ export async function changeAccount(uuid: string, command: AccountCommand, passw
 
 export const newAccountRoles = { farmer: "Farmer", field_reporter: "Field reporter", reviewer: "Reviewer", admin: "Admin" } as const;
 export type NewAccountRole = keyof typeof newAccountRoles;
-export type NewAccountCommand = { name: string; email: string; role: NewAccountRole };
+export type NewAccountCommand = { name: string; email: string; role: NewAccountRole; barangay?: string };
 const createdSchema = z.object({
   data: z.object({ uuid: z.uuid(), name: z.string(), email: z.email(), role: z.enum(["farmer", "field_reporter", "reviewer", "admin"]) }),
   invite_sent: z.boolean(),
@@ -80,4 +80,30 @@ export async function changeFieldAccess(uuid: string, command: FieldAccessComman
 export async function resendFieldInvite(uuid: string) {
   await initializeCsrf();
   return z.object({ invite_sent: z.boolean() }).parse((await axiosClient.post(`/api/v1/admin/accounts/${encodeURIComponent(uuid)}/invite`)).data);
+}
+
+export const farmerStatuses = { invite_pending: "Invite pending", active: "Active", disabled: "Disabled" } as const;
+export type FarmerStatus = keyof typeof farmerStatuses;
+export const farmerAccountSchema = accountSchema.extend({
+  role: z.literal("farmer"),
+  barangay: z.string().nullable(),
+  invite_pending: z.boolean(),
+  email_verified: z.boolean(),
+  status: z.enum(["invite_pending", "active", "disabled"]),
+  created_at: z.string().nullable(),
+});
+export type FarmerAccount = z.infer<typeof farmerAccountSchema>;
+const farmerListSchema = z.object({ data: z.array(farmerAccountSchema), meta: listSchema.shape.meta });
+export type FarmerFilters = { page: number; search: string; barangay: string; status: "" | FarmerStatus };
+export type FarmerCommand = { expected_access_version: number; is_active?: boolean; barangay?: string | null };
+
+export async function listFarmerAccounts(filters: FarmerFilters, signal?: AbortSignal) {
+  const params = { page: filters.page, search: filters.search, barangay: filters.barangay || undefined, status: filters.status || undefined };
+  return farmerListSchema.parse((await axiosClient.get("/api/v1/admin/accounts/farmers", { params, signal })).data);
+}
+export async function changeFarmerAccount(uuid: string, command: FarmerCommand, password: string) {
+  await initializeCsrf();
+  return z.object({ data: farmerAccountSchema }).parse((await axiosClient.patch(`/api/v1/admin/accounts/farmers/${encodeURIComponent(uuid)}`, {
+    ...command, current_password: password,
+  })).data);
 }
