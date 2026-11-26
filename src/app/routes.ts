@@ -19,6 +19,13 @@ export const routes = {
   todoLane: (lane: TodoLane) => `/todo#lane-${lane}`,
   fieldOperations: "/monitoring?view=field-operations",
   fieldOperationsForReport: (reportId: string) => `/monitoring?view=field-operations&report=${encodeURIComponent(reportId)}`,
+  fieldMapForCase: (reportId: string, boundaryId?: string | number | null) => {
+    const base = `/monitoring?view=boundaries&report=${encodeURIComponent(reportId)}`;
+    const hasBoundary = typeof boundaryId === "number" ? boundaryId > 0 : typeof boundaryId === "string" && boundaryId !== "";
+    return hasBoundary ? `${base}&boundary=${encodeURIComponent(String(boundaryId))}` : base;
+  },
+  monitoringMapForReport: (reportId: string) => `/monitoring?view=map&report=${encodeURIComponent(reportId)}`,
+  dashboardTab: (tab: "today" | "trends") => (tab === "trends" ? "/dashboard?tab=trends" : "/dashboard"),
   reportDecision: (reportId: string) => `/reports/${reportId}#review-decision`,
   fieldValidationQueue: (queue: FieldValidationQueue) => `/monitoring?view=map&queue=${queue}`,
   reportDetail: (reportId: string) => `/reports/${reportId}`,

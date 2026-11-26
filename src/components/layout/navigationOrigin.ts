@@ -34,14 +34,24 @@ function normalise(pathname: string) {
 }
 
 /** The name of a top-level page, or null for detail pages and unknown paths. */
-export function sectionLabelForPath(pathname: string): string | null {
+export function sectionLabelForPath(pathname: string, search?: string): string | null {
   const path = normalise(pathname);
+  if (path === "/monitoring" && search) {
+    const view = new URLSearchParams(search).get("view");
+    if (view === "boundaries") return "Field maps";
+    if (view === "map") return "Monitoring Map";
+  }
   return sectionLabels.find(([pattern]) => pattern.test(path))?.[1] ?? null;
+}
+
+function monitoringViewChanged(from: OriginLocation, to: OriginLocation) {
+  if (normalise(to.pathname) !== "/monitoring") return false;
+  return new URLSearchParams(from.search).get("view") !== new URLSearchParams(to.search).get("view");
 }
 
 export function trackLocation(location: { key: string; pathname: string; search: string }) {
   if (current?.key === location.key) return;
-  if (current && normalise(current.pathname) !== normalise(location.pathname)) {
+  if (current && (normalise(current.pathname) !== normalise(location.pathname) || monitoringViewChanged(current, location))) {
     previous = { pathname: current.pathname, search: current.search };
   }
   current = { key: location.key, pathname: location.pathname, search: location.search };

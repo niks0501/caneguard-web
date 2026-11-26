@@ -17,8 +17,8 @@ export interface ReviewQueueContext {
 
 /** Names where the back link goes: the page the review began on (To do, Field visits or Cases). */
 export function returnLinkLabel(returnTo: string): string {
-  const path = returnTo.split(/[?#]/)[0];
-  return `Back to ${sectionLabelForPath(path) ?? "Cases"}`;
+  const [path, query = ""] = returnTo.split("#")[0].split("?");
+  return `Back to ${sectionLabelForPath(path, query) ?? "Cases"}`;
 }
 
 export function reviewQueueContext(value: unknown): ReviewQueueContext | null {
