@@ -132,12 +132,11 @@ export function DashboardPage() {
         : "The latest refresh failed. Showing the most recently loaded dashboard.";
 
   return (
-    <PageContent>
+    <PageContent className="dashboard-page">
       <header className="page-header dashboard-header">
         <div className="dashboard-header__main">
           <div className="dashboard-header__identity">
-            <p className="eyebrow">SRA Don Pedro Mill District Office</p>
-            <h1>Home</h1>
+            <h1>SRA Don Pedro Mill District Office</h1>
             <p className="dashboard-header__description">
               {`Nasugbu, Batangas · times ${DASHBOARD_TIMEZONE_LABEL}`}
             </p>

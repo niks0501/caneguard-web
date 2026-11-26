@@ -6218,9 +6218,6 @@ body {
   min-width: 0;
   max-width: 100%;
 }
-.dashboard-header__identity .eyebrow {
-  margin: 0 0 var(--space-1);
-}
 .dashboard-header__identity h1 {
   margin: 0;
 }
@@ -6853,51 +6850,107 @@ body {
 .trend-table thead th:nth-child(n + 2):nth-child(-n + 4) {
   text-align: right;
 }
-/* Dashboard report table: `<colgroup>` sets the preferred tracks and no column
-   carries a width floor above 100%, so a long reference or barangay name wraps
-   inside its cell instead of pushing the card, sections and page sideways.
-   The two badge columns are content-sized instead: `min-width: max-content`
-   plus no-wrap keeps every real pill on one line (longest: "No supported
-   disease detected", "Needs field validation"), and when the sum of those
-   floors outgrows the card the `.table-scroll` wrapper scrolls sideways.
-   Below 900px this table is also `.report-table--queue`, whose stacking rule
-   lets those two badge cells wrap instead. */
+/* Give each queue field a readable track. Long badges keep their content width;
+   the wrapper scrolls when the full table cannot fit, then rows stack below
+   the queue breakpoint. */
 .dashboard-report-table {
   width: 100%;
-  min-width: 0;
-  max-width: 100%;
+  min-width: 960px;
+  max-width: none;
   table-layout: auto;
+  font-size: 15px;
+  line-height: 1.35;
 }
 .dashboard-report-table th,
 .dashboard-report-table td {
-  min-width: 0;
-  max-width: 100%;
+  padding: 8px 10px;
   overflow-wrap: anywhere;
+}
+.dashboard-report-table th {
+  padding-block: 9px;
+  font-size: 14px;
+  line-height: 1.3;
+}
+.dashboard-report-table .table-primary,
+.dashboard-report-table .report-identity strong,
+.dashboard-report-table .disease-badge,
+.dashboard-report-table .table-action {
+  font-size: 15px;
+}
+.dashboard-report-table .table-secondary,
+.dashboard-report-table .queue-caution {
+  font-size: 14px;
+}
+.dashboard-report-table .table-secondary {
+  margin-top: 2px;
+}
+.dashboard-report-table .queue-caution {
+  margin-top: 3px;
+}
+.dashboard-report-table .queue-tag {
+  font-size: 13px;
 }
 .dashboard-report-table .report-identity {
   min-width: 0;
 }
-.dashboard-report-table__col-report {
-  width: 18%;
+.dashboard-report-table__col-case {
+  width: 20%;
 }
-.dashboard-report-table__col-concern {
+.dashboard-report-table__col-location {
   width: 14%;
 }
 .dashboard-report-table__col-condition {
   width: 18%;
 }
-.dashboard-report-table__col-barangay {
-  width: 12%;
-}
-.dashboard-report-table__col-submitted {
-  width: 15%;
+.dashboard-report-table__col-area {
+  width: 11%;
 }
 .dashboard-report-table__col-status {
-  width: 15%;
+  width: 27%;
 }
-.dashboard-report-table__col-action {
-  width: 8%;
-  min-width: 72px;
+.dashboard-report-table__col-review {
+  width: 10%;
+}
+@media (min-width: 900px) {
+  .dashboard-report-table th:first-child,
+  .dashboard-report-table td:first-child {
+    padding-inline-start: 24px;
+  }
+}
+.dashboard-report-table th:nth-child(4),
+.dashboard-report-table td:nth-child(4) {
+  text-align: left;
+}
+.dashboard-report-table th:last-child,
+.dashboard-report-table td:last-child {
+  text-align: center;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.dashboard-report-table .report-review-cell .table-action {
+  min-height: 44px;
+  align-items: center;
+}
+.dashboard-report-table .workflow-status {
+  gap: 3px;
+}
+.dashboard-report-table .workflow-status-badge {
+  max-width: min(100%, 10rem);
+  padding: 2px 8px;
+  font-size: 13px;
+  line-height: 1.25;
+}
+.dashboard-report-table .workflow-track {
+  column-gap: 4px;
+  row-gap: 2px;
+  font-size: 13px;
+  line-height: 1.25;
+}
+.dashboard-report-table .workflow-track__step {
+  white-space: nowrap;
+}
+.dashboard-report-table .workflow-track__separator {
+  margin-right: 2px;
 }
 .dashboard-report-table__action-cell,
 .table-action--nowrap {
@@ -10121,6 +10174,187 @@ button.monitoring-calendar__day-number:focus-visible {
   flex: 1 1 100%;
 }
 
+/* Keep the operational overview compact without changing the shared shell or
+   the spacing of other workspaces. Controls retain their touch target size. */
+.dashboard-page {
+  --grid-gap: 16px;
+  --section-gap: 20px;
+  --card-padding: 16px;
+  --card-gap: 12px;
+  max-width: 1480px;
+  padding: 24px 28px 40px;
+  font-size: var(--text-body-sm);
+}
+
+.dashboard-page .dashboard-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 24px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.dashboard-page .dashboard-header__main {
+  align-items: center;
+  gap: 8px 20px;
+}
+
+.dashboard-page .dashboard-header__identity h1 {
+  font-size: clamp(1.5rem, 2.2vw, 1.875rem);
+  line-height: 1.2;
+}
+
+.dashboard-page .dashboard-header__description {
+  margin-top: var(--space-1);
+  line-height: 1.35;
+}
+
+.dashboard-page .dashboard-header__actions {
+  justify-content: flex-end;
+  padding: 0;
+  border: 0;
+}
+
+.dashboard-page .dashboard-tabs {
+  gap: 20px;
+  margin-bottom: 16px;
+}
+
+.dashboard-page .dashboard-tabs__tab {
+  font-size: var(--text-body-sm);
+}
+
+.dashboard-page .dashboard-note {
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.dashboard-page .dashboard-section__heading h2 {
+  font-size: 21px;
+  line-height: 1.3;
+}
+
+.dashboard-page .kpi-card {
+  --kpi-title-icon-size: 22px;
+  --kpi-title-gap: 8px;
+  --chart-sparkline-height: 24px;
+  min-height: 144px;
+  padding: 8px 10px;
+  border-radius: 14px;
+}
+
+.dashboard-page .kpi-card__link {
+  gap: 3px;
+}
+
+.dashboard-page .kpi-card__top {
+  flex-wrap: nowrap;
+  gap: var(--kpi-title-gap);
+}
+
+.dashboard-page .kpi-card__icon {
+  flex: 0 0 auto;
+}
+
+.dashboard-page .kpi-card__icon svg {
+  width: var(--kpi-title-icon-size);
+  height: var(--kpi-title-icon-size);
+}
+
+.dashboard-page .kpi-card__label {
+  flex: 1 1 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.dashboard-page .kpi-card__label,
+.dashboard-page .kpi-card__support,
+.dashboard-page .kpi-card__window {
+  line-height: 1.35;
+}
+
+.dashboard-page .kpi-card__value {
+  padding-inline-start: calc(var(--kpi-title-icon-size) + var(--kpi-title-gap));
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.05;
+  text-align: start;
+}
+
+.dashboard-page .kpi-card__support,
+.dashboard-page .kpi-card__window {
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+
+.dashboard-page .kpi-radial__chart {
+  width: 48px;
+  height: 48px;
+}
+
+.dashboard-page .kpi-bar__track,
+.dashboard-page .kpi-status__lane {
+  height: 24px;
+}
+
+.dashboard-page .kpi-bar__track {
+  flex: 0 0 auto;
+  margin-block: auto;
+}
+
+.dashboard-page .kpi-status__lane {
+  align-self: center;
+}
+
+.dashboard-page .decision-chart-card__title {
+  font-size: 20px;
+}
+
+@media (max-width: 900px) {
+  .dashboard-page {
+    padding: 20px 22px 32px;
+  }
+
+  .dashboard-page .dashboard-header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard-page .dashboard-header__actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 680px) {
+  .dashboard-page {
+    --grid-gap: 12px;
+    --section-gap: 18px;
+    padding: 16px 14px 28px;
+  }
+
+  .dashboard-page .dashboard-header {
+    padding: 16px;
+  }
+
+  .dashboard-page .dashboard-header__context,
+  .dashboard-page .dashboard-header__actions {
+    width: 100%;
+  }
+
+  .dashboard-page .dashboard-last-updated {
+    white-space: normal;
+  }
+
+  .dashboard-page .dashboard-header__actions {
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .dashboard-page .dashboard-header__actions .button {
+    width: 100%;
+  }
+}
+
 /* QF-5 silent queue: status reads as plain ink, tags appear only for a Note,
    rows carry no tint or bar, and one decision-support line sits beneath the
    table. */
@@ -10292,6 +10526,20 @@ button.monitoring-calendar__day-number:focus-visible {
   .dashboard-report-table__cell-condition,
   .dashboard-report-table__cell-status {
     min-width: 0;
+    white-space: normal;
+  }
+
+  .dashboard-report-table colgroup {
+    display: none;
+  }
+
+  .dashboard-report-table td,
+  .dashboard-report-table tbody tr:last-child td {
+    padding: 5px 12px;
+  }
+
+  .dashboard-report-table td:last-child {
+    text-align: left;
     white-space: normal;
   }
 }
