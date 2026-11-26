@@ -92,7 +92,7 @@ describe("User Management", () => {
 
     const notice = await screen.findByText(/Account created for Farm Person/);
     expect(notice).toHaveTextContent("They sign in on CaneGuard Mobile to scan sugarcane");
-    expect(notice).toHaveTextContent("scans stay on their own phone and are not sent to the office");
+    expect(notice).toHaveTextContent("They cannot use the web workspace or file official reports");
     expect(notice).not.toHaveTextContent("currently limited");
     if (!inviteSent) expect(notice).toHaveTextContent("an operator can issue a set-password link");
   });

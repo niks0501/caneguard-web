@@ -9,7 +9,7 @@ import { Modal } from "../ui/Modal";
 
 const emptyForm = { name: "", email: "", role: "reviewer" as NewAccountRole, password: "" };
 const nextSteps: Record<NewAccountRole, string> = {
-  farmer: "Next steps: 1. They set a password from their set-password link, on their phone. 2. They sign in on CaneGuard Mobile to scan sugarcane. Their scans stay on their own phone and are not sent to the office. They cannot use the web workspace or file official reports.",
+  farmer: "Next steps: 1. They set a password from their set-password link, on their phone. 2. They sign in on CaneGuard Mobile to scan sugarcane. They cannot use the web workspace or file official reports.",
   field_reporter: "Next steps: 1. They set a password from their set-password link. 2. They sign in on the phone. They are added to the pilot district automatically.",
   reviewer: "Next step: Tell them to sign in at the web sign-in page, then use the web workspace.",
   admin: "Next step: Tell them to sign in at the web sign-in page, then use the web workspace.",
