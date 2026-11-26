@@ -24,6 +24,8 @@ export interface DuplicateLinkInput {
   canonicalReportUuid: string;
   reason?: string;
   expectedVersion: number;
+  /** Also close this duplicate case in the same save. Linking alone never closes it. */
+  closeDuplicate?: boolean;
 }
 
 export interface DuplicateUnlinkInput {

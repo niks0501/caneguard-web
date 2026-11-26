@@ -3,7 +3,6 @@ import "../styles/report-evidence-review.css";
 import {
   ClipboardList,
   Drone,
-  GitBranch,
   History,
   Image as ImageIcon,
   Link2,
@@ -28,7 +27,10 @@ import { createReturnContext, withReturnContext } from "../components/navigation
 import { returnLinkLabel, reviewQueueContext } from "../components/reports/reviewQueueContext";
 import { OfflineHandoffNotes } from "../components/reports/OfflineHandoffNotes";
 import { HistoricalReferralPanel } from "../components/reports/HistoricalReferralPanel";
-import { ReportPicker } from "../components/reports/ReportPicker";
+import { DuplicateCompareModal } from "../components/reports/DuplicateCompareModal";
+import { DuplicateLinkedBanner } from "../components/reports/DuplicateLinkedBanner";
+import { DuplicateMatchStrip } from "../components/reports/DuplicateMatchStrip";
+import { duplicateLinkBlockedMessage } from "../components/reports/duplicateLinkMessages";
 import { DiseaseBadge } from "../components/reports/ReportBadges";
 import { QueueStatusCell } from "../components/reports/QueueRowCells";
 import { ResolvedCaseSummary } from "../components/reports/ResolvedCaseSummary";
@@ -37,6 +39,7 @@ import { Button } from "../components/ui/Button";
 import { TextArea } from "../components/ui/FormControls";
 import { ErrorState, ImagePendingState, LoadingState } from "../components/ui/States";
 import { NeedsDecisionBanner } from "../components/ui/NeedsDecisionBanner";
+import { duplicateLinkBlockedReason } from "../domain/duplicateLink";
 import { deriveWorkflowStatus } from "../domain/workflowStatus";
 import { CappedDetailList } from "../components/ui/CappedDetailList";
 import { ClampedText } from "../components/ui/ClampedText";
@@ -64,10 +67,8 @@ import type {
 } from "../domain/review.types";
 import { legacyLifecycleForReviewStatus } from "../data/api/mappers/lifecycle.mapper";
 import {
-  useLinkDuplicateReport,
   useOpenCase,
   usePossibleRecentMatches,
-  useUnlinkDuplicateReport,
   useReport,
   useUpdateReportReview,
 } from "../hooks/useReports";
@@ -448,12 +449,9 @@ function CaseReviewContent() {
   // Review version the correction pop-up was opened against.
   const [metadataBaseVersion, setMetadataBaseVersion] = useState<number | undefined>();
   const [correctionReason, setCorrectionReason] = useState("");
-  const [canonicalReportUuid, setCanonicalReportUuid] = useState("");
-  const [canonicalReportLabel, setCanonicalReportLabel] = useState<string | null>(null);
-  const [duplicateLinkReason, setDuplicateLinkReason] = useState("");
-  const [duplicateLinkSubmitted, setDuplicateLinkSubmitted] = useState(false);
-  const [duplicateLinkNotice, setDuplicateLinkNotice] = useState<string | null>(null);
-  const [duplicateLinkModalOpen, setDuplicateLinkModalOpen] = useState(false);
+  const [duplicateModalOpen, setDuplicateModalOpen] = useState(false);
+  // "Not a duplicate" hides the strip for this page view only; nothing is saved.
+  const [matchStripDismissed, setMatchStripDismissed] = useState(false);
   const [metadataCorrectionModalOpen, setMetadataCorrectionModalOpen] = useState(false);
   const [correctionSubmitted, setCorrectionSubmitted] = useState(false);
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
@@ -463,8 +461,6 @@ function CaseReviewContent() {
   const reportQuery = useReport(reportId);
   const possibleMatchesQuery = usePossibleRecentMatches(reportId);
   const reviewMutation = useUpdateReportReview(reportId);
-  const duplicateLinkMutation = useLinkDuplicateReport(reportId);
-  const duplicateUnlinkMutation = useUnlinkDuplicateReport(reportId);
   const openCaseMutation = useOpenCase(reportId);
   const { mutate: openCase } = openCaseMutation;
   const openedCaseIds = useRef<Set<string>>(new Set());
@@ -475,6 +471,10 @@ function CaseReviewContent() {
   const reviewLocked = reviewClaim.refused;
   const navigate = useNavigate();
   const possibleMatches = possibleMatchesQuery.data?.matches ?? [];
+  const duplicateLinked = report?.canonicalLinkage?.isDuplicate === true;
+  const duplicateBlockedMessage = report
+    ? duplicateLinkBlockedMessage(duplicateLinkBlockedReason(report), reviewLocked)
+    : null;
   const lifecycle = report ? report.lifecycle ?? legacyLifecycleForReviewStatus(report.reviewStatus) : undefined;
   const workflowStatus = report ? deriveWorkflowStatus(report) : undefined;
   const awaitingDecision = workflowStatus === "needs_review" || workflowStatus === "under_review";
@@ -545,17 +545,10 @@ function CaseReviewContent() {
     metadataCorrections && !correctionReason.trim()
       ? "Add a reason for the case information correction."
       : null;
-  const duplicateLinkDirty = Boolean(
-    canonicalReportUuid.trim() || duplicateLinkReason.trim(),
-  );
   const metadataCorrectionDirty = Boolean(
     metadataCorrections !== undefined || correctionReason.trim(),
   );
-  useUnsavedWorkGuard(duplicateLinkModalOpen && duplicateLinkDirty);
   useUnsavedWorkGuard(metadataCorrectionModalOpen && metadataCorrectionDirty);
-  const closeDuplicateLinkModal = () => {
-    if (confirmDiscardUnsavedChanges(duplicateLinkDirty)) setDuplicateLinkModalOpen(false);
-  };
   // A correction draft belongs to the pop-up session that pinned its version.
   // Closing, discarding, or saving ends that session, so an abandoned edit can
   // never resurface against a newer report version.
@@ -588,24 +581,6 @@ function CaseReviewContent() {
   const mutationForbidden = mutationError?.status === 403;
   const mutationValidation = mutationError?.status === 422;
   const malformedMutationResponse = reviewMutation.error instanceof ZodError;
-  const duplicateLinkApiError =
-    duplicateLinkMutation.error instanceof ApiError
-      ? duplicateLinkMutation.error
-      : null;
-  const duplicateLinkValidationError =
-    duplicateLinkApiError?.errors?.canonical_report_uuid?.[0];
-  const duplicateLinkReportError = duplicateLinkApiError?.errors?.report?.[0];
-  const duplicateLinkConflict = duplicateLinkApiError?.status === 409;
-  const duplicateLinkForbidden = duplicateLinkApiError?.status === 403;
-  const duplicateLinkMalformed = duplicateLinkMutation.error instanceof ZodError;
-  const duplicateUnlinkApiError =
-    duplicateUnlinkMutation.error instanceof ApiError
-      ? duplicateUnlinkMutation.error
-      : null;
-  const duplicateUnlinkConflict = duplicateUnlinkApiError?.status === 409;
-  const duplicateUnlinkForbidden = duplicateUnlinkApiError?.status === 403;
-  const duplicateUnlinkValidation = duplicateUnlinkApiError?.status === 422;
-  const duplicateUnlinkMalformed = duplicateUnlinkMutation.error instanceof ZodError;
   const detailStatus =
     reportQuery.error instanceof ApiError ? reportQuery.error.status : undefined;
   const suppressCachedDetail = detailStatus === 403 || detailStatus === 404;
@@ -625,47 +600,6 @@ function CaseReviewContent() {
       : reportQuery.error instanceof ZodError
         ? "The latest report response had an unexpected format. The previously loaded report remains visible."
         : "The latest report refresh failed. The previously loaded report remains visible.";
-
-  const linkDuplicate = async () => {
-    setDuplicateLinkSubmitted(true);
-    setDuplicateLinkNotice(null);
-    const canonicalUuid = canonicalReportUuid.trim();
-
-    if (!report || !canonicalUuid || report.canonicalLinkage?.isDuplicate) return;
-    const expectedVersion = report.reviewVersion;
-    if (expectedVersion === undefined) return;
-
-    try {
-      await duplicateLinkMutation.mutateAsync({
-        canonicalReportUuid: canonicalUuid,
-        reason: duplicateLinkReason.trim() || undefined,
-        expectedVersion,
-      });
-      setDuplicateLinkNotice(
-        "Link recorded as a possible duplicate. The submitted record remains preserved.",
-      );
-      setCanonicalReportUuid("");
-      setCanonicalReportLabel(null);
-      setDuplicateLinkReason("");
-      setDuplicateLinkSubmitted(false);
-      setDuplicateLinkModalOpen(false);
-    } catch {
-      return;
-    }
-  };
-
-  const unlinkDuplicate = async () => {
-    if (report?.reviewVersion === undefined) return;
-
-    try {
-      await duplicateUnlinkMutation.mutateAsync({
-        expectedVersion: report.reviewVersion,
-      });
-      setDuplicateLinkNotice("Duplicate link removed. The submitted record remains preserved.");
-    } catch {
-      return;
-    }
-  };
 
   const openMetadataCorrectionModal = () => {
     setMetadataBaseVersion(report?.reviewVersion);
@@ -1043,6 +977,24 @@ function CaseReviewContent() {
         </p>
         <p className="review-next-line"><strong>Next:</strong> {nextLine}</p>
       </div>
+      {duplicateLinked && report.canonicalLinkage ? (
+        <DuplicateLinkedBanner
+          reportId={report.uuid}
+          reviewVersion={report.reviewVersion}
+          linkage={report.canonicalLinkage}
+          blockedMessage={duplicateBlockedMessage}
+          onRemoved={() => setSaveNotice(`${report.referenceCode} - Duplicate link removed. The submitted record remains preserved.`)}
+        />
+      ) : null}
+      {!duplicateLinked && !matchStripDismissed && possibleMatches.length > 0 ? (
+        <DuplicateMatchStrip
+          matches={possibleMatches}
+          windowHours={possibleMatchesQuery.data?.recentWindowHours}
+          blockedMessage={duplicateBlockedMessage}
+          onCompare={() => setDuplicateModalOpen(true)}
+          onDismiss={() => setMatchStripDismissed(true)}
+        />
+      ) : null}
       {awaitingDecision ? <NeedsDecisionBanner targetId="review-decision" /> : null}
       {workflowStatus === "resolved" ? (
         <ResolvedCaseSummary
@@ -1163,7 +1115,15 @@ function CaseReviewContent() {
                   </section>
                 ) : null}
 
-        <ReviewDecisionForm key={report.uuid} report={report} locked={reviewLocked} onRefresh={() => reportQuery.refetch()} />
+        <ReviewDecisionForm
+          key={report.uuid}
+          report={report}
+          locked={reviewLocked}
+          onRefresh={() => reportQuery.refetch()}
+          onMarkDuplicate={duplicateLinked ? undefined : () => setDuplicateModalOpen(true)}
+          duplicateMatchCount={possibleMatches.length}
+          duplicateBlockedMessage={duplicateBlockedMessage}
+        />
 
         <HistoricalReferralPanel report={report} />
         <OfflineHandoffNotes report={report} />
@@ -1178,51 +1138,7 @@ function CaseReviewContent() {
           </summary>
           <div className="disclosure-content">
         <section className="other-case-actions" aria-label="Other case actions">
-          {report.canonicalLinkage?.isDuplicate ? (
-            <div className="duplicate-linkage-summary" role="status">
-              <strong>Linked as a possible duplicate</strong>
-              <p>The submitted record and its audit history remain preserved. This link does not merge evidence or change the canonical case.</p>
-              {report.canonicalLinkage.canonicalCase ? (
-                <Link to={routes.reportDetail(report.canonicalLinkage.canonicalCase.uuid)}>
-                  Canonical case {report.canonicalLinkage.canonicalCase.referenceCode}
-                </Link>
-              ) : null}
-              {report.canonicalLinkage.linkedBy ? (
-                <small>
-                  Linked by {report.canonicalLinkage.linkedBy.name}
-                  {report.canonicalLinkage.linkedAt ? ` on ${formatDateTime(report.canonicalLinkage.linkedAt)}` : ""}.
-                </small>
-              ) : null}
-              {report.canonicalLinkage.reason ? <small>Reason: {report.canonicalLinkage.reason}</small> : null}
-              {duplicateUnlinkConflict ? <p className="form-error" role="alert">This case changed while the duplicate link was being removed. Refresh before trying again.</p> : null}
-              {duplicateUnlinkForbidden ? <p className="form-error" role="alert">You do not have permission to remove duplicate links.</p> : null}
-              {duplicateUnlinkValidation ? <p className="form-error" role="alert">This duplicate link cannot be removed while the case has active work or completed evidence.</p> : null}
-              {duplicateUnlinkMalformed ? <p className="form-error" role="alert">The duplicate unlink response had an unexpected format. Refresh the report before trying again.</p> : null}
-              {duplicateUnlinkMutation.isError && !duplicateUnlinkConflict && !duplicateUnlinkForbidden && !duplicateUnlinkValidation && !duplicateUnlinkMalformed ? <p className="form-error" role="alert">The duplicate unlinking service is unavailable. No link change was confirmed.</p> : null}
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={duplicateUnlinkMutation.isPending}
-                onClick={unlinkDuplicate}
-              >
-                {duplicateUnlinkMutation.isPending ? "Removing link..." : "Remove duplicate link"}
-              </Button>
-            </div>
-          ) : null}
-          {duplicateLinkNotice ? (
-            <p className="success-banner" role="status">{duplicateLinkNotice}</p>
-          ) : null}
           <div className="more-actions-row">
-            {!report.canonicalLinkage?.isDuplicate ? (
-              <Button
-                type="button"
-                variant="secondary"
-                icon={<GitBranch aria-hidden="true" />}
-                onClick={() => setDuplicateLinkModalOpen(true)}
-              >
-                Link as possible duplicate
-              </Button>
-            ) : null}
             <Button
               type="button"
               variant="secondary"
@@ -1237,159 +1153,23 @@ function CaseReviewContent() {
         </details>
       </div>
 
-      {/* Modal 4: Duplicate Linkage (F5) */}
-      <Modal
-        id="duplicate-link-modal"
-        title="Link as possible duplicate"
-        description="Possible matches are decision support only. Reviewers and admins choose whether to link this case; nothing is merged, deleted, or blocked automatically."
-        open={duplicateLinkModalOpen}
-        onClose={closeDuplicateLinkModal}
-        disabled={duplicateLinkMutation.isPending}
-        isDirty={duplicateLinkDirty}
-        footer={
-          <>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={duplicateLinkMutation.isPending}
-              onClick={closeDuplicateLinkModal}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              disabled={duplicateLinkMutation.isPending}
-              onClick={linkDuplicate}
-            >
-              {duplicateLinkMutation.isPending ? "Linking case..." : "Link as possible duplicate"}
-            </Button>
-          </>
-        }
-      >
-        <section className="duplicate-link-card" aria-labelledby="duplicate-link-heading">
-          <div className="section-heading">
-            <div>
-              <h3 id="duplicate-link-heading">Possible duplicate linkage</h3>
-            </div>
-            <GitBranch aria-hidden="true" />
-          </div>
-          {possibleMatchesQuery.isPending ? (
-            <p className="duplicate-link-status" role="status">Checking recent submissions for a possible match...</p>
-          ) : null}
-          {possibleMatchesQuery.isError ? (
-            <p className="duplicate-link-status" role="alert">
-              Possible matches could not be loaded. You can still search cases or paste a canonical case ID below.
-            </p>
-          ) : null}
-          {!possibleMatchesQuery.isPending && !possibleMatchesQuery.isError && possibleMatches.length === 0 ? (
-            <p className="duplicate-link-status">No possible recent matches were found. A legitimate case can remain separate.</p>
-          ) : null}
-          {possibleMatches.length > 0 ? (
-            <ul className="possible-match-list">
-              {possibleMatches.map((match) => (
-                <li key={match.uuid}>
-                  <div>
-                    <Link to={routes.reportDetail(match.uuid)}>{match.referenceCode}</Link>
-                    <small>
-                      Possible match - {Math.round(match.distanceMeters)} m away - submitted {formatDateTime(match.submittedAt)}.
-                    </small>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => {
-                      setCanonicalReportUuid(match.uuid);
-                      setCanonicalReportLabel(
-                        `${match.referenceCode} · ${formatDate(match.submittedAt)}`,
-                      );
-                      setDuplicateLinkSubmitted(false);
-                      setDuplicateLinkNotice(null);
-                      duplicateLinkMutation.reset();
-                    }}
-                  >
-                    Use as canonical
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          <ReportPicker
-            excludeUuid={report?.uuid}
-            value={
-              canonicalReportUuid.trim() && canonicalReportLabel
-                ? { uuid: canonicalReportUuid.trim(), label: canonicalReportLabel }
-                : null
-            }
-            onSelect={(selection) => {
-              setCanonicalReportUuid(selection?.uuid ?? "");
-              setCanonicalReportLabel(selection?.label ?? null);
-              setDuplicateLinkSubmitted(false);
-              setDuplicateLinkNotice(null);
-              duplicateLinkMutation.reset();
-            }}
-            disabled={duplicateLinkMutation.isPending}
-          />
-          <details className="uuid-fallback">
-            <summary>Paste a case ID instead</summary>
-            <label className="select-filter" htmlFor="canonical-report-uuid">
-              <span>Canonical case ID</span>
-              <input
-                id="canonical-report-uuid"
-                value={canonicalReportUuid}
-                onChange={(event) => {
-                  setCanonicalReportUuid(event.target.value);
-                  setCanonicalReportLabel(null);
-                  setDuplicateLinkSubmitted(false);
-                  setDuplicateLinkNotice(null);
-                  duplicateLinkMutation.reset();
-                }}
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-              />
-            </label>
-          </details>
-          <label className="select-filter" htmlFor="duplicate-link-reason">
-            <span>Link reason (optional)</span>
-            <input
-              id="duplicate-link-reason"
-              value={duplicateLinkReason}
-              maxLength={320}
-              onChange={(event) => {
-                setDuplicateLinkReason(event.target.value);
-                setDuplicateLinkSubmitted(false);
-                setDuplicateLinkNotice(null);
-                duplicateLinkMutation.reset();
-              }}
-              placeholder="Why is this case treated as a duplicate?"
-            />
-          </label>
-          {duplicateLinkSubmitted && !canonicalReportUuid.trim() ? (
-            <p className="form-error" role="alert">Select a case from the search results or enter a canonical case ID before linking.</p>
-          ) : null}
-          {duplicateLinkValidationError ? (
-            <p className="form-error" role="alert">{duplicateLinkValidationError}</p>
-          ) : null}
-          {duplicateLinkReportError ? (
-            <p className="form-error" role="alert">{duplicateLinkReportError}</p>
-          ) : null}
-          {duplicateLinkConflict ? (
-            <p className="form-error" role="alert">This case is already linked to another canonical case. Refresh before trying again.</p>
-          ) : null}
-          {duplicateLinkForbidden ? (
-            <p className="form-error" role="alert">You do not have permission to link duplicate cases.</p>
-          ) : null}
-          {duplicateLinkMalformed ? (
-            <p className="form-error" role="alert">The duplicate link response had an unexpected format. Refresh the report before trying again.</p>
-          ) : null}
-          {duplicateLinkMutation.isError &&
-          !duplicateLinkConflict &&
-          !duplicateLinkValidationError &&
-          !duplicateLinkReportError &&
-          !duplicateLinkForbidden &&
-          !duplicateLinkMalformed ? (
-            <p className="form-error" role="alert">The duplicate linking service is unavailable. No link was recorded.</p>
-          ) : null}
-        </section>
-      </Modal>
+      <DuplicateCompareModal
+        open={duplicateModalOpen}
+        onClose={() => setDuplicateModalOpen(false)}
+        report={report}
+        matches={possibleMatches}
+        matchesPending={possibleMatchesQuery.isPending}
+        matchesError={possibleMatchesQuery.isError}
+        initialMatchUuid={possibleMatches[0]?.uuid ?? null}
+        blockedMessage={duplicateBlockedMessage}
+        onRefresh={() => void reportQuery.refetch()}
+        onLinked={({ referenceCode, closed }) => {
+          setDuplicateModalOpen(false);
+          setSaveNotice(
+            `${report.referenceCode} - Marked as a duplicate${referenceCode ? ` of ${referenceCode}` : ""}${closed ? " and closed" : ""}. The submitted record remains preserved.`,
+          );
+        }}
+      />
 
       {/* Modal 5: Metadata Correction (F6) */}
       <Modal

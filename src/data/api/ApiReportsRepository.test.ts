@@ -184,6 +184,12 @@ describe("ApiReportsRepository", () => {
                   uuid: "canonical-report",
                   reference_code: "CG-2026-0002",
                   submitted_at: "2026-07-20T10:00:00.000Z",
+                  barangay: "Lumbangan",
+                  farmer_or_farm_owner_name: "Roberto Mendoza",
+                  submitted_by_name: "Elena Reyes",
+                  workflow_status: "needs_review",
+                  image_url: "/api/v1/reports/canonical-report/image",
+                  image_status: "available",
                 },
                 match: {
                   condition: "rust",
@@ -213,7 +219,60 @@ describe("ApiReportsRepository", () => {
     ).resolves.toMatchObject({
       possibleMatch: true,
       canSubmit: true,
-      matches: [{ referenceCode: "CG-2026-0002", distanceMeters: 12.4 }],
+      matches: [{
+        referenceCode: "CG-2026-0002",
+        distanceMeters: 12.4,
+        barangay: "Lumbangan",
+        farmerOrFarmOwnerName: "Roberto Mendoza",
+        submittedByName: "Elena Reyes",
+        workflowStatus: "needs_review",
+        imageStatus: "available",
+      }],
+    });
+  });
+
+  it("maps a candidate without a farmer name, reporter or photo", async () => {
+    server.use(
+      http.get(
+        `${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}/possible-matches`,
+        () =>
+          HttpResponse.json({
+            data: [{
+              case: {
+                uuid: "candidate",
+                reference_code: "CG-2026-0003",
+                submitted_at: "2026-07-20T10:00:00.000Z",
+                barangay: "Mabini",
+                farmer_or_farm_owner_name: null,
+                submitted_by_name: null,
+                workflow_status: "resolved",
+                image_url: null,
+                image_status: "none",
+              },
+              match: { condition: "smut", distance_meters: 80, basis: ["same_condition"] },
+              message: "Possible recent match. Compare this case before deciding.",
+            }],
+            message: "Possible recent matches found.",
+            meta: {
+              possible_match: true,
+              can_submit: true,
+              assessment: "condition_and_location",
+              recent_window_hours: 72,
+              location_radius_meters: 100,
+            },
+          }),
+      ),
+    );
+    const repository = new ApiReportsRepository(createAxiosClient({ apiBaseUrl: baseUrl }));
+
+    const result = await repository.getPossibleRecentMatches(reportDetailDto.identity.uuid);
+
+    expect(result.matches[0]).toMatchObject({
+      farmerOrFarmOwnerName: null,
+      submittedByName: null,
+      workflowStatus: "resolved",
+      imageUrl: null,
+      imageStatus: "none",
     });
   });
 
@@ -263,6 +322,74 @@ describe("ApiReportsRepository", () => {
         reason: "The cases may describe the same field observation.",
       },
     });
+  });
+
+  it("sends close_duplicate only when the reviewer also closes the duplicate case", async () => {
+    const bodies: unknown[] = [];
+    server.use(
+      http.post(
+        `${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}/duplicate-link`,
+        async ({ request }) => {
+          bodies.push(await request.json());
+          return HttpResponse.json({
+            data: {
+              ...reportDetailDto,
+              duplicate_linkage: {
+                is_duplicate: true,
+                canonical_case: {
+                  uuid: "canonical-report",
+                  reference_code: "CG-2026-0002",
+                  submitted_at: "2026-07-20T10:00:00.000Z",
+                },
+                linked_by: { uuid: "reviewer-1", name: "Reviewer" },
+                linked_at: "2026-07-20T11:00:00.000Z",
+                reason: null,
+                link_blocked_reason: "closed",
+              },
+            },
+          });
+        },
+      ),
+    );
+    const repository = new ApiReportsRepository(createAxiosClient({ apiBaseUrl: baseUrl }));
+    const input = {
+      canonicalReportUuid: "canonical-report",
+      expectedVersion: reportDetailDto.version,
+    };
+
+    await repository.linkDuplicate(reportDetailDto.identity.uuid, { ...input, closeDuplicate: false });
+    const closed = await repository.linkDuplicate(reportDetailDto.identity.uuid, { ...input, closeDuplicate: true });
+
+    expect(bodies[0]).not.toHaveProperty("close_duplicate");
+    expect(bodies[1]).toMatchObject({ close_duplicate: true });
+    expect(closed.canonicalLinkage?.linkBlockedReason).toBe("closed");
+  });
+
+  it("maps why a duplicate link cannot change, including when the server omits it", async () => {
+    const detail = (linkage: Record<string, unknown>) => HttpResponse.json({
+      data: { ...reportDetailDto, duplicate_linkage: linkage },
+    });
+    const open = { is_duplicate: false, canonical_case: null, linked_by: null, linked_at: null, reason: null };
+    const responses = [
+      detail({ ...open, link_blocked_reason: "visit_completed" }),
+      detail({ ...open, link_blocked_reason: null }),
+      detail(open),
+    ];
+    server.use(
+      http.post(
+        `${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}/duplicate-link`,
+        () => responses.shift()!,
+      ),
+    );
+    const repository = new ApiReportsRepository(createAxiosClient({ apiBaseUrl: baseUrl }));
+    const link = () => repository.linkDuplicate(reportDetailDto.identity.uuid, {
+      canonicalReportUuid: "canonical-report",
+      expectedVersion: reportDetailDto.version,
+    });
+
+    expect((await link()).canonicalLinkage?.linkBlockedReason).toBe("visit_completed");
+    expect((await link()).canonicalLinkage?.linkBlockedReason).toBeNull();
+    expect((await link()).canonicalLinkage?.linkBlockedReason).toBeUndefined();
   });
 
   it("saves affected field boundaries with device areas and office loss rates", async () => {

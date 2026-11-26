@@ -5,6 +5,7 @@ import {
   userSchema,
 } from "./common.schema";
 import { fieldSurveyPolygonSchema } from "./fieldSurvey.schema";
+import { workflowStatusValues } from "../../../domain/workflowStatus";
 
 export const diseaseKeySchema = z.enum(["healthy", "mosaic", "rust", "smut", "rssi"]);
 export const authorityClassifiedConditionSchema = z.enum([
@@ -75,6 +76,7 @@ export const duplicateLinkageSchema = z.object({
   linked_by: userSchema.pick({ uuid: true, name: true }).nullable(),
   linked_at: z.iso.datetime({ offset: true }).nullable(),
   reason: z.string().nullable(),
+  link_blocked_reason: z.enum(["closed", "visit_completed"]).nullable().optional(),
 });
 export const reportAffectedFieldSchema = z.object({
   field_survey_id: z.number().int().positive(),
@@ -123,6 +125,12 @@ export const possibleRecentMatchSchema = z.object({
     uuid: z.string(),
     reference_code: z.string(),
     submitted_at: z.iso.datetime({ offset: true }),
+    barangay: z.string(),
+    farmer_or_farm_owner_name: z.string().nullable(),
+    submitted_by_name: z.string().nullable(),
+    workflow_status: z.enum(workflowStatusValues),
+    image_url: z.string().nullable(),
+    image_status: z.enum(["available", "missing", "none"]),
   }),
   match: z.object({
     condition: diseaseKeySchema,

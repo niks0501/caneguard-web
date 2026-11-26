@@ -47,6 +47,42 @@ beforeEach(() => {
   vi.mocked(reportsRepository.listReports).mockReset();
 });
 
+describe("Mark as duplicate card", () => {
+  it("is absent unless the page wires the duplicate comparison", () => {
+    renderForm();
+    expect(screen.queryByRole("button", { name: /Mark as duplicate of an existing case/ })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("radio")).toHaveLength(3);
+  });
+
+  it("opens the comparison without selecting or saving a review action", async () => {
+    const user = userEvent.setup();
+    const onMarkDuplicate = vi.fn();
+    render(<MemoryRouter><ReviewDecisionForm report={base} onRefresh={vi.fn()} onMarkDuplicate={onMarkDuplicate} duplicateMatchCount={2} /></MemoryRouter>);
+
+    const card = screen.getByRole("button", { name: /Mark as duplicate of an existing case/ });
+    expect(card).toHaveTextContent("2 nearby matches");
+    expect(card).toHaveAccessibleDescription(/without deleting or merging submitted evidence/);
+    await user.click(card);
+
+    expect(onMarkDuplicate).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByRole("radio").every((radio) => !(radio as HTMLInputElement).checked)).toBe(true);
+    expect(screen.getByRole("button", { name: "Next" })).toBeInTheDocument();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it("is disabled with the reason when linking is unavailable", async () => {
+    const user = userEvent.setup();
+    const onMarkDuplicate = vi.fn();
+    render(<MemoryRouter><ReviewDecisionForm report={base} onRefresh={vi.fn()} onMarkDuplicate={onMarkDuplicate} duplicateBlockedMessage="This case is closed. Reopen it to change duplicate links." /></MemoryRouter>);
+
+    const card = screen.getByRole("button", { name: /Mark as duplicate of an existing case/ });
+    expect(card).toBeDisabled();
+    expect(card).toHaveAccessibleDescription("This case is closed. Reopen it to change duplicate links.");
+    await user.click(card);
+    expect(onMarkDuplicate).not.toHaveBeenCalled();
+  });
+});
+
 describe("Progressive review resilience", () => {
   it.each([
     [[], false],
