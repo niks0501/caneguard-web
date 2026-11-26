@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { FileStack, RefreshCw } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { ZodError } from "zod";
 import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { routes } from "../app/routes";
@@ -74,7 +74,19 @@ export function DashboardPage() {
   const [selection, setSelection] = useState<ScopeSelection>(
     () => readDashboardPreferences().selection,
   );
-  const [activeTab, setActiveTab] = useState<DashboardTab>("today");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab: DashboardTab = searchParams.get("tab") === "trends" ? "trends" : "today";
+  const selectTab = (nextTab: DashboardTab) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (nextTab === "trends") {
+        next.set("tab", "trends");
+      } else {
+        next.delete("tab");
+      }
+      return next;
+    }, { replace: true });
+  };
 
   useEffect(() => {
     saveDashboardScope(selection);
@@ -179,12 +191,12 @@ export function DashboardPage() {
               }
               tabIndex={activeTab === tab.id ? 0 : -1}
               className="dashboard-tabs__tab"
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => selectTab(tab.id)}
               onKeyDown={(event) => {
                 if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
                 event.preventDefault();
                 const next = tab.id === "today" ? "trends" : "today";
-                setActiveTab(next);
+                selectTab(next);
                 document.getElementById(`dashboard-tab-${next}`)?.focus();
               }}
             >

@@ -318,4 +318,63 @@ describe("ValidationMap", () => {
       zoom: 9,
     });
   });
+
+  it("centers and zooms to a deep-linked case on load without overriding via fitBounds", () => {
+    const data = mapData([[120.63, 14.07], [120.7301, 14.11]]);
+    const { rerender } = render(
+      <MemoryRouter>
+        <ValidationMap
+          data={data}
+          frameKey="all"
+          selection={{ kind: "case", caseUuid: "report-2", coordinates: [120.7301, 14.11] }}
+        />
+      </MemoryRouter>,
+    );
+
+    loadMap();
+
+    expect(mapTestState.controls.fitBounds).not.toHaveBeenCalled();
+    expect(mapTestState.controls.easeTo).toHaveBeenCalledTimes(1);
+    expect(mapTestState.controls.easeTo).toHaveBeenCalledWith({
+      center: [120.7301, 14.11],
+      zoom: 14,
+    });
+
+    // Re-rendering with a fresh object for the same case does not re-pan.
+    rerender(
+      <MemoryRouter>
+        <ValidationMap
+          data={data}
+          frameKey="all"
+          selection={{ kind: "case", caseUuid: "report-2", coordinates: [120.7301, 14.11] }}
+        />
+      </MemoryRouter>,
+    );
+    expect(mapTestState.controls.easeTo).toHaveBeenCalledTimes(1);
+
+    // Clearing selection resets focus tracking without refitting bounds, so re-selecting focuses again.
+    rerender(
+      <MemoryRouter>
+        <ValidationMap data={data} frameKey="all" selection={null} />
+      </MemoryRouter>,
+    );
+    expect(mapTestState.controls.fitBounds).not.toHaveBeenCalled();
+    expect(mapTestState.controls.easeTo).toHaveBeenCalledTimes(1);
+
+    mapTestState.controls.getZoom.mockReturnValue(16);
+    rerender(
+      <MemoryRouter>
+        <ValidationMap
+          data={data}
+          frameKey="all"
+          selection={{ kind: "case", caseUuid: "report-2", coordinates: [120.7301, 14.11] }}
+        />
+      </MemoryRouter>,
+    );
+    expect(mapTestState.controls.easeTo).toHaveBeenCalledTimes(2);
+    expect(mapTestState.controls.easeTo).toHaveBeenLastCalledWith({
+      center: [120.7301, 14.11],
+      zoom: 16,
+    });
+  });
 });

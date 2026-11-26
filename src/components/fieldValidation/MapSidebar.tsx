@@ -3,11 +3,32 @@ import { ArrowLeft, X } from "lucide-react";
 import { routes } from "../../app/routes";
 import type { FieldValidationMapFeature } from "../../domain/fieldValidation.types";
 import { predictedDiseaseLabel } from "../../domain/report.metadata";
+import { useReport } from "../../hooks/useReports";
+import { summarizeCaseFieldMaps, type CaseFieldMapSummary } from "../boundaries/fieldMapFreshness";
+import type { MapReturnContext } from "../navigation/mapNavigationContext";
 import { QueueStatusCell } from "../reports/QueueRowCells";
 import { formatValidationDate } from "./fieldValidation.format";
 
 function conditionLabel(feature: FieldValidationMapFeature) {
   return predictedDiseaseLabel(feature.properties.predictedDisease).replace(/^Possible Condition: /, "");
+}
+
+function fieldMapFactStatus(summary: CaseFieldMapSummary): {
+  label: string;
+  tone: "ready" | "waiting" | "pending" | "none";
+} {
+  if (summary.plots.length > 1) {
+    return { label: `${summary.plots.length} plots`, tone: "ready" };
+  }
+  if (summary.plots.length === 1) {
+    return summary.confirmedCount === 1
+      ? { label: "Confirmed", tone: "ready" }
+      : { label: "Waiting for office", tone: "waiting" };
+  }
+  if (summary.pendingSync) {
+    return { label: "Syncing from phone", tone: "pending" };
+  }
+  return { label: "No field map yet", tone: "none" };
 }
 
 function SidebarFrame({
@@ -39,14 +60,24 @@ function SidebarFrame({
 
 export function CaseDetailsPanel({
   feature,
+  returnState,
   onClose,
   onReturnToArea,
 }: {
   feature: FieldValidationMapFeature;
+  returnState?: { returnContext: MapReturnContext };
   onClose: () => void;
   onReturnToArea?: () => void;
 }) {
   const properties = feature.properties;
+  const reportQuery = useReport(properties.uuid);
+  const summary = reportQuery.data ? summarizeCaseFieldMaps(reportQuery.data) : null;
+  const fieldMapStatus = summary ? fieldMapFactStatus(summary) : null;
+  const hasPlots = Boolean(summary && summary.plots.length > 0);
+  const viewFieldMapLabel = summary && summary.plots.length > 1
+    ? `View Field Map (${summary.plots.length} plots)`
+    : "View Field Map";
+
   return (
     <SidebarFrame title="Case Details" eyebrow={properties.referenceCode} onClose={onClose}>
       {onReturnToArea ? (
@@ -67,9 +98,28 @@ export function CaseDetailsPanel({
         <div><dt>Possible Condition</dt><dd>{conditionLabel(feature)}</dd></div>
         <div><dt>Date Observed</dt><dd>{formatValidationDate(properties.observedAt)}</dd></div>
         <div><dt>Case Status</dt><dd><QueueStatusCell row={properties} showIcon /></dd></div>
+        {reportQuery.isPending ? (
+          <div><dt>Field maps</dt><dd>Checking…</dd></div>
+        ) : fieldMapStatus ? (
+          <div>
+            <dt>Field maps</dt>
+            <dd>
+              <span className={`map-sidebar__field-map-badge map-sidebar__field-map-badge--${fieldMapStatus.tone}`}>
+                {fieldMapStatus.label}
+              </span>
+            </dd>
+          </div>
+        ) : null}
       </dl>
       <div className="map-sidebar__actions">
-        <Link className="button button--primary" to={routes.reportDetail(properties.uuid)}>Open Case</Link>
+        <Link className="button button--primary" to={routes.reportDetail(properties.uuid)} state={returnState}>Open Case</Link>
+        <Link
+          className={`button ${hasPlots ? "button--secondary" : "button--quiet"}`}
+          to={routes.fieldMapForCase(properties.uuid, summary?.primaryBoundaryId)}
+          state={returnState}
+        >
+          {viewFieldMapLabel}
+        </Link>
         <Link className="button button--secondary" to={`/monitoring?view=field-operations&report=${encodeURIComponent(properties.uuid)}`}>
           Plan Visit
         </Link>

@@ -1,15 +1,21 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, useLocation } from "react-router";
+import { MemoryRouter, useLocation, type InitialEntry } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "../api/ApiError";
 import { ZodError } from "zod";
+import { createReturnContext, withReturnContext } from "../components/navigation/mapNavigationContext";
 import type { FieldValidationMapData, FieldValidationMapFeature } from "../domain/fieldValidation.types";
 import { useFieldValidationMap } from "../hooks/useFieldValidation";
+import { useReport } from "../hooks/useReports";
 import { FieldValidationMapPage } from "./FieldValidationMapPage";
 
 vi.mock("../hooks/useFieldValidation", () => ({
   useFieldValidationMap: vi.fn(),
+}));
+
+vi.mock("../hooks/useReports", () => ({
+  useReport: vi.fn(),
 }));
 
 // The page controls disclosure/rendering; only the provider boundary is replaced.
@@ -107,10 +113,16 @@ function queryResult(data: unknown, overrides: Record<string, unknown> = {}) {
 }
 
 function LocationProbe() {
-  return <output data-testid="location">{useLocation().pathname}{useLocation().search}</output>;
+  const location = useLocation();
+  return (
+    <>
+      <output data-testid="location">{location.pathname}{location.search}</output>
+      <output data-testid="location-state">{JSON.stringify(location.state ?? null)}</output>
+    </>
+  );
 }
 
-function renderPage(initialEntry = "/monitoring?view=map") {
+function renderPage(initialEntry: InitialEntry = "/monitoring?view=map") {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <FieldValidationMapPage />
@@ -123,8 +135,25 @@ function summaryButton(name: string) {
   return screen.getByRole("button", { name: new RegExp(name) });
 }
 
+function fieldPlot(fieldSurveyId: number, capturedAt = "2026-08-13T10:20:30.000Z") {
+  return {
+    fieldSurveyId,
+    label: `Plot ${fieldSurveyId}`,
+    capturedAt,
+    outlineFromSurveyId: null,
+    areaSqm: 1200,
+    areaSource: "device_reported" as const,
+    geometry: { type: "Polygon", coordinates: [] },
+    inspector: { uuid: "insp-1", name: "Inspector One" },
+    affectedAreaSqm: 300,
+    affectedPercent: 25,
+    lossRatePercent: null,
+  };
+}
+
 beforeEach(() => {
   vi.mocked(useFieldValidationMap).mockReturnValue(queryResult(mapData));
+  vi.mocked(useReport).mockReturnValue(queryResult(undefined));
 });
 
 describe("FieldValidationMapPage structure and summary", () => {
@@ -328,6 +357,166 @@ describe("FieldValidationMapPage selection workflows", () => {
     renderPage("/monitoring?view=map&report=report-2");
     expect(screen.getByRole("heading", { name: "Case Details" })).toBeInTheDocument();
     expect(screen.getAllByText("CG-2026-0002").length).toBeGreaterThan(0);
+  });
+
+  it("shows Field maps status and contextual View Field Map action across plot states", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(useReport).mockReturnValue(queryResult({
+      uuid: "report-1",
+      affectedFields: [fieldPlot(42)],
+      inspectorAttachment: null,
+    }));
+    const { unmount } = renderPage("/monitoring?view=map");
+    await user.click(screen.getByRole("button", { name: "Select CG-2026-0001" }));
+    let sidebar = screen.getByRole("heading", { name: "Case Details" }).closest("aside") as HTMLElement;
+    expect(within(sidebar).getByText("Confirmed")).toBeInTheDocument();
+    let fieldMapLink = within(sidebar).getByRole("link", { name: "View Field Map" });
+    expect(fieldMapLink).toHaveClass("button", "button--secondary");
+    expect(fieldMapLink).toHaveAttribute("href", "/monitoring?view=boundaries&report=report-1&boundary=42");
+    unmount();
+
+    vi.mocked(useReport).mockReturnValue(queryResult({
+      uuid: "report-1",
+      affectedFields: [],
+      inspectorAttachment: { clientUuid: "att-1", arrived: true, confirmed: false, boundary: fieldPlot(55) },
+    }));
+    const waiting = renderPage("/monitoring?view=map&report=report-1");
+    sidebar = screen.getByRole("heading", { name: "Case Details" }).closest("aside") as HTMLElement;
+    expect(within(sidebar).getByText("Waiting for office")).toBeInTheDocument();
+    fieldMapLink = within(sidebar).getByRole("link", { name: "View Field Map" });
+    expect(fieldMapLink).toHaveClass("button", "button--secondary");
+    expect(fieldMapLink).toHaveAttribute("href", "/monitoring?view=boundaries&report=report-1&boundary=55");
+    waiting.unmount();
+
+    vi.mocked(useReport).mockReturnValue(queryResult({
+      uuid: "report-1",
+      affectedFields: [fieldPlot(42, "2026-08-12T10:00:00.000Z")],
+      inspectorAttachment: {
+        clientUuid: "att-2",
+        arrived: true,
+        confirmed: false,
+        boundary: fieldPlot(56, "2026-08-14T10:00:00.000Z"),
+      },
+    }));
+    const multi = renderPage("/monitoring?view=map&report=report-1");
+    sidebar = screen.getByRole("heading", { name: "Case Details" }).closest("aside") as HTMLElement;
+    expect(within(sidebar).getByText("2 plots")).toBeInTheDocument();
+    fieldMapLink = within(sidebar).getByRole("link", { name: "View Field Map (2 plots)" });
+    expect(fieldMapLink).toHaveClass("button", "button--secondary");
+    expect(fieldMapLink).toHaveAttribute("href", "/monitoring?view=boundaries&report=report-1&boundary=42");
+    multi.unmount();
+
+    vi.mocked(useReport).mockReturnValue(queryResult({
+      uuid: "report-1",
+      affectedFields: [],
+      inspectorAttachment: { clientUuid: "att-3", arrived: false, confirmed: false, boundary: null },
+    }));
+    const pendingSync = renderPage("/monitoring?view=map&report=report-1");
+    sidebar = screen.getByRole("heading", { name: "Case Details" }).closest("aside") as HTMLElement;
+    expect(within(sidebar).getByText("Syncing from phone")).toBeInTheDocument();
+    fieldMapLink = within(sidebar).getByRole("link", { name: "View Field Map" });
+    expect(fieldMapLink).toHaveClass("button", "button--quiet");
+    expect(fieldMapLink).toHaveAttribute("href", "/monitoring?view=boundaries&report=report-1");
+    pendingSync.unmount();
+
+    vi.mocked(useReport).mockReturnValue(queryResult({
+      uuid: "report-1",
+      affectedFields: [],
+      inspectorAttachment: null,
+    }));
+    const none = renderPage("/monitoring?view=map&report=report-1");
+    sidebar = screen.getByRole("heading", { name: "Case Details" }).closest("aside") as HTMLElement;
+    expect(within(sidebar).getByText("No field map yet")).toBeInTheDocument();
+    fieldMapLink = within(sidebar).getByRole("link", { name: "View Field Map" });
+    expect(fieldMapLink).toHaveClass("button", "button--quiet");
+    expect(fieldMapLink).toHaveAttribute("href", "/monitoring?view=boundaries&report=report-1");
+    none.unmount();
+
+    vi.mocked(useReport).mockReturnValue(queryResult(undefined, { isPending: true }));
+    const loading = renderPage("/monitoring?view=map&report=report-1");
+    expect(screen.getByText("Checking…")).toBeInTheDocument();
+    loading.unmount();
+
+    vi.mocked(useReport).mockReturnValue(queryResult(undefined, { isError: true, error: new Error("Failed") }));
+    renderPage("/monitoring?view=map&report=report-1");
+    sidebar = screen.getByRole("heading", { name: "Case Details" }).closest("aside") as HTMLElement;
+    expect(within(sidebar).queryByText("Field maps")).not.toBeInTheDocument();
+    expect(within(sidebar).getByRole("link", { name: "View Field Map" })).toHaveClass("button", "button--quiet");
+  });
+
+  it("preserves all active filters and cluster context in returnState on Open Case and View Field Map", async () => {
+    const user = userEvent.setup();
+    vi.mocked(useReport).mockReturnValue(queryResult({
+      uuid: "report-2",
+      affectedFields: [fieldPlot(77)],
+      inspectorAttachment: null,
+    }));
+    const filteredUrl = "/monitoring?view=map&queue=needs_visit&status=for_field_validation&predicted_label=rust&barangay=Balaytigui&date_from=2026-08-01&date_to=2026-08-31";
+    const { unmount } = renderPage(filteredUrl);
+
+    await user.click(screen.getByRole("button", { name: "Select cluster" }));
+    const queue = screen.getByRole("heading", { name: "Cases in this Area" }).closest("aside") as HTMLElement;
+    await user.click(within(queue).getAllByRole("button", { name: /CG-2026-0002/ })[0]);
+
+    await user.click(screen.getByRole("link", { name: "View Field Map" }));
+    expect(screen.getByTestId("location")).toHaveTextContent("/monitoring?view=boundaries&report=report-2&boundary=77");
+    const stateAfterFieldMap = JSON.parse(screen.getByTestId("location-state").textContent ?? "null");
+    expect(stateAfterFieldMap).toEqual({
+      returnContext: {
+        to: `${filteredUrl}&report=report-2`,
+        label: "Monitoring Map",
+        clusterKeys: ["report-1"],
+        clusterCoordinates: [120.6, 14.1],
+      },
+    });
+    unmount();
+
+    const second = renderPage(filteredUrl);
+    await user.click(screen.getByRole("button", { name: "Select cluster" }));
+    const queue2 = screen.getByRole("heading", { name: "Cases in this Area" }).closest("aside") as HTMLElement;
+    await user.click(within(queue2).getAllByRole("button", { name: /CG-2026-0002/ })[0]);
+    await user.click(screen.getByRole("link", { name: "Open Case" }));
+    expect(screen.getByTestId("location")).toHaveTextContent("/reports/report-2");
+    const stateAfterOpenCase = JSON.parse(screen.getByTestId("location-state").textContent ?? "null");
+    expect(stateAfterOpenCase).toEqual({
+      returnContext: {
+        to: `${filteredUrl}&report=report-2`,
+        label: "Monitoring Map",
+        clusterKeys: ["report-1"],
+        clusterCoordinates: [120.6, 14.1],
+      },
+    });
+    second.unmount();
+
+    // Returning with cluster returnContext keeps "Return to Cases in this Area" available.
+    renderPage({
+      pathname: "/monitoring",
+      search: "?view=map&report=report-2",
+      state: withReturnContext(createReturnContext("/monitoring?view=map&report=report-2", "Monitoring Map", {
+        clusterKeys: ["report-1"],
+        clusterCoordinates: [120.6, 14.1],
+      })),
+    });
+    await user.click(screen.getByRole("button", { name: /Return to Cases in this Area/ }));
+    expect(screen.getByRole("heading", { name: "Cases in this Area" })).toBeInTheDocument();
+  });
+
+  it("offers a quiet View Field Map link with returnState when the selected case is not on this map", async () => {
+    const user = userEvent.setup();
+    renderPage("/monitoring?view=map&barangay=Balaytigui&report=missing-case");
+    const sidebar = screen.getByRole("heading", { name: "Case not on this map" }).closest("aside") as HTMLElement;
+    const fieldMapLink = within(sidebar).getByRole("link", { name: "View Field Map" });
+    expect(fieldMapLink).toHaveClass("button", "button--quiet");
+    expect(fieldMapLink).toHaveAttribute("href", "/monitoring?view=boundaries&report=missing-case");
+
+    await user.click(fieldMapLink);
+    expect(JSON.parse(screen.getByTestId("location-state").textContent ?? "null")).toEqual({
+      returnContext: {
+        to: "/monitoring?view=map&barangay=Balaytigui&report=missing-case",
+        label: "Monitoring Map",
+      },
+    });
   });
 });
 
