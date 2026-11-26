@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Actions\Auth\CreateWebAccount;
 use App\Actions\Auth\ManageAccounts;
 use App\Actions\Auth\ResendWebAccountInvite;
+use App\Actions\Auth\UpdateFarmerAccount;
 use App\Actions\Auth\UpdateWebAccount;
 use App\Http\Controllers\Controller;
 use App\Models\SecurityAudit;
@@ -24,7 +25,22 @@ class WebAccountsController extends Controller
 {
     public static function account(User $user): array
     {
-        return $user->only(['uuid', 'name', 'email', 'role', 'is_active', 'access_version']);
+        $account = $user->only(['uuid', 'name', 'email', 'role', 'is_active', 'access_version']);
+
+        return $user->role === User::ROLE_FARMER ? $account + ['barangay' => $user->barangay] : $account;
+    }
+
+    /** Farmer directory row: account fields plus onboarding state. */
+    public static function farmer(User $user): array
+    {
+        $invitePending = ! $user->hasVerifiedEmail() && ! $user->hasCompletedOnboarding();
+
+        return self::account($user) + [
+            'invite_pending' => $invitePending,
+            'email_verified' => $user->hasVerifiedEmail(),
+            'status' => ! $user->is_active ? 'disabled' : ($invitePending ? 'invite_pending' : 'active'),
+            'created_at' => $user->created_at?->toISOString(),
+        ];
     }
 
     private static function matching(Builder $query, ?string $search): Builder
@@ -51,6 +67,53 @@ class WebAccountsController extends Controller
             'data' => $page->getCollection()->map(fn (User $user) => self::account($user)),
             'meta' => ['page' => $page->currentPage(), 'per_page' => $page->perPage(), 'total' => $page->total()],
         ]);
+    }
+
+    /** Farmer directory: search, home barangay and status filters. */
+    public function farmerIndex(Request $request): JsonResponse
+    {
+        Gate::authorize('viewAny', User::class);
+        $input = $request->validate([
+            'search' => ['sometimes', 'nullable', 'string', 'max:160'],
+            'barangay' => ['sometimes', 'nullable', 'string', Rule::in(LocationReferenceController::barangayScope())],
+            'status' => ['sometimes', 'nullable', 'string', Rule::in(['invite_pending', 'active', 'disabled'])],
+            'page' => ['sometimes', 'integer', 'min:1', 'max:100000'],
+        ]);
+        $query = self::matching(User::query()->where('role', User::ROLE_FARMER), $input['search'] ?? '');
+        if (! empty($input['barangay'])) {
+            $query->where('barangay', $input['barangay']);
+        }
+        match ($input['status'] ?? null) {
+            'disabled' => $query->where('is_active', false),
+            'invite_pending' => $query->where('is_active', true)->whereNull('email_verified_at')->whereNull('onboarded_at'),
+            'active' => $query->where('is_active', true)->where(fn ($q) => $q->whereNotNull('email_verified_at')->orWhereNotNull('onboarded_at')),
+            default => null,
+        };
+        $page = $query->orderBy('name')->orderBy('id')->paginate(25, page: $input['page'] ?? 1);
+
+        return response()->json([
+            'data' => $page->getCollection()->map(fn (User $user) => self::farmer($user)),
+            'meta' => ['page' => $page->currentPage(), 'per_page' => $page->perPage(), 'total' => $page->total()],
+        ]);
+    }
+
+    /** Disable, re-enable or re-home a farmer: own-password step-up and a version check. */
+    public function updateFarmer(Request $request, string $uuid, UpdateFarmerAccount $update): JsonResponse
+    {
+        $user = User::query()->where('uuid', $uuid)->where('role', User::ROLE_FARMER)->firstOrFail();
+        abort_unless(array_diff(array_keys($request->all()), ['is_active', 'barangay', 'current_password', 'expected_access_version']) === [], 422);
+        $input = $request->validate([
+            'is_active' => ['sometimes', 'boolean'],
+            'barangay' => ['sometimes', 'nullable', 'string', Rule::in(LocationReferenceController::barangayScope())],
+            'current_password' => ['required', 'string', 'max:255'],
+            'expected_access_version' => ['required', 'integer', 'min:1'],
+        ]);
+        abort_unless($request->hasAny(['is_active', 'barangay']), 422);
+        if (isset($input['is_active'])) {
+            $input['is_active'] = $request->boolean('is_active');
+        }
+
+        return response()->json(['data' => self::farmer($update->handle($request->user(), $user, $input))]);
     }
 
     /** Read-only directory of field accounts; admit, disable and re-enable go through access(). */
@@ -101,7 +164,7 @@ class WebAccountsController extends Controller
     public function store(Request $request, CreateWebAccount $create): JsonResponse
     {
         Gate::authorize('create', User::class);
-        abort_unless(array_diff(array_keys($request->all()), ['name', 'email', 'role', 'current_password']) === [], 422);
+        abort_unless(array_diff(array_keys($request->all()), ['name', 'email', 'role', 'barangay', 'current_password']) === [], 422);
         $request->merge([
             'name' => trim((string) $request->input('name')),
             'email' => Str::lower(trim((string) $request->input('email'))),
@@ -110,6 +173,8 @@ class WebAccountsController extends Controller
             'name' => ['required', 'string', 'max:255', 'not_regex:/^\s*$/'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')],
             'role' => ['required', Rule::in(CreateWebAccount::ROLES)],
+            // A home barangay only makes sense for a farmer; it is optional.
+            'barangay' => ['sometimes', 'nullable', 'string', Rule::in(LocationReferenceController::barangayScope()), Rule::prohibitedIf($request->input('role') !== User::ROLE_FARMER)],
             'current_password' => ['required', 'string', 'max:255'],
         ]);
         $result = $create->handle($request->user(), $input);
@@ -117,11 +182,11 @@ class WebAccountsController extends Controller
         return response()->json(['data' => self::account($result['user']), 'invite_sent' => $result['invite_sent']], 201);
     }
 
-    /** Re-sends the set-password link to a field inspector who has not completed it yet. */
+    /** Re-sends the set-password link to a field inspector or farmer who has not completed it yet. */
     public function resendInvite(Request $request, string $uuid, ResendWebAccountInvite $resend): JsonResponse
     {
         Gate::authorize('create', User::class);
-        $user = User::query()->where('uuid', $uuid)->where('role', User::ROLE_FIELD_REPORTER)->firstOrFail();
+        $user = User::query()->where('uuid', $uuid)->whereIn('role', [User::ROLE_FIELD_REPORTER, User::ROLE_FARMER])->firstOrFail();
 
         $status = $resend->handle($request->user(), $user);
         abort_if($status === MailDelivery::NOT_PENDING, 409, 'This account has no pending invite.');

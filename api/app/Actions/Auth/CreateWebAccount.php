@@ -47,7 +47,10 @@ final class CreateWebAccount
 
             $user = new User(['name' => $input['name'], 'email' => $input['email'], 'role' => $input['role']]);
             // Unusable random secret: the invitee sets the real password through the reset link.
-            $user->forceFill(['password' => Str::random(64), 'registration_origin' => 'office_certified', 'email_verified_at' => null])->save();
+            $user->forceFill([
+                'password' => Str::random(64), 'registration_origin' => 'office_certified', 'email_verified_at' => null,
+                'barangay' => $input['role'] === User::ROLE_FARMER ? ($input['barangay'] ?? null) : null,
+            ])->save();
             if ($district !== null && $user->role === User::ROLE_FIELD_REPORTER) {
                 DistrictMembership::query()->firstOrCreate(['user_id' => $user->id, 'district_id' => $district->id]);
             }
