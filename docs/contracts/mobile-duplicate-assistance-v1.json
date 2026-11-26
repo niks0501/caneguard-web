@@ -81,7 +81,16 @@
   "web_review": {
     "possible_matches": {
       "method": "GET",
-      "path": "/api/v1/reports/{report}/possible-matches"
+      "path": "/api/v1/reports/{report}/possible-matches",
+      "mobile_payload_unchanged": true,
+      "case_additions": {
+        "barangay": "string",
+        "farmer_or_farm_owner_name": "string|null",
+        "submitted_by_name": "string",
+        "workflow_status": "needs_review|under_review|field_validation|referred|follow_up|resolved",
+        "image_url": "relative URL|null",
+        "image_status": "available|missing|none"
+      }
     },
     "link": {
       "method": "POST",
@@ -91,8 +100,18 @@
       },
       "body": {
         "canonical_report_uuid": "required UUID",
-        "reason": "optional string, maximum 1000 characters"
+        "expected_version": "required integer, minimum 0",
+        "reason": "optional string, maximum 1000 characters",
+        "close_duplicate": "optional boolean, default false; closes the duplicate case atomically with the link"
+      },
+      "errors": {
+        "409": "stale expected_version, or already linked to a different canonical case",
+        "422": "case not open, field evidence completed, or invalid target",
+        "423": "close_duplicate requested while another reviewer holds the review lease"
       }
+    },
+    "duplicate_linkage": {
+      "link_blocked_reason": "null|closed|visit_completed"
     },
     "preservation": {
       "duplicate_record": true,

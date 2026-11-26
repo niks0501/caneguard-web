@@ -25,6 +25,7 @@ class LinkDuplicateReportController extends Controller
             $data['canonical_report_uuid'],
             (int) $data['expected_version'],
             $data['reason'] ?? null,
+            (bool) ($data['close_duplicate'] ?? false),
         );
 
         return $this->resource($linked);

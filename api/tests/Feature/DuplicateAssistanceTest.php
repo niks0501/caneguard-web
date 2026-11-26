@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Reports\RecordReportReviewEvent;
 use App\Models\Report;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -9,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
+use RuntimeException;
 use Tests\TestCase;
 
 class DuplicateAssistanceTest extends TestCase
@@ -508,6 +510,316 @@ class DuplicateAssistanceTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.counts.total_submitted', 1)
             ->assertJsonPath('data.monthly_summary.reported_cases', 1);
+    }
+
+    public function test_web_possible_matches_add_reviewer_context_while_mobile_payload_stays_unchanged(): void
+    {
+        Storage::fake('local');
+        $now = CarbonImmutable::parse('2026-08-29T10:00:00Z');
+        CarbonImmutable::setTestNow($now);
+
+        try {
+            $district = $this->pilotDistrict();
+            $reporter = User::factory()->inDistrict($district)->fieldReporter()->create([
+                'name' => 'Rosa Field Reporter',
+            ]);
+            Storage::disk('local')->put('reports/match-with-file.jpg', 'image-bytes');
+            $report = Report::factory()->inDistrict($district)->create([
+                'predicted_label' => Report::LABEL_RUST,
+                'final_latitude' => 14.0667000,
+                'final_longitude' => 120.6319000,
+            ]);
+            $match = Report::factory()->inDistrict($district)->create([
+                'reporter_id' => $reporter->id,
+                'predicted_label' => Report::LABEL_RUST,
+                'final_latitude' => 14.0667001,
+                'final_longitude' => 120.6319001,
+                'submitted_at' => $now->subHours(2),
+                'barangay' => 'Mabini',
+                'farmer_or_farm_owner_name' => 'Pedro Cruz',
+                'image_path' => 'reports/match-with-file.jpg',
+            ]);
+            $missingImage = Report::factory()->inDistrict($district)->create([
+                'predicted_label' => Report::LABEL_RUST,
+                'final_latitude' => 14.0667002,
+                'final_longitude' => 120.6319002,
+                'submitted_at' => $now->subHours(3),
+                'image_path' => 'reports/not-on-disk.jpg',
+            ]);
+            $noImage = Report::factory()->inDistrict($district)->create([
+                'predicted_label' => Report::LABEL_RUST,
+                'final_latitude' => 14.0667003,
+                'final_longitude' => 120.6319003,
+                'submitted_at' => $now->subHours(4),
+                'image_path' => '',
+                'case_state' => Report::CASE_STATE_CLOSED,
+            ]);
+
+            Sanctum::actingAs(User::factory()->inDistrict($district)->reviewer()->create());
+            $web = $this->getJson("/api/v1/reports/{$report->uuid}/possible-matches")
+                ->assertOk()
+                ->assertJsonCount(3, 'data')
+                ->assertJsonPath('data.0.case.uuid', $match->uuid)
+                ->assertJsonPath('data.0.case.reference_code', $match->reference_code)
+                ->assertJsonPath('data.0.case.barangay', 'Mabini')
+                ->assertJsonPath('data.0.case.farmer_or_farm_owner_name', 'Pedro Cruz')
+                ->assertJsonPath('data.0.case.submitted_by_name', 'Rosa Field Reporter')
+                ->assertJsonPath('data.0.case.workflow_status', Report::WORKFLOW_STATUS_NEEDS_REVIEW)
+                ->assertJsonPath('data.0.case.image_url', "/api/v1/reports/{$match->uuid}/image")
+                ->assertJsonPath('data.0.case.image_status', 'available')
+                ->assertJsonPath('data.0.match.condition', Report::LABEL_RUST)
+                ->assertJsonPath('data.0.message', 'Possible recent match. Compare this case before deciding.')
+                ->assertJsonPath('data.1.case.uuid', $missingImage->uuid)
+                ->assertJsonPath('data.1.case.image_status', 'missing')
+                ->assertJsonPath('data.2.case.uuid', $noImage->uuid)
+                ->assertJsonPath('data.2.case.image_url', null)
+                ->assertJsonPath('data.2.case.image_status', 'none')
+                ->assertJsonPath('data.2.case.workflow_status', Report::WORKFLOW_STATUS_RESOLVED);
+            $this->assertEqualsCanonicalizing(
+                [
+                    'uuid', 'reference_code', 'submitted_at', 'barangay',
+                    'farmer_or_farm_owner_name', 'submitted_by_name',
+                    'workflow_status', 'image_url', 'image_status',
+                ],
+                array_keys($web->json('data.0.case')),
+            );
+
+            $token = $reporter->createToken('mobile-payload-test', ['report:submit'])->plainTextToken;
+            $this->app['auth']->forgetGuards();
+            $mobile = $this->withToken($token)
+                ->getJson('/api/v1/mobile/reports/possible-matches?'.http_build_query([
+                    'predicted_label' => Report::LABEL_RUST,
+                    'final_latitude' => 14.0667000,
+                    'final_longitude' => 120.6319000,
+                ]))
+                ->assertOk();
+            $this->assertNotEmpty($mobile->json('data'));
+            foreach ($mobile->json('data') as $candidate) {
+                $this->assertSame(['case', 'match', 'message'], array_keys($candidate));
+                $this->assertSame(
+                    ['uuid', 'reference_code', 'submitted_at'],
+                    array_keys($candidate['case']),
+                );
+                $this->assertSame(
+                    ['condition', 'distance_meters', 'basis'],
+                    array_keys($candidate['match']),
+                );
+            }
+            $this->assertEqualsCanonicalizing(
+                ['message', 'data', 'meta'],
+                array_keys($mobile->json()),
+            );
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    public function test_link_with_close_duplicate_closes_the_duplicate_in_one_save_and_audits_it(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $canonical = Report::factory()->inDistrict($this->pilotDistrict())->create();
+        $duplicate = Report::factory()->inDistrict($this->pilotDistrict())->create();
+
+        Sanctum::actingAs($reviewer);
+        $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
+            'canonical_report_uuid' => $canonical->uuid,
+            'reason' => 'Same observed field condition.',
+            'close_duplicate' => true,
+            'expected_version' => 0,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.duplicate_linkage.is_duplicate', true)
+            ->assertJsonPath('data.duplicate_linkage.canonical_case.uuid', $canonical->uuid)
+            ->assertJsonPath('data.duplicate_linkage.link_blocked_reason', 'closed')
+            ->assertJsonPath('data.lifecycle.case_state', Report::CASE_STATE_CLOSED)
+            ->assertJsonPath('data.review.reviewer.uuid', $reviewer->uuid)
+            ->assertJsonPath('data.version', 1);
+
+        $this->assertDatabaseHas('reports', [
+            'id' => $duplicate->id,
+            'canonical_report_id' => $canonical->id,
+            'case_state' => Report::CASE_STATE_CLOSED,
+            'review_status' => Report::STATUS_RESOLVED,
+            'reviewer_id' => $reviewer->id,
+            'lock_version' => 1,
+        ]);
+        $this->assertNotNull($duplicate->fresh()->first_reviewed_at);
+        $audit = $duplicate->audits()->sole();
+        $this->assertSame(Report::AUDIT_FIELD_CANONICAL_REPORT, $audit->field);
+        $this->assertSame($canonical->uuid, $audit->corrected_value);
+        $event = $duplicate->reviewEvents()->sole();
+        $this->assertSame($reviewer->getKey(), $event->actor_id);
+        $this->assertSame(Report::CASE_STATE_CLOSED, $event->case_state);
+        $this->assertSame('Same observed field condition.', $event->notes);
+        $this->assertSame(Report::CASE_STATE_OPEN, $canonical->fresh()->case_state);
+        $this->assertSame(0, $canonical->fresh()->lock_version);
+
+        // Without the flag the link is non-destructive, exactly as before.
+        $other = Report::factory()->inDistrict($this->pilotDistrict())->create();
+        $this->postJson("/api/v1/reports/{$other->uuid}/duplicate-link", [
+            'canonical_report_uuid' => $canonical->uuid,
+            'close_duplicate' => false,
+            'expected_version' => 0,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.lifecycle.case_state', Report::CASE_STATE_OPEN)
+            ->assertJsonPath('data.duplicate_linkage.link_blocked_reason', null);
+        $this->assertDatabaseCount('report_review_events', 1);
+    }
+
+    public function test_close_duplicate_closes_an_already_linked_case_idempotently(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $canonical = Report::factory()->inDistrict($this->pilotDistrict())->create();
+        $duplicate = Report::factory()->inDistrict($this->pilotDistrict())->create();
+
+        Sanctum::actingAs($reviewer);
+        $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
+            'canonical_report_uuid' => $canonical->uuid,
+            'expected_version' => 0,
+        ])->assertOk();
+
+        $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
+            'canonical_report_uuid' => $canonical->uuid,
+            'close_duplicate' => true,
+            'expected_version' => 1,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.lifecycle.case_state', Report::CASE_STATE_CLOSED)
+            ->assertJsonPath('data.version', 2);
+
+        $this->assertDatabaseCount('report_audits', 1);
+    }
+
+    public function test_a_failure_while_closing_rolls_the_link_back(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $canonical = Report::factory()->inDistrict($this->pilotDistrict())->create();
+        $duplicate = Report::factory()->inDistrict($this->pilotDistrict())->create();
+
+        $this->app->bind(RecordReportReviewEvent::class, fn () => new class extends RecordReportReviewEvent
+        {
+            public function handle(Report $report, array $data): void
+            {
+                throw new RuntimeException('Review event could not be recorded.');
+            }
+        });
+
+        Sanctum::actingAs($reviewer);
+        $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
+            'canonical_report_uuid' => $canonical->uuid,
+            'close_duplicate' => true,
+            'expected_version' => 0,
+        ])->assertServerError();
+
+        $this->assertDatabaseHas('reports', [
+            'id' => $duplicate->id,
+            'canonical_report_id' => null,
+            'case_state' => Report::CASE_STATE_OPEN,
+            'lock_version' => 0,
+        ]);
+        $this->assertDatabaseCount('report_audits', 0);
+        $this->assertDatabaseCount('report_review_events', 0);
+    }
+
+    public function test_close_duplicate_is_rejected_when_the_case_cannot_change_and_persists_nothing(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $canonical = Report::factory()->inDistrict($this->pilotDistrict())->create();
+        Sanctum::actingAs($reviewer);
+
+        foreach ([
+            ['case_state' => Report::CASE_STATE_CLOSED, 'error' => 'case_state'],
+            ['field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED, 'error' => 'field_validation_state'],
+        ] as $case) {
+            $error = $case['error'];
+            unset($case['error']);
+            $duplicate = Report::factory()->inDistrict($this->pilotDistrict())->create($case);
+
+            $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
+                'canonical_report_uuid' => $canonical->uuid,
+                'close_duplicate' => true,
+                'expected_version' => 0,
+            ])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors($error);
+
+            $this->assertDatabaseHas('reports', [
+                'id' => $duplicate->id,
+                'canonical_report_id' => null,
+                'lock_version' => 0,
+            ]);
+        }
+        $this->assertDatabaseCount('report_audits', 0);
+        $this->assertDatabaseCount('report_review_events', 0);
+
+        $claimed = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'review_claimed_by_id' => User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create()->id,
+            'review_claim_expires_at' => now()->addMinutes(10),
+        ]);
+        $this->postJson("/api/v1/reports/{$claimed->uuid}/duplicate-link", [
+            'canonical_report_uuid' => $canonical->uuid,
+            'close_duplicate' => true,
+            'expected_version' => 0,
+        ])->assertStatus(423);
+        $this->assertDatabaseHas('reports', [
+            'id' => $claimed->id,
+            'canonical_report_id' => null,
+            'case_state' => Report::CASE_STATE_OPEN,
+        ]);
+        $this->assertDatabaseCount('report_audits', 0);
+    }
+
+    public function test_close_duplicate_keeps_version_conflicts_and_validation(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $canonical = Report::factory()->inDistrict($this->pilotDistrict())->create();
+        $duplicate = Report::factory()->inDistrict($this->pilotDistrict())->create();
+        $duplicate->update(['lock_version' => 1]);
+        Sanctum::actingAs($reviewer);
+
+        $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
+            'canonical_report_uuid' => $canonical->uuid,
+            'close_duplicate' => true,
+            'expected_version' => 0,
+        ])->assertConflict();
+        $this->assertDatabaseHas('reports', [
+            'id' => $duplicate->id,
+            'canonical_report_id' => null,
+            'case_state' => Report::CASE_STATE_OPEN,
+        ]);
+
+        $this->postJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
+            'canonical_report_uuid' => $canonical->uuid,
+            'close_duplicate' => 'sometimes',
+            'expected_version' => 1,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('close_duplicate');
+
+        $this->deleteJson("/api/v1/reports/{$duplicate->uuid}/duplicate-link", [
+            'close_duplicate' => true,
+            'expected_version' => 1,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('close_duplicate');
+    }
+
+    public function test_report_exposes_why_duplicate_linking_is_blocked(): void
+    {
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
+
+        foreach ([
+            [[], null],
+            [['case_state' => Report::CASE_STATE_CLOSED], 'closed'],
+            [['field_validation_state' => Report::FIELD_VALIDATION_STATE_COMPLETED], 'visit_completed'],
+        ] as [$attributes, $expected]) {
+            $report = Report::factory()->inDistrict($this->pilotDistrict())->create($attributes);
+
+            $this->getJson("/api/v1/reports/{$report->uuid}")
+                ->assertOk()
+                ->assertJsonPath('data.duplicate_linkage.link_blocked_reason', $expected);
+        }
     }
 
     /**

@@ -31,6 +31,10 @@ class LinkDuplicateReportRequest extends ApiFormRequest
                 'string',
                 'max:1000',
             ],
+            // Opt-in: close the duplicate case in the same save as the link.
+            'close_duplicate' => $this->isMethod('delete')
+                ? ['prohibited']
+                : ['sometimes', 'boolean'],
             'expected_version' => ['required', 'integer', 'min:0'],
         ];
     }
