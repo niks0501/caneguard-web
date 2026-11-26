@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { parse } from 'yaml';
 
 const workflowDirectory = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -131,4 +132,28 @@ test('disables checkout credential persistence for every checkout', () => {
     /token: \$\{\{ secrets\.CANEGUARD_MOBILE_READ_TOKEN \}\}/,
   );
   assert.match(mobileCheckout, /persist-credentials: false/);
+});
+
+test('supports stacked PRs and base-branch changes without weakening trusted main-only gate', () => {
+  const safeParsed = parse(safeWorkflow);
+  const trustedParsed = parse(trustedWorkflow);
+
+  const safePr = safeParsed?.on?.pull_request;
+  assert.ok(safePr && typeof safePr === 'object');
+  assert.equal(Object.hasOwn(safePr, 'branches'), false);
+  assert.equal(Object.hasOwn(safePr, 'branches-ignore'), false);
+  assert.deepEqual(safePr.types, ['opened', 'synchronize', 'reopened', 'edited']);
+  assert.ok(Array.isArray(safePr.paths) && safePr.paths.length > 0);
+  assert.equal(
+    safeParsed?.jobs?.['web-boundary']?.if,
+    "github.event_name == 'pull_request' && (github.event.action != 'edited' || github.event.changes.base != null)",
+  );
+  assert.equal(
+    safeParsed?.concurrency?.group,
+    'mobile-report-upload-contract-pr-${{ github.event.pull_request.number || github.ref }}',
+  );
+  assert.equal(safeParsed?.concurrency?.['cancel-in-progress'], true);
+
+  assert.deepEqual(trustedParsed?.on?.push?.branches, ['main']);
+  assert.equal(Object.hasOwn(trustedParsed?.on ?? {}, 'pull_request'), false);
 });

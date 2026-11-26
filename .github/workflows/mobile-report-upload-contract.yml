@@ -2,8 +2,11 @@ name: Mobile report lifecycle contract web boundary
 
 on:
   pull_request:
-    branches:
-      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - edited
     paths:
       - .github/workflows/mobile-report-upload-contract.yml
       - .github/workflows/mobile-report-upload-contract-trusted.yml
@@ -127,7 +130,7 @@ concurrency:
 jobs:
   web-boundary:
     name: lifecycle contract web boundary (PR)
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && (github.event.action != 'edited' || github.event.changes.base != null)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
