@@ -23,6 +23,8 @@ import { CollapsedTool, EvidenceTabs, type EvidenceTab } from "../components/rep
 import { ReviewDecisionForm } from "../components/reports/ReviewDecisionForm";
 import { ReviewHandoffPanel } from "../components/reports/ReviewHandoffPanel";
 import { BackLink } from "../components/layout/BackLink";
+import { summarizeCaseFieldMaps } from "../components/boundaries/fieldMapFreshness";
+import { createReturnContext, withReturnContext } from "../components/navigation/mapNavigationContext";
 import { returnLinkLabel, reviewQueueContext } from "../components/reports/reviewQueueContext";
 import { OfflineHandoffNotes } from "../components/reports/OfflineHandoffNotes";
 import { HistoricalReferralPanel } from "../components/reports/HistoricalReferralPanel";
@@ -706,6 +708,14 @@ function CaseReviewContent() {
   if (reportQuery.isPending) return <PageContent><LoadingState message="Loading report..." /></PageContent>;
   if (reportQuery.isSuccess && !report) return <PageContent><ErrorState kind="not-found" message="This report does not exist in the current submitted report queue." /></PageContent>;
   if ((reportQuery.isError && (!report || suppressCachedDetail)) || !report) return <PageContent><ErrorState message={detailErrorMessage} onRetry={suppressCachedDetail ? undefined : () => reportQuery.refetch()} /></PageContent>;
+
+  const caseFieldMaps = summarizeCaseFieldMaps(report);
+  const caseReturnState = withReturnContext(createReturnContext(routes.reportDetail(report.uuid), `Case ${report.referenceCode}`));
+  const fieldMapLinkLabel = caseFieldMaps.plots.length > 1
+    ? `View Field Map (${caseFieldMaps.plots.length} plots)`
+    : caseFieldMaps.waitingCount > 0 && caseFieldMaps.confirmedCount === 0
+      ? "View Field Map (waiting confirmation)"
+      : "View Field Map";
   const contextFields: { label: string; short: string; value: string | null }[] = [
     { label: "Affected area", short: "affected area", value: report.affectedAreaMeasurement === "not_measured" ? "Not measured" : report.affectedAreaHectares !== undefined ? `${report.affectedAreaHectares} ha` : null },
     { label: "Affected portion", short: "affected portion", value: report.affectedPortionMeasurement === "not_measured" ? "Not measured" : report.affectedPortionPercent !== undefined ? `${report.affectedPortionPercent}%` : null },
@@ -835,7 +845,7 @@ function CaseReviewContent() {
             </div>
           </div>
           <dl className="review-evidence__context">
-            <DetailField label="Location"><span>{humanLocationFor(report)}{!hasUsableCoordinates(report) ? ` · Location not available${locationUnavailableReasonFor(report) ? ` — ${locationUnavailableReasonFor(report)}` : ""}` : null}{mapUrl ? <> · <a className="table-action" href={mapUrl} target="_blank" rel="noreferrer">View on map</a></> : null}</span></DetailField>
+            <DetailField label="Location"><span>{humanLocationFor(report)}{!hasUsableCoordinates(report) ? ` · Location not available${locationUnavailableReasonFor(report) ? ` — ${locationUnavailableReasonFor(report)}` : ""}` : null}{caseFieldMaps.pendingSync && caseFieldMaps.plots.length === 0 ? <> · <span role="status">Field map syncing from phone</span></> : null} · <Link className="table-action" to={routes.fieldMapForCase(report.uuid, caseFieldMaps.primaryBoundaryId)} state={caseReturnState}>{fieldMapLinkLabel}</Link>{hasUsableCoordinates(report) ? <> · <Link className="table-action" to={routes.monitoringMapForReport(report.uuid)} state={caseReturnState}>View on Monitoring Map</Link></> : null}{mapUrl ? <> · <a className="table-action" href={mapUrl} target="_blank" rel="noreferrer">Open in Google Maps</a></> : null}</span></DetailField>
             {contextFields.filter((field) => field.value !== null).map((field) => <DetailField key={field.label} label={field.label}>{field.value}</DetailField>)}
           </dl>
           {missingContextFields.length ? <p className="review-evidence__missing">Not provided: {missingContextFields.join(", ")}</p> : null}

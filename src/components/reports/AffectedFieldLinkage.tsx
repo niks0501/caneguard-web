@@ -22,6 +22,8 @@ import { Skeleton } from "../ui/States";
 import { useUnsavedWorkGuard } from "../ui/unsavedWorkContext";
 import { affectedFieldFormState } from "./affectedFieldFormState";
 import { percentAffected } from "../boundaries/fieldMapStatus";
+import { latestPlotId, sortPlotsNewestFirst, summarizeCaseFieldMaps, supersedingPlotIds } from "../boundaries/fieldMapFreshness";
+import { createReturnContext, withReturnContext } from "../navigation/mapNavigationContext";
 import { boundaryCentroid, boundaryOutline, distanceMeters, pointInBoundary } from "./boundaryShape";
 
 /** One field map as the phone measured it. Every number here comes from the phone. */
@@ -115,10 +117,12 @@ function FieldMapSummary({
   map,
   caseLocation,
   status,
+  newerIds,
   actions,
 }: {
   map: FieldMap;
   caseLocation: CaseLocation | null;
+  newerIds?: number[];
   status?: ReactNode;
   actions?: ReactNode;
 }) {
@@ -136,6 +140,9 @@ function FieldMapSummary({
         </p>
         {map.outlineFromSurveyId !== null ? (
           <p className="field-map__meta">Plot outline reused from Map {map.outlineFromSurveyId}</p>
+        ) : null}
+        {newerIds?.length ? (
+          <p className="field-map__meta">Newer survey exists: Map {newerIds[0]}</p>
         ) : null}
         {inside !== null ? (
           <p className={`field-map__location${inside ? "" : " field-map__location--outside"}`}>
@@ -178,7 +185,7 @@ export function AffectedFieldLinkage({
     { enabled: drawerOpen },
   );
   const linkedFields = savedFields?.report === report ? savedFields.fields : report.affectedFields ?? [];
-  const linked = linkedFields.map(fromField);
+  const linked = sortPlotsNewestFirst(linkedFields.map(fromField));
   const linkedIds = linkedFields.map((field) => field.fieldSurveyId);
   const attachment: InspectorBoundaryAttachment | null = report.inspectorAttachment ?? null;
   const attached = attachment?.boundary ? fromField(attachment.boundary) : null;
@@ -188,6 +195,18 @@ export function AffectedFieldLinkage({
     report.finalLatitude !== undefined && report.finalLongitude !== undefined
       ? { latitude: report.finalLatitude, longitude: report.finalLongitude }
       : null;
+
+  const allPlots = attached && !linkedIds.includes(attached.id) ? [...linked, attached] : linked;
+  const latestId = allPlots.length > 1 ? latestPlotId(allPlots) : null;
+  const supersededBy = supersedingPlotIds(allPlots);
+  const summary = summarizeCaseFieldMaps({ affectedFields: linkedFields, inspectorAttachment: report.inspectorAttachment });
+  const caseReturnState = withReturnContext(createReturnContext(routes.reportDetail(report.uuid), `Case ${report.referenceCode}`));
+  const latestTag = (id: number) => (latestId === id ? <span className="field-map__tag">Latest</span> : null);
+  const viewOnMap = (id: number) => (
+    <Link className="button button--secondary" to={routes.fieldMapForCase(report.uuid, id)} state={caseReturnState}>
+      View on Field Map
+    </Link>
+  );
 
   const selectionDirty = drawerOpen
     && (selection.length !== linkedIds.length || selection.some((id) => !linkedIds.includes(id)));
@@ -272,8 +291,8 @@ export function AffectedFieldLinkage({
     >
       <div className="section-heading affected-field-linkage__heading">
         <h2 id="affected-field-linkage-heading">Field measurement</h2>
-        <Link className="table-action" to={`${routes.monitoring}?view=boundaries`}>
-          Field maps
+        <Link className="table-action" to={routes.fieldMapForCase(report.uuid, summary.primaryBoundaryId)} state={caseReturnState}>
+          View Field Map
         </Link>
       </div>
 
@@ -287,9 +306,11 @@ export function AffectedFieldLinkage({
         <FieldMapSummary
           map={attached}
           caseLocation={caseLocation}
-          status={<span className="field-map__tag field-map__tag--waiting">Waiting for you</span>}
+          newerIds={supersededBy.get(attached.id)}
+          status={<><span className="field-map__tag field-map__tag--waiting">Waiting for you</span>{latestTag(attached.id)}</>}
           actions={(
             <>
+              {viewOnMap(attached.id)}
               <Button type="button" disabled={busy} onClick={() => void commit([...linkedIds, attached.id], "Field confirmed.")}>
                 {updateMutation.isPending ? "Confirming…" : "Confirm field"}
               </Button>
@@ -306,16 +327,20 @@ export function AffectedFieldLinkage({
           key={map.id}
           map={map}
           caseLocation={caseLocation}
-          status={<span className="field-map__tag">Confirmed</span>}
+          newerIds={supersededBy.get(map.id)}
+          status={<><span className="field-map__tag">Confirmed</span>{latestTag(map.id)}</>}
           actions={(
-            <Button
-              type="button"
-              variant="quiet"
-              disabled={busy}
-              onClick={() => void commit(linkedIds.filter((id) => id !== map.id), "Field map removed.")}
-            >
-              Remove from case
-            </Button>
+            <>
+              {viewOnMap(map.id)}
+              <Button
+                type="button"
+                variant="quiet"
+                disabled={busy}
+                onClick={() => void commit(linkedIds.filter((id) => id !== map.id), "Field map removed.")}
+              >
+                Remove from case
+              </Button>
+            </>
           )}
         />
       ))}
