@@ -36,12 +36,13 @@ class WeeklyReportingMySqlTest extends TestCase
         }
         DistrictRecipientSet::query()->create(['district_id' => $district->id, 'recipients' => ['dummy@example.test'], 'office_reference' => 'synthetic-mysql-contract']);
         $report = Report::factory()->inDistrict($district)->create(['submitted_at' => '2026-09-27 16:00:00', 'observed_at' => '2026-09-27 16:00:00', 'predicted_label' => 'smut', 'authority_classified_condition' => 'smut', 'verification_outcome' => 'verified']);
-        Report::factory()->inDistrict($district)->create(['submitted_at' => '2026-09-28 02:00:00', 'authority_classified_condition' => 'rssi', 'verification_outcome' => 'verified']);
+        Report::factory()->inDistrict($district)->create(['submitted_at' => '2026-09-29 02:00:00', 'authority_classified_condition' => 'rssi', 'verification_outcome' => 'verified']);
         $workflow = app(DistrictReportWorkflow::class);
         $scheduled = $workflow->prepareScheduled($district, '2026-W40');
         $this->assertNull($scheduled->prepared_by_id);
         $this->assertSame('scheduled', $scheduled->prepared_source);
         $this->assertSame(1, $scheduled->content['trend'][0]['count']);
+        $this->assertSame(1, $scheduled->content['trend'][1]['count']);
         $this->assertSame($scheduled->id, $workflow->prepareScheduled($district, '2026-W40')->id);
 
         $rssiWorkflow = app(DistrictRssiReportWorkflow::class);
