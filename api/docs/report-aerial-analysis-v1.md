@@ -68,6 +68,7 @@ exists):
 | --- | --- |
 | `GET /api/v1/mobile/assignments/{assignment}/aerial-preview` | Bounded JPEG aerial photo (≤ 1600 px), `Cache-Control: private, no-cache`, `nosniff`. |
 | `GET /api/v1/mobile/assignments/{assignment}/aerial-overlay` | Bounded JPEG aerial photo with class-2 problem areas tinted (`#ae8a1b`), `Cache-Control: private, no-cache`, `nosniff`. |
+| `POST /api/v1/mobile/assignments/{assignment}/aerial-analyses` | `201` with `data.analysis` (`uuid`, `client_uuid`, `assignment_uuid`) and `data.aerial_check` brief. Multipart fields: `client_uuid` (UUID) + `image` (jpg/jpeg/png/webp ≤ 20 MiB, ≤ 10,000 px). Protected by `intake.replay:aerial` (safe idempotent resend on dropped reply), `abilities:assignment:complete`, assignee/district ownership (`403`), open case (`409 CASE_CLOSED`), `409 AERIAL_DISABLED` when switched off, and `429 AERIAL_BUSY` (`Retry-After: 10`) / throttle (`6/min`). |
 
 Errors: `404` the check off (including when it is switched off while an upload
 is running, which saves nothing), unknown analysis, or a removed analysis on any

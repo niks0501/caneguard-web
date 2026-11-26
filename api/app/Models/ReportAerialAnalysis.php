@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'uuid',
+    'client_uuid',
     'report_id',
     'uploaded_by',
     'image_path',

@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\FieldValidationQueueController;
 use App\Http\Controllers\Api\V1\LinkDuplicateReportController;
 use App\Http\Controllers\Api\V1\LocationReferenceController;
 use App\Http\Controllers\Api\V1\MapReportController;
+use App\Http\Controllers\Api\V1\MobileAssignmentAerialAnalysisController;
 use App\Http\Controllers\Api\V1\MobileAssignmentAerialMediaController;
 use App\Http\Controllers\Api\V1\MobileAssignmentFieldMapController;
 use App\Http\Controllers\Api\V1\MobileAuthController;
@@ -237,6 +238,9 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified', 'mobile.token'])->g
         ->middleware(['throttle:30,1', 'intake.replay:report', 'inspector.access', 'access.identity', 'abilities:report:submit']);
     Route::post('/mobile/assignments/{assignment}/completion', MobileFieldValidationCompletionController::class)
         ->middleware(['throttle:30,1', 'intake.replay:completion', 'inspector.access', 'access.identity', 'abilities:assignment:complete']);
+    Route::post('/mobile/assignments/{assignment}/aerial-analyses', [MobileAssignmentAerialAnalysisController::class, 'store'])
+        ->middleware(['throttle:6,1', 'intake.replay:aerial', 'inspector.access', 'access.identity', 'abilities:assignment:complete'])
+        ->name('api.v1.mobile.assignments.aerial-analyses.store');
 });
 
 Route::prefix('v1')->middleware(['auth:sanctum', 'verified', 'mobile.token', 'inspector.access', 'access.identity'])->group(function () {
