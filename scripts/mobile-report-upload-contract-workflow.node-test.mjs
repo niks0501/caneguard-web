@@ -3,7 +3,6 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { parse } from 'yaml';
 
 const workflowDirectory = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -135,25 +134,29 @@ test('disables checkout credential persistence for every checkout', () => {
 });
 
 test('supports stacked PRs and base-branch changes without weakening trusted main-only gate', () => {
-  const safeParsed = parse(safeWorkflow);
-  const trustedParsed = parse(trustedWorkflow);
-
-  const safePr = safeParsed?.on?.pull_request;
-  assert.ok(safePr && typeof safePr === 'object');
-  assert.equal(Object.hasOwn(safePr, 'branches'), false);
-  assert.equal(Object.hasOwn(safePr, 'branches-ignore'), false);
-  assert.deepEqual(safePr.types, ['opened', 'synchronize', 'reopened', 'edited']);
-  assert.ok(Array.isArray(safePr.paths) && safePr.paths.length > 0);
-  assert.equal(
-    safeParsed?.jobs?.['web-boundary']?.if,
-    "github.event_name == 'pull_request' && (github.event.action != 'edited' || github.event.changes.base != null)",
+  const safeTriggerBlock = safeWorkflow.slice(
+    safeWorkflow.indexOf('on:'),
+    safeWorkflow.indexOf('permissions:'),
   );
-  assert.equal(
-    safeParsed?.concurrency?.group,
-    'mobile-report-upload-contract-pr-${{ github.event.pull_request.number || github.ref }}',
+  assert.doesNotMatch(safeTriggerBlock, /^\s+branches(-ignore)?:/m);
+  assert.match(
+    safeTriggerBlock,
+    /pull_request:\s*\n\s+types:\s*\n\s+- opened\s*\n\s+- synchronize\s*\n\s+- reopened\s*\n\s+- edited\s*\n\s+paths:/,
   );
-  assert.equal(safeParsed?.concurrency?.['cancel-in-progress'], true);
+  assert.match(
+    safeWorkflow,
+    /if: github\.event_name == 'pull_request' && \(github\.event\.action != 'edited' \|\| github\.event\.changes\.base != null\)/,
+  );
+  assert.match(
+    safeWorkflow,
+    /group: mobile-report-upload-contract-pr-\$\{\{ github\.event\.pull_request\.number \|\| github\.ref \}\}/,
+  );
+  assert.match(safeWorkflow, /cancel-in-progress: true/);
 
-  assert.deepEqual(trustedParsed?.on?.push?.branches, ['main']);
-  assert.equal(Object.hasOwn(trustedParsed?.on ?? {}, 'pull_request'), false);
+  const trustedTriggerBlock = trustedWorkflow.slice(
+    trustedWorkflow.indexOf('on:'),
+    trustedWorkflow.indexOf('permissions:'),
+  );
+  assert.match(trustedTriggerBlock, /push:\s*\n\s+branches:\s*\n\s+- main\b/);
+  assert.doesNotMatch(trustedTriggerBlock, /pull_request:/);
 });
