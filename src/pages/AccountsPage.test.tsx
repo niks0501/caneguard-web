@@ -11,7 +11,7 @@ import { AccountsPage } from "./AccountsPage";
 import { accountsFilters } from "./accountsUrlState";
 
 vi.mock("../auth/useAuth", () => ({ useAuth: vi.fn() }));
-vi.mock("../services/accountsAdmin.api", async original => ({ ...await original<typeof api>(), listAccounts: vi.fn(), changeAccount: vi.fn(), createAccount: vi.fn(), listFieldAccounts: vi.fn(), changeFieldAccess: vi.fn() }));
+vi.mock("../services/accountsAdmin.api", async original => ({ ...await original<typeof api>(), listAccounts: vi.fn(), changeAccount: vi.fn(), createAccount: vi.fn(), listFieldAccounts: vi.fn(), changeFieldAccess: vi.fn(), listFarmerAccounts: vi.fn() }));
 function Location() { return <output aria-label="Location">{useLocation().search}</output>; }
 function renderPage(route = "/accounts") {
   return render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter initialEntries={[route]}><AccountsPage /><Location /></MemoryRouter></QueryClientProvider>);
@@ -21,6 +21,7 @@ describe("User Management", () => {
     vi.clearAllMocks();
     vi.mocked(useAuth).mockReturnValue({ user: adminAccount, status: "authenticated", reason: null, restoreSession: vi.fn(), login: vi.fn(), logout: vi.fn() });
     vi.mocked(api.listFieldAccounts).mockResolvedValue({ data: [], meta: { page: 1, per_page: 25, total: 0 } });
+    vi.mocked(api.listFarmerAccounts).mockResolvedValue({ data: [], meta: { page: 1, per_page: 25, total: 0 } });
     vi.mocked(api.listAccounts).mockResolvedValue({ data: [adminAccount, webAccount], meta: { page: 1, per_page: 25, total: 2 } });
   });
   it("shows only identity, web role and status; own row is disabled", async () => {
@@ -92,7 +93,7 @@ describe("User Management", () => {
 
     const notice = await screen.findByText(/Account created for Farm Person/);
     expect(notice).toHaveTextContent("They sign in on CaneGuard Mobile to scan sugarcane");
-    expect(notice).toHaveTextContent("scans stay on their own phone and are not sent to the office");
+    expect(notice).toHaveTextContent("scans stay on their own phone unless they choose to ask the office to look");
     expect(notice).not.toHaveTextContent("currently limited");
     if (!inviteSent) expect(notice).toHaveTextContent("an operator can issue a set-password link");
   });

@@ -2,7 +2,9 @@
 
 namespace App\Http\Resources;
 
+use App\Models\User;
 use App\Security\DistrictAccess;
+use App\Support\FarmerAccess;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -19,7 +21,9 @@ class AuthenticatedUserResource extends JsonResource
             'email' => $this->email,
             'role' => $this->role,
             ...($request->is('api/v1/me') ? ['is_active' => $this->is_active] : [
-                'capabilities' => $access->capabilities($this->resource),
+                'capabilities' => $this->resource->role === User::ROLE_FARMER
+                    ? FarmerAccess::capabilities($this->resource)
+                    : $access->capabilities($this->resource),
                 'district_id' => $inDistrict ? $access->pilotId() : null,
                 'district_code' => $inDistrict ? trim((string) config('caneguard.pilot_district_code')) : null,
             ]),

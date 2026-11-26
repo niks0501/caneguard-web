@@ -100,6 +100,17 @@ return [
             explode(',', (string) env('CANEGUARD_ANDROID_CERT_FINGERPRINTS', '')),
         ))),
     ],
+    /*
+    | Farmer care loop. Each switch pauses one farmer-facing surface without a
+    | deploy; inspector and office flows never read them.
+    */
+    'farmer' => [
+        'inquiries_enabled' => (bool) env('CANEGUARD_FARMER_INQUIRIES_ENABLED', true),
+        'advisories_enabled' => (bool) env('CANEGUARD_FARMER_ADVISORIES_ENABLED', true),
+        // Soft cap on requests still waiting for the office, per farmer, per rolling week.
+        'inquiry_open_cap' => max(1, (int) env('CANEGUARD_FARMER_INQUIRY_OPEN_CAP', 5)),
+    ],
+
     'auth' => [
         'verification_url' => env(
             'CANEGUARD_VERIFICATION_URL',
