@@ -2,10 +2,8 @@
 
 namespace Tests\MySql;
 
-use App\Actions\Reports\DistrictReportWorkflow;
 use App\Models\DistrictGrant;
 use App\Models\DistrictRecipientSet;
-use App\Models\DistrictReportTransmission;
 use App\Models\Report;
 use App\Models\User;
 use App\Notifications\NewCaseSubmittedNotification;
@@ -42,10 +40,8 @@ class DistrictAccessMySqlTest extends TestCase
         $path = '/api/v1/district-reports/'.$version['uuid'];
         $payload = ['content_hash' => $version['content_hash'], 'idempotency_key' => (string) Str::uuid()];
         $this->postJson($path.'/approve', $payload)->assertOk();
-        $id = $this->postJson($path.'/send', $payload)->assertStatus(202)->json('data.id');
-        $this->postJson($path.'/send', $payload)->assertStatus(202)->assertJsonPath('data.id', $id);
-        $this->assertTrue(app(DistrictReportWorkflow::class)->checkPending(DistrictReportTransmission::findOrFail($id)));
-        $this->assertDatabaseCount('district_report_transmissions', 1);
+        $this->postJson($path.'/send', $payload)->assertStatus(410);
+        $this->assertDatabaseCount('district_report_transmissions', 0);
         $reviewer = User::factory()->reviewer()->inDistrict($district)->create();
         Auth::forgetGuards();
         $this->actingAs($reviewer, 'web');

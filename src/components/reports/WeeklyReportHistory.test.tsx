@@ -17,20 +17,17 @@ const make = (week: string, version: number, extra: Record<string, unknown> = {}
   uuid: `00000000-0000-4000-8000-${String(version).padStart(12, "0")}`, version, content_hash: "a".repeat(64),
   approved_at: null, week, headline, transmissions: [], ...extra,
 });
-const sent = { id: 1, state: "sent", transport_receipt: null, failure_reason: null, requested_name: "Admin", requested_by_id: 1, completed_at: "2026-10-01T04:00:00Z", created_at: "2026-10-01T03:00:00Z" };
 
 describe("weekStatus", () => {
-  it("derives each of the six states", () => {
+  it("derives each of the four active weekly states", () => {
     expect(weekStatus([])).toBe("not_prepared");
     expect(weekStatus([make("w", 1)])).toBe("draft");
     expect(weekStatus([make("w", 1, { approved_at: "2026-10-01T04:00:00Z" })])).toBe("approved");
     expect(weekStatus([make("w", 1, { approved_at: "2026-10-01T04:00:00Z", is_current: false, stale_reason: "evidence_changed" })])).toBe("stale");
-    expect(weekStatus([make("w", 1, { approved_at: "2026-10-01T04:00:00Z", transmissions: [sent] })])).toBe("sent");
-    expect(weekStatus([make("w", 1, { approved_at: "2026-10-01T04:00:00Z", transmissions: [{ ...sent, state: "failed" }] })])).toBe("failed");
   });
 
   it("judges a week by its newest version, not its first row", () => {
-    expect(weekStatus([make("w", 1, { approved_at: "x", transmissions: [sent], is_current: false, stale_reason: "newer_version" }), make("w", 2)])).toBe("draft");
+    expect(weekStatus([make("w", 1, { approved_at: "x", is_current: false, stale_reason: "newer_version" }), make("w", 2)])).toBe("draft");
   });
 });
 
@@ -47,15 +44,15 @@ describe("weekly report history", () => {
   it("shows the 12-week strip and selects a clicked week", async () => {
     vi.mocked(useAuth).mockReturnValue({ status: "authenticated", user: { uuid: "u", name: "A", email: "a@example.test", role: "admin" } } as ReturnType<typeof useAuth>);
     server.use(http.get(base, () => HttpResponse.json({
-      data: [make(weeks[0], 2), make(weeks[0], 1, { is_current: false, stale_reason: "newer_version" }), make(weeks[1], 1, { approved_at: "2026-10-01T04:00:00Z", transmissions: [sent] })],
-      meta: { send_enabled: true, delivery_gate_open: true, recipients_configured: true },
+      data: [make(weeks[0], 2), make(weeks[0], 1, { is_current: false, stale_reason: "newer_version" }), make(weeks[1], 1, { approved_at: "2026-10-01T04:00:00Z" })],
+      meta: { email_send_retired: true, send_enabled: false, delivery_gate_open: false, recipients_configured: false },
     })));
     const onSelect = vi.fn();
     render(<QueryClientProvider client={new QueryClient()}><WeeklyReportHistory week={weeks[0]} onSelect={onSelect} /></QueryClientProvider>);
     const strip = await screen.findByRole("list", { name: "Last 12 weeks" });
-    expect(await within(strip).findByText("Sent")).toBeInTheDocument();
+    expect(await within(strip).findByText("Approved")).toBeInTheDocument();
     expect(within(strip).getAllByRole("button")).toHaveLength(12);
-    expect(within(strip).getAllByText("Not prepared")).toHaveLength(10);
+    expect(within(strip).getAllByText("Not generated")).toHaveLength(10);
     const timeline = await screen.findByRole("list", { name: `Versions of ${weeks[0]}` });
     expect(within(timeline).getAllByText(/^Version \d/).map(node => node.textContent)).toEqual(["Version 2", "Version 1"]);
     await userEvent.setup().click(within(strip).getAllByRole("button")[1]);

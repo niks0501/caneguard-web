@@ -8,7 +8,6 @@ import { RequireAdmin } from "../auth/RequireAdmin";
 import { RequireWebRole } from "../auth/RequireWebRole";
 import { PrintableReportsPage } from "../pages/PrintableReportsPage";
 import { SubmittedReportsPage } from "../pages/SubmittedReportsPage";
-import { ReportApprovalPage } from "../pages/ReportApprovalPage";
 import { AdminSettingsPage } from "../pages/AdminSettingsPage";
 import { AccountsPage } from "../pages/AccountsPage";
 import { AccountDetailPage } from "../pages/AccountDetailPage";
@@ -34,7 +33,6 @@ import { EmailSettings } from "../pages/settings/EmailSettings";
 import { PasswordSettings } from "../pages/settings/PasswordSettings";
 import { ProfileSettings } from "../pages/settings/ProfileSettings";
 import { AerialAnalysisSettings } from "../components/reports/AerialAnalysisSettings";
-import { OfficialRecipients } from "../components/reports/OfficialRecipients";
 import { WeeklyReportingSettings } from "../components/reports/WeeklyReportingSettings";
 import { AppErrorFallback } from "./AppErrorBoundary";
 import { LegacyMapRedirect } from "./LegacyMapRedirect";
@@ -99,7 +97,7 @@ export const appRoutes: RouteObject[] = [
                         children: [
                           { path: "weekly-reporting", element: <WeeklyReportingSettings /> },
                           { path: "aerial-analysis", element: <AerialAnalysisSettings /> },
-                          { path: "official-recipients", element: <OfficialRecipients /> },
+                          { path: "official-recipients", element: <Navigate replace to={routes.settingsSection("weekly-reporting")} /> },
                         ],
                       },
                     ],
@@ -107,7 +105,7 @@ export const appRoutes: RouteObject[] = [
                   {
                     element: <RequireAdmin />,
                     children: [
-                      { path: "report-approval", element: <ReportApprovalPage /> },
+                      { path: "report-approval", element: <Navigate replace to={routes.printableReports} /> },
                       { path: "admin-settings", element: <AdminSettingsPage /> },
                       { path: "accounts", element: <AccountsPage /> },
                       { path: "accounts/:uuid", element: <AccountDetailPage /> },

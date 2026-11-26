@@ -2,18 +2,22 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Actions\Reports\BuildWeeklyReportBundle;
 use App\Actions\Reports\BuildWeeklyReportContent;
 use App\Actions\Reports\DistrictReportWorkflow;
 use App\Actions\Reports\RenderWeeklyReport;
 use App\Actions\Reports\WeeklyReportGraphics;
+use App\Console\Commands\GenerateWeeklyReports;
 use App\Http\Controllers\Controller;
-use App\Models\DistrictRecipientSet;
+use App\Models\District;
 use App\Models\DistrictReportVersion;
+use App\Models\DistrictRssiReportVersion;
 use App\Security\DistrictAccess;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
@@ -23,14 +27,13 @@ class DistrictReportController extends Controller
     {
         $input = $request->validate(['week' => ['sometimes', 'regex:/^\d{4}-W\d{2}$/']]);
         $start = isset($input['week']) ? $builder->period($input['week'])['start']->toDateString() : null;
-        $gateOpen = config('caneguard.weekly_send_enabled') === true;
-        $recipientSet = DistrictRecipientSet::query()->where('district_id', $access->pilotId())->whereNull('revoked_at')->orderByDesc('id')->first();
-        $recipientsConfigured = $recipientSet !== null;
-        $versions = DistrictReportVersion::query()->with('transmissions')->where('district_id', $access->pilotId())
+        $pilotId = $access->pilotId();
+        $versions = DistrictReportVersion::query()->with('transmissions')->where('district_id', $pilotId)
             ->when($start, fn ($query) => $query->where('week_start', $start))
             ->orderByDesc('week_start')->orderByDesc('version')->limit(50)->get();
 
         $topVersion = $versions->groupBy('week_start')->map(fn ($group) => $group->max('version'));
+        $settings = $pilotId === null ? null : DB::table('district_reporting_settings')->where('district_id', $pilotId)->first();
 
         return response()->json(['data' => $versions->map(function ($version) use ($workflow, $topVersion): array {
             // No farmer names, raw sealed content, evidence hashes or PDF bytes in list responses.
@@ -38,21 +41,65 @@ class DistrictReportController extends Controller
             $weekStart = substr((string) $version->week_start, 0, 10);
             // Only the newest listed version of a week can still be current; older ones are superseded.
             $stale = $version->version < $topVersion[$version->week_start] ? 'newer_version' : $workflow->staleReason($version);
+            $diseaseCounts = collect($content['diseases'] ?? [])->mapWithKeys(fn (array $row): array => [
+                (string) ($row['key'] ?? '') => (int) (($row['suspected'] ?? 0) + ($row['under_review'] ?? 0) + ($row['confirmed'] ?? 0)),
+            ])->filter(fn (int $count, string $key): bool => $key !== '')->all();
 
-            return $version->only(['uuid', 'version', 'content_hash', 'approved_at', 'approved_name', 'approved_title', 'prepared_name', 'created_at', 'supersedes_version_id', 'version_reason', 'document_sha256', 'renderer_version'])
+            return $version->only(['uuid', 'version', 'content_hash', 'approved_at', 'approved_name', 'approved_title', 'prepared_source', 'prepared_name', 'created_at', 'supersedes_version_id', 'version_reason', 'document_sha256', 'renderer_version'])
                 + ['week' => CarbonImmutable::parse($weekStart, 'Asia/Manila')->format('o-\WW'), 'week_start' => $weekStart,
                     'is_current' => $stale === null, 'stale_reason' => $stale,
                     'headline' => ['cases' => (int) ($content['case_universe']['cases'] ?? 0),
                         'confirmed' => (int) collect($content['diseases'] ?? [])->sum('confirmed'),
                         'late_evidence' => (int) ($content['late_evidence']['received_later_for_this_week'] ?? 0)],
+                    'disease_counts' => $diseaseCounts,
                     'appendix_enabled' => $content['appendix_enabled'] ?? false, 'transmissions' => $version->transmissions];
         }), 'meta' => [
-            'send_enabled' => $gateOpen && $recipientsConfigured,
-            'delivery_gate_open' => $gateOpen,
-            'recipients_configured' => $recipientsConfigured,
-            'recipient_count' => $recipientSet === null ? 0 : count($recipientSet->recipients),
+            'send_enabled' => false,
+            'delivery_gate_open' => false,
+            'recipients_configured' => false,
+            'recipient_count' => 0,
+            'email_send_retired' => true,
             'appendix_allowed' => $workflow->appendixAllowed($request->user()),
+            'automation' => $this->automationMeta($settings),
         ]])->header('Cache-Control', 'private, no-store');
+    }
+
+    public function bundle(
+        Request $request,
+        DistrictAccess $access,
+        BuildWeeklyReportContent $periods,
+        BuildWeeklyReportBundle $bundler,
+    ): Response {
+        $input = $request->validate(['week' => ['required', 'regex:/^\d{4}-W\d{2}$/']]);
+        $week = $input['week'];
+        $weekStart = $periods->period($week)['start']->toDateString();
+        $district = District::query()->findOrFail($access->pilotId());
+
+        $fiveDisease = DistrictReportVersion::query()
+            ->where('district_id', $district->id)
+            ->where('week_start', $weekStart)
+            ->orderByDesc('version')
+            ->first();
+        $rssi = DistrictRssiReportVersion::query()
+            ->where('district_id', $district->id)
+            ->where('week_start', $weekStart)
+            ->orderByDesc('version')
+            ->first();
+
+        if ($fiveDisease !== null) {
+            Gate::authorize('view', $fiveDisease);
+        }
+        if ($rssi !== null) {
+            Gate::authorize('view', $rssi);
+        }
+
+        $bundle = $bundler->handle($week, (string) $district->code, $fiveDisease, $rssi);
+
+        return response($bundle['bytes'])
+            ->header('Content-Type', 'application/zip')
+            ->header('Content-Disposition', 'attachment; filename="'.$bundle['filename'].'"')
+            ->header('Cache-Control', 'private, no-store')
+            ->header('X-Document-SHA256', $bundle['sha256']);
     }
 
     public function document(Request $request, DistrictReportVersion $version, DistrictAccess $access, DistrictReportWorkflow $workflow, RenderWeeklyReport $renderer): Response
@@ -97,10 +144,43 @@ class DistrictReportController extends Controller
         return response()->json(['data' => $workflow->approve($request->user(), $version, $input['content_hash'])->makeHidden(['content', 'source_refs'])])->header('Cache-Control', 'private, no-store');
     }
 
-    public function send(Request $request, DistrictReportVersion $version, DistrictReportWorkflow $workflow, DistrictAccess $access): JsonResponse
+    public function send(Request $request, DistrictReportVersion $version): JsonResponse
     {
-        $input = $request->validate(['content_hash' => ['required', 'regex:/^[a-f0-9]{64}$/'], 'idempotency_key' => ['required', 'uuid']]);
+        return response()->json([
+            'message' => 'The in-system report email workflow was retired. Download the weekly package to send via Gmail.',
+        ], 410)->header('Cache-Control', 'private, no-store');
+    }
 
-        return response()->json(['data' => $workflow->requestSend($request->user(), $version, $input['content_hash'], $input['idempotency_key'])], 202)->header('Cache-Control', 'private, no-store');
+    /**
+     * @return array<string, mixed>
+     */
+    private function automationMeta(?object $settings): array
+    {
+        $enabled = $settings === null ? true : (bool) ($settings->auto_generate_enabled ?? true);
+        $day = (int) ($settings->auto_generate_day ?? GenerateWeeklyReports::DEFAULT_DAY);
+        $time = (string) ($settings->auto_generate_time ?? GenerateWeeklyReports::DEFAULT_TIME);
+
+        $now = CarbonImmutable::now('Asia/Manila');
+        [$hour, $minute] = array_map('intval', explode(':', $time));
+        $nextSlot = $now->startOfWeek()->addDays($day - 1)->setTime($hour, $minute);
+        if (! $nextSlot->gt($now)) {
+            $nextSlot = $nextSlot->addWeek();
+        }
+
+        $lastRunAt = $settings?->last_auto_generated_at
+            ? CarbonImmutable::parse((string) $settings->last_auto_generated_at, 'UTC')->toIso8601String()
+            : null;
+
+        return [
+            'enabled' => $enabled,
+            'day' => $day,
+            'time' => $time,
+            'timezone' => 'Asia/Manila',
+            'last_run_at' => $lastRunAt,
+            'last_status' => $settings?->last_auto_status,
+            'last_week' => $settings?->last_auto_week,
+            'last_error' => $settings?->last_auto_error,
+            'next_run_at' => $enabled ? $nextSlot->utc()->toIso8601String() : null,
+        ];
     }
 }

@@ -113,10 +113,10 @@ describe("SettingsPage", () => {
     for (const [name, anchor] of [
       ["Weekly reporting", "/settings/weekly-reporting"],
       ["Aerial canopy check", "/settings/aerial-analysis"],
-      ["Official recipients", "/settings/official-recipients"],
     ]) {
       expect(await screen.findByRole("link", { name })).toHaveAttribute("href", anchor);
     }
+    expect(screen.queryByRole("link", { name: "Official recipients" })).not.toBeInTheDocument();
   });
 
   it("sets document title and renders account profile", async () => {

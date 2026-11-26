@@ -29,5 +29,4 @@ export const settingsSections: SettingsSection[] = [
   section("devices", "Mobile devices", "Account"),
   section("weekly-reporting", "Weekly reporting", "Workspace"),
   section("aerial-analysis", "Aerial canopy check", "Workspace"),
-  section("official-recipients", "Official recipients", "Workspace"),
 ];

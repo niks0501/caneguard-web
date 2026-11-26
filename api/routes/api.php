@@ -7,9 +7,9 @@ use App\Http\Controllers\Api\V1\AerialAnalysisSettingsController;
 use App\Http\Controllers\Api\V1\AuthenticatedUserController;
 use App\Http\Controllers\Api\V1\DashboardSummaryController;
 use App\Http\Controllers\Api\V1\DistrictAccessController;
-use App\Http\Controllers\Api\V1\DistrictRecipientSetController;
 use App\Http\Controllers\Api\V1\DistrictReportController;
 use App\Http\Controllers\Api\V1\DistrictReportingSettingsController;
+use App\Http\Controllers\Api\V1\DistrictRssiReportController;
 use App\Http\Controllers\Api\V1\FieldReporterController;
 use App\Http\Controllers\Api\V1\FieldSurveyMapController;
 use App\Http\Controllers\Api\V1\FieldValidationPhotoController;
@@ -109,15 +109,26 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'access.identity', 'verified'])
             ->middleware([EnsureAccountsAccess::class, DeprecatedAccountApi::class])->name('api.v1.admin.users.role');
         Route::get('/district-reports', [DistrictReportController::class, 'index']);
         Route::post('/district-reports', [DistrictReportController::class, 'prepare']);
+        Route::get('/district-reports/weekly-bundle', [DistrictReportController::class, 'bundle'])
+            ->name('api.v1.district-reports.weekly-bundle');
         Route::get('/district-reports/{version}/document', [DistrictReportController::class, 'document'])
             ->name('api.v1.reports.documents.district-version');
         Route::get('/district-reports/{version}/pdf', [DistrictReportController::class, 'pdf']);
+        Route::get('/district-rssi-reports', [DistrictRssiReportController::class, 'index']);
+        Route::post('/district-rssi-reports', [DistrictRssiReportController::class, 'prepare']);
+        Route::get('/district-rssi-reports/{version}/document', [DistrictRssiReportController::class, 'document'])
+            ->name('api.v1.reports.documents.rssi-version');
+        Route::get('/district-rssi-reports/{version}/pdf', [DistrictRssiReportController::class, 'pdf']);
+        Route::get('/district-rssi-reports/{version}/csv', [DistrictRssiReportController::class, 'csv']);
         Route::get('/district-reporting-settings', [DistrictReportingSettingsController::class, 'show'])->middleware(EnsureAccountsAccess::class);
         Route::put('/district-reporting-settings', [DistrictReportingSettingsController::class, 'update'])->middleware(EnsureAccountsAccess::class);
         Route::get('/admin/aerial-analysis', [AerialAnalysisSettingsController::class, 'show'])->middleware(EnsureAccountsAccess::class);
         Route::put('/admin/aerial-analysis', [AerialAnalysisSettingsController::class, 'update'])->middleware(EnsureAccountsAccess::class);
-        Route::get('/district-recipient-sets', [DistrictRecipientSetController::class, 'index'])->middleware(EnsureAccountsAccess::class);
-        Route::post('/district-recipient-sets/replace', [DistrictRecipientSetController::class, 'replace'])->middleware(EnsureAccountsAccess::class);
+        Route::match(['get', 'post'], '/district-recipient-sets/{operation?}', fn () => response()->json([
+            'message' => 'The in-system report email workflow was retired. Download the weekly package to send via Gmail.',
+        ], 410)->header('Cache-Control', 'private, no-store'))
+            ->where('operation', '.*')
+            ->middleware(EnsureAccountsAccess::class);
         Route::post('/district-reports/{version}/approve', [DistrictReportController::class, 'approve'])->middleware(EnsureAccountsAccess::class);
         Route::post('/district-reports/{version}/send', [DistrictReportController::class, 'send'])->middleware(EnsureAccountsAccess::class);
         Route::get('/dashboard/summary', DashboardSummaryController::class);

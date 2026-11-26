@@ -1,53 +1,65 @@
 import { useMemo } from "react";
-import { FileSpreadsheet, FileText, ListFilter } from "lucide-react";
+import { CalendarCheck2, ListFilter } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { routes } from "../app/routes";
 import { PageContent, PageHeader } from "../components/layout/Page";
-import {
-  ReportDocumentBuilder,
-  type ReportDocumentMode,
-} from "../components/reports/ReportDocumentBuilder";
+import { ReportDocumentBuilder } from "../components/reports/ReportDocumentBuilder";
+import { WeeklyReportsHub } from "../components/reports/WeeklyReportsHub";
 import { printableScopeFromSearch } from "../components/reports/reportBuilderScope";
 
-const entries: { mode: ReportDocumentMode; title: string; icon: typeof FileText }[] = [
-  { mode: "official", title: "This week's official report", icon: FileText },
-  { mode: "rssi", title: "RSSI weekly", icon: FileSpreadsheet },
-  { mode: "custom", title: "Custom list", icon: ListFilter },
-];
+type ReportsTab = "weekly" | "custom";
 
-function modeFromSearch(value: string | null): ReportDocumentMode {
-  return value === "rssi" || value === "custom" ? value : "official";
+function tabFromSearch(value: string | null): ReportsTab {
+  return value === "custom" ? "custom" : "weekly";
 }
 
 export function PrintableReportsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const mode = modeFromSearch(searchParams.get("type"));
+  const activeTab = tabFromSearch(searchParams.get("type"));
+  const initialWeek = searchParams.get("week") ?? undefined;
   // The arriving work scope is read once, so editing the filters never re-seeds them.
   const scope = useMemo(() => printableScopeFromSearch(searchParams), []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  function switchTab(nextTab: ReportsTab) {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.set("type", nextTab);
+      return next;
+    }, { replace: true });
+  }
+
   return (
     <PageContent className="reports-page">
-      <PageHeader title="Reports" />
-      <div className="report-entries" role="group" aria-label="Report type">
-        {entries.map(({ mode: entryMode, title, icon: Icon }) => (
-          <button
-            key={entryMode}
-            type="button"
-            className="report-entries__item"
-            aria-pressed={mode === entryMode}
-            onClick={() => setSearchParams((current) => {
-              const next = new URLSearchParams(current);
-              next.set("type", entryMode);
-              return next;
-            }, { replace: true })}
-          >
-            <Icon aria-hidden="true" size={20} />
-            <span>{title}</span>
-          </button>
-        ))}
+      <PageHeader
+        title="Reports"
+        description="Weekly 5-disease and RSSI packages are built automatically each week for verification and Gmail hand-off."
+      />
+      <div className="report-entries report-entries--two" role="group" aria-label="Report workspace">
+        <button
+          type="button"
+          className="report-entries__item"
+          aria-pressed={activeTab === "weekly"}
+          onClick={() => switchTab("weekly")}
+        >
+          <CalendarCheck2 aria-hidden="true" size={20} />
+          <span>Weekly reports</span>
+        </button>
+        <button
+          type="button"
+          className="report-entries__item"
+          aria-pressed={activeTab === "custom"}
+          onClick={() => switchTab("custom")}
+        >
+          <ListFilter aria-hidden="true" size={20} />
+          <span>Custom list</span>
+        </button>
       </div>
-      <ReportDocumentBuilder mode={mode} scope={scope} onClose={() => navigate(routes.reports)} />
+      {activeTab === "weekly" ? (
+        <WeeklyReportsHub initialWeek={initialWeek} />
+      ) : (
+        <ReportDocumentBuilder mode="custom" scope={scope} onClose={() => navigate(routes.reports)} />
+      )}
     </PageContent>
   );
 }

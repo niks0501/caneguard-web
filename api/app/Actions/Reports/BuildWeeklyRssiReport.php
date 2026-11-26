@@ -96,6 +96,90 @@ final class BuildWeeklyRssiReport
         ];
     }
 
+    /**
+     * Deterministic weekly RSSI dataset for a specific district and ISO week,
+     * usable by both scheduled cron runs and authenticated API actions.
+     *
+     * @return array<string, mixed>
+     */
+    public function handleForDistrict(District $district, string $week, ?string $generatedBy = null): array
+    {
+        $period = app(BuildWeeklyReportContent::class)->period($week);
+        $start = $period['start'];
+        $end = $period['end'];
+
+        $validated = [];
+        $suspected = [];
+        foreach ($this->queryForDistrict($district->id, $start, $end)->get() as $report) {
+            if ($this->isValidated($report)) {
+                $validated[] = $this->row($report) + ['section' => self::SECTION_VALIDATED];
+
+                continue;
+            }
+
+            $suspected[] = $this->row($report) + ['section' => self::SECTION_SUSPECTED];
+        }
+
+        $now = CarbonImmutable::now(BuildReportDocument::TIMEZONE);
+
+        return [
+            'contract' => self::CONTRACT,
+            'district' => ['code' => (string) $district->code, 'name' => (string) $district->name],
+            'period' => [
+                'type' => 'weekly',
+                'week' => $week,
+                'from' => $start->toDateString(),
+                'to' => $end->subDay()->toDateString(),
+                'label' => 'Week '.$week.' ('.$start->format('j M Y').' to '.$end->subDay()->format('j M Y').')',
+                'timezone' => BuildReportDocument::TIMEZONE,
+                'partial' => $now->lt($end),
+            ],
+            'generated_at' => $now->format('j F Y g:i A').' PHT',
+            'generated_by' => $generatedBy ?? 'Automated weekly scheduler',
+            'sections' => [
+                self::SECTION_VALIDATED => [
+                    'label' => 'Reviewed and validated RSSI cases',
+                    'cases' => count($validated),
+                    'rows' => $validated,
+                ],
+                self::SECTION_SUSPECTED => [
+                    'label' => 'Suspected RSSI cases',
+                    'cases' => count($suspected),
+                    'excluded_from_validated_totals' => true,
+                    'rows' => $suspected,
+                ],
+            ],
+            'method' => [
+                'confirmation' => 'A case is validated only when office staff classified it as RSSI and its verification outcome is verified. Suspected cases are listed separately and are never added to validated totals.',
+                'boundary' => 'Cases received inside the selected Asia/Manila period, on their receipt date. Duplicate-linked reports and records staff classified as another condition are excluded.',
+                'privacy' => 'No farmer or farm names are included in this export.',
+            ],
+            'omitted_metrics' => [
+                [
+                    'key' => 'infestation_percentage',
+                    'label' => 'Infestation percentage',
+                    'reason' => 'Not reported: CaneGuard has no confirmed calculation method for it.',
+                ],
+            ],
+        ];
+    }
+
+    public function queryForDistrict(int $districtId, CarbonImmutable $start, CarbonImmutable $end): Builder
+    {
+        return Report::query()
+            ->where('district_id', $districtId)
+            ->whereNull('canonical_report_id')
+            ->where('submitted_at', '>=', $start->utc())
+            ->where('submitted_at', '<', $end->utc())
+            ->where(function (Builder $query): void {
+                $query->where('authority_classified_condition', Report::AUTHORITY_CONDITION_RSSI)
+                    ->orWhere(fn (Builder $inner) => $inner->whereNull('authority_classified_condition')
+                        ->where('reporter_suspected_condition', Report::REPORTER_CONCERN_RSSI));
+            })
+            ->orderBy('submitted_at')
+            ->orderBy('id');
+    }
+
     private function query(?User $actor, CarbonImmutable $start, CarbonImmutable $end): Builder
     {
         $query = Report::query()->visibleTo($actor)

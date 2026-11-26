@@ -30,32 +30,68 @@ final class DistrictReportWorkflow
 
         return DB::transaction(function () use ($actor, $period, $week, $appendix): DistrictReportVersion {
             $district = District::query()->lockForUpdate()->findOrFail($this->access->pilotId());
-            $refs = $this->sourceRefs($district->id, $period['start']->toDateString(), true);
-            $content = $this->documents->handle($district, $week, $appendix);
-            $content['evidence_digest'] = $this->hash($refs);
-            $latest = DistrictReportVersion::query()->where('district_id', $district->id)
-                ->where('week_start', $period['start']->toDateString())->orderByDesc('version')->first();
-            $hash = $this->hash($content);
-            if ($latest !== null && hash_equals($latest->content_hash, $hash)) {
-                return $latest;
-            }
-            $version = DistrictReportVersion::query()->create([
-                'district_id' => $district->id,
-                'week_start' => $period['start']->toDateString(),
-                'version' => 1 + (int) DistrictReportVersion::query()->where('district_id', $district->id)
-                    ->where('week_start', $period['start']->toDateString())->max('version'),
-                'content' => $content,
-                'content_hash' => $hash,
-                'source_refs' => $refs,
-                'prepared_by_id' => $actor->id,
-                'prepared_name' => $actor->name,
-                'supersedes_version_id' => $latest?->id,
-                'version_reason' => $latest === null ? 'initial' : ($this->hash($content['late_evidence']) !== $this->hash($latest->content['late_evidence'] ?? []) ? 'late_evidence' : 'correction'),
-            ]);
-            $this->event($version, 'prepared', $actor);
 
-            return $version;
+            return $this->createSnapshot($district, $period, $week, $appendix, $actor, 'manual', false);
         }, attempts: 3);
+    }
+
+    /**
+     * System-authored weekly snapshot for automated cron runs.
+     * Never overwrites an already-approved version, and leaves existing drafts
+     * intact unless $forceRefresh is explicitly requested.
+     */
+    public function prepareScheduled(District $district, string $week, bool $forceRefresh = false): DistrictReportVersion
+    {
+        $period = $this->documents->period($week);
+
+        return DB::transaction(function () use ($district, $period, $week, $forceRefresh): DistrictReportVersion {
+            $lockedDistrict = District::query()->lockForUpdate()->findOrFail($district->id);
+
+            return $this->createSnapshot($lockedDistrict, $period, $week, false, null, 'scheduled', ! $forceRefresh);
+        }, attempts: 3);
+    }
+
+    private function createSnapshot(
+        District $district,
+        array $period,
+        string $week,
+        bool $appendix,
+        ?User $actor,
+        string $source,
+        bool $keepExistingVersion,
+    ): DistrictReportVersion {
+        $latest = DistrictReportVersion::query()->where('district_id', $district->id)
+            ->where('week_start', $period['start']->toDateString())->orderByDesc('version')->first();
+
+        if ($source === 'scheduled' && $latest !== null && ($keepExistingVersion || $latest->approved_at !== null)) {
+            return $latest;
+        }
+
+        $refs = $this->sourceRefs($district->id, $period['start']->toDateString(), true);
+        $content = $this->documents->handle($district, $week, $appendix);
+        $content['evidence_digest'] = $this->hash($refs);
+        $hash = $this->hash($content);
+        if ($latest !== null && hash_equals($latest->content_hash, $hash)) {
+            return $latest;
+        }
+
+        $version = DistrictReportVersion::query()->create([
+            'district_id' => $district->id,
+            'week_start' => $period['start']->toDateString(),
+            'version' => 1 + (int) DistrictReportVersion::query()->where('district_id', $district->id)
+                ->where('week_start', $period['start']->toDateString())->max('version'),
+            'content' => $content,
+            'content_hash' => $hash,
+            'source_refs' => $refs,
+            'prepared_by_id' => $actor?->id,
+            'prepared_source' => $source,
+            'prepared_name' => $actor?->name ?? 'Automated weekly scheduler',
+            'supersedes_version_id' => $latest?->id,
+            'version_reason' => $latest === null ? 'initial' : ($this->hash($content['late_evidence']) !== $this->hash($latest->content['late_evidence'] ?? []) ? 'late_evidence' : 'correction'),
+        ]);
+        $this->event($version, $source === 'scheduled' ? 'scheduled_prepared' : 'prepared', $actor);
+
+        return $version;
     }
 
     public function approve(User $actor, DistrictReportVersion $version, string $hash): DistrictReportVersion
@@ -245,7 +281,7 @@ final class DistrictReportWorkflow
             && $actor->isActiveAdmin();
     }
 
-    public function event(DistrictReportVersion $version, string $action, User $actor, ?DistrictGrant $grant = null, ?DistrictReportTransmission $intent = null): void
+    public function event(DistrictReportVersion $version, string $action, ?User $actor = null, ?DistrictGrant $grant = null, ?DistrictReportTransmission $intent = null): void
     {
         DistrictReportEvent::query()->create([
             'district_report_version_id' => $version->id,
@@ -253,9 +289,9 @@ final class DistrictReportWorkflow
             'week_start' => $version->week_start,
             'content_hash' => $version->content_hash,
             'action' => $action,
-            'actor_id' => $actor->id,
-            'actor_uuid' => $actor->uuid,
-            'actor_role' => $actor->role,
+            'actor_id' => $actor?->id,
+            'actor_uuid' => $actor?->uuid,
+            'actor_role' => $actor?->role ?? 'system',
             'grant_id' => $intent?->send_grant_id ?? $grant?->id,
             'grant_revision' => $intent?->send_grant_revision ?? $grant?->revision,
             'recipient_set_id' => $intent?->district_recipient_set_id,
