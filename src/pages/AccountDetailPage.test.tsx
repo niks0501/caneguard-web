@@ -52,6 +52,16 @@ describe("Account role/status detail", () => {
     expect(await screen.findByText("No recorded account changes.")).toBeInTheDocument();
     expect(api.getAccountEvents).toHaveBeenCalledWith(field.uuid, expect.anything());
   });
+  it("shows a farmer read-only with their home barangay and history", async () => {
+    const farmer = { ...webAccount, role: "farmer" as const, name: "Farm Sample", barangay: "Aga" };
+    vi.mocked(api.getAccount).mockResolvedValue({ data: farmer });
+    renderPage();
+    expect(await screen.findByRole("heading", { name: "Farm Sample" })).toBeInTheDocument();
+    expect(screen.getByText("Farmer")).toBeInTheDocument();
+    expect(screen.getByText("Aga")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Role for Farm Sample")).not.toBeInTheDocument();
+    expect(await screen.findByText("No recorded account changes.")).toBeInTheDocument();
+  });
   it("clears password on cancel and restores focus to Save Changes", async () => {
     renderPage();
     const { user, modal } = await prepare();

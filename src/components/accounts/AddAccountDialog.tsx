@@ -3,11 +3,12 @@ import type { FormEvent } from "react";
 import { ApiError } from "../../api/ApiError";
 import { createAccount, newAccountRoles } from "../../services/accountsAdmin.api";
 import type { NewAccountRole } from "../../services/accountsAdmin.api";
+import { knownBarangays } from "../../domain/locationScope";
 import { Button } from "../ui/Button";
 import { PasswordInput } from "../ui/FormControls";
 import { Modal } from "../ui/Modal";
 
-const emptyForm = { name: "", email: "", role: "reviewer" as NewAccountRole, password: "" };
+const emptyForm = { name: "", email: "", role: "reviewer" as NewAccountRole, password: "", barangay: "" };
 const nextSteps: Record<NewAccountRole, string> = {
   farmer: "Next step: Farmer mobile sign-in is currently limited, so hold this account and contact support instead of sending them to mobile sign-in.",
   field_reporter: "Next steps: 1. They set a password from their set-password link. 2. They sign in on the phone. They are added to the pilot district automatically.",
@@ -35,8 +36,8 @@ export function AddAccountDialog({ onCreated }: { onCreated: (notice: string) =>
     setPending(true);
     setError("");
     try {
-      const { name, email, role, password } = form;
-      const created = await createAccount({ name: name.trim(), email: email.trim(), role }, password);
+      const { name, email, role, password, barangay } = form;
+      const created = await createAccount({ name: name.trim(), email: email.trim(), role, ...(role === "farmer" && barangay ? { barangay } : {}) }, password);
       setOpen(false);
       setForm(emptyForm);
       const inviteNotice = created.invite_sent
@@ -68,6 +69,15 @@ export function AddAccountDialog({ onCreated }: { onCreated: (notice: string) =>
             {Object.entries(newAccountRoles).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
         </label>
+        {form.role === "farmer" ? <>
+          <label className="settings-field"><span>Home barangay (optional)</span>
+            <select value={form.barangay} disabled={pending} onChange={event => update({ barangay: event.target.value })}>
+              <option value="">Not set</option>
+              {knownBarangays.map(name => <option key={name} value={name}>{name}</option>)}
+            </select>
+          </label>
+          <p className="settings-field-hint">The farmer can change this later in the app.</p>
+        </> : null}
         <label className="settings-field"><span>Your current password</span>
           <PasswordInput autoComplete="current-password" value={form.password} required maxLength={255} disabled={pending} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} onChange={event => update({ password: event.target.value })} />
         </label>
