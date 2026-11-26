@@ -960,8 +960,8 @@ class AdminAccountCreationTest extends TestCase
 
             $sent = is_file($log) ? (string) file_get_contents($log) : '';
             $this->assertMatchesRegularExpression('/^EHLO /m', $sent);
-            $this->assertMatchesRegularExpression('/^HELO /m', $sent);
-            $this->assertDoesNotMatchRegularExpression('/^(AUTH|MAIL FROM|RCPT TO|DATA)/m', $sent);
+            // Symfony 7.4.24+ aborts require_tls on rejected EHLO before even falling back to HELO.
+            $this->assertDoesNotMatchRegularExpression('/^(HELO|AUTH|MAIL FROM|RCPT TO|DATA)/m', $sent);
         } finally {
             proc_terminate($relay);
             proc_close($relay);
