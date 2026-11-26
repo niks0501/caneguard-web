@@ -6,6 +6,7 @@ const sectionLabels: Record<string, string> = {
   reports: "Cases",
   monitoring: "Field visits",
   settings: "Settings",
+  "farmer-requests": "Farmer requests",
   accounts: "User Management",
   "report-approval": "Report Approval",
   "farmer-broadcasts": "Barangay broadcasts",

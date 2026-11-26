@@ -21,6 +21,9 @@ const userResponseSchema = z.object({
 const authActionResponseSchema = z.object({
   message: z.string(),
   code: z.string(),
+  // Present only after a reset or verification link is proven.
+  sign_in_surface: z.enum(["mobile", "web"]).optional(),
+  locale_hint: z.enum(["tl", "en"]).optional(),
 });
 
 export async function initializeCsrf(): Promise<void> {

@@ -7,6 +7,7 @@ import {
   MapPinned,
   Megaphone,
   Settings,
+  Sprout,
   Users,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -93,6 +94,9 @@ export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
               Field visits
             </SidebarLink>
           ) : null}
+          <SidebarLink to={routes.farmerRequests} icon={<Sprout aria-hidden="true" />} onNavigate={onNavigate}>
+            Farmer requests
+          </SidebarLink>
           <SidebarLink
             to={routes.printableReports}
             icon={<FileText aria-hidden="true" />}

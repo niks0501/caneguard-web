@@ -22,9 +22,10 @@ export function AccountDetailPage() {
     <BackLink className="accounts-back" fallback={{ to: routes.accounts, label: "User Management" }} accepts={(path) => path === routes.accounts} />
     {query.isPending ? <LoadingState message="Loading user…" /> : query.isError ? <ErrorState message="User details could not be loaded." onRetry={() => void query.refetch()} /> : account ? <>
       <PageHeader title={account.name} />
-      {account.role === "field_reporter" ? <dl className="accounts-summary">
+      {account.role === "field_reporter" || account.role === "farmer" ? <dl className="accounts-summary">
         <dt>Email</dt><dd>{account.email}</dd>
-        <dt>Role</dt><dd>Field inspector</dd>
+        <dt>Role</dt><dd>{account.role === "farmer" ? "Farmer" : "Field inspector"}</dd>
+        {account.role === "farmer" ? <><dt>Home barangay</dt><dd>{account.barangay ?? "Not set"}</dd></> : null}
         <dt>Account</dt><dd>{account.is_active ? "Enabled" : "Disabled"}</dd>
       </dl> : <AccountAccessTable accounts={[{ ...account, role: account.role as Account["role"] }]} onSaved={async () => { await client.invalidateQueries({ queryKey: ["accounts"] }); }} />}
       <AccountHistory key={uuid} uuid={uuid} />

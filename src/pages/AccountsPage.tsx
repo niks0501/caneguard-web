@@ -5,6 +5,7 @@ import { PageContent, PageHeader } from "../components/layout/Page";
 import { AccountAccessTable } from "../components/accounts/AccountAccessTable";
 import { LoadingState, ErrorState } from "../components/ui/States";
 import { AddAccountDialog } from "../components/accounts/AddAccountDialog";
+import { FarmerAccountsSection } from "../components/accounts/FarmerAccountsSection";
 import { FieldAccountsSection } from "../components/accounts/FieldAccountsSection";
 import { Pagination } from "../components/ui/Pagination";
 import { useAuth } from "../auth/useAuth";
@@ -34,5 +35,6 @@ export function AccountsPage() {
       <Pagination currentPage={result.meta.page} pageCount={Math.max(1, Math.ceil(result.meta.total / result.meta.per_page))} itemCount={result.meta.total} itemLabel="users" onPageChange={page => setParams({ page: String(page) })} />
     </> : null}
     <FieldAccountsSection />
+    <FarmerAccountsSection />
   </PageContent>;
 }

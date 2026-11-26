@@ -33,10 +33,10 @@ The Web client requests `/sanctum/csrf-cookie` before each unauthenticated state
 | POST | `/register` | `name`, `email`, `password`, optional `password_confirmation` | Always `403 REGISTRATION_DISABLED` |
 | POST | `/login` | `email`, `password` | `204` |
 | POST | `/logout` | none | `204` |
-| GET | `/email/verify/{id}/{hash}` | Laravel temporary signature query | `200 EMAIL_VERIFIED` |
+| GET | `/email/verify/{id}/{hash}` | Laravel temporary signature query | `200 EMAIL_VERIFIED` plus `sign_in_surface`, `locale_hint` |
 | POST | `/email/verification-notification` | `email` | `202 VERIFICATION_LINK_SENT` |
 | POST | `/forgot-password` | `email` | `202 PASSWORD_RESET_LINK_SENT` |
-| POST | `/reset-password` | `email`, `token`, `password`, optional `password_confirmation` | `200 PASSWORD_RESET` |
+| POST | `/reset-password` | `email`, `token`, `password`, optional `password_confirmation` | `200 PASSWORD_RESET` plus `sign_in_surface`, `locale_hint` |
 
 Public self-registration is disabled unconditionally. The API returns this response before validation or account creation, and no configuration value re-enables it:
 
@@ -56,6 +56,8 @@ The generic verification response is `{ "message": "If the address is eligible, 
 The generic recovery response is `{ "message": "If an account matches, a password recovery link will be sent.", "code": "PASSWORD_RESET_LINK_SENT" }`.
 
 Validation failures use `{ "message": "The given data was invalid.", "code": "VALIDATION_ERROR", "errors": { "field": ["<validation-message>"] } }`.
+
+`sign_in_surface` (`mobile` for `farmer` and `field_reporter`, otherwise `web`) and `locale_hint` (`tl` for farmers, otherwise `en`) appear only in these two `200` bodies, after the signature or one-time token is proven; every failure stays opaque and carries neither. Web pages use `sign_in_surface` to send mobile accounts to the app instead of the web sign-in, which rejects them.
 
 The verification and reset links use `CANEGUARD_VERIFICATION_URL` and `CANEGUARD_PASSWORD_RESET_URL`.
 

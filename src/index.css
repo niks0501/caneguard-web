@@ -2336,6 +2336,13 @@ blockquote {
   font-size: var(--text-body-sm);
 }
 
+.auth-success__steps {
+  margin: 0;
+  padding-left: var(--space-5);
+  display: grid;
+  gap: var(--space-1);
+}
+
 .auth-success .button {
   width: 100%;
   margin-top: var(--space-1);
