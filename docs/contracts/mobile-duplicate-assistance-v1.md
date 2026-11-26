@@ -80,9 +80,26 @@ The reviewer workspace can read possible matches through `GET /api/v1/reports/{r
 
 That endpoint uses the same matching policy and excludes the report in the route from its own candidate list.
 
+The mobile response above is unchanged by the web enrichment: the web endpoint uses a separate resource, so no farmer or reporter detail reaches other field reporters.
+
+Each web candidate keeps every key of the mobile candidate and adds these keys to `case`:
+
+- `barangay`: the candidate's barangay.
+- `farmer_or_farm_owner_name`: the submitted farmer or farm owner name, or `null`.
+- `submitted_by_name`: the submitting reporter's display name.
+- `workflow_status`: one of `needs_review`, `under_review`, `field_validation`, `referred`, `follow_up`, `resolved`.
+- `image_url`: a relative, authenticated URL for the candidate image, or `null` when the case has no image.
+- `image_status`: `available` when the stored image can be served, `missing` when an image is recorded but the file is absent, and `none` when the case has no image.
+
 Reviewer or admin users can explicitly link a report to a canonical case through `POST /api/v1/reports/{report}/duplicate-link`.
 
-The link request requires `canonical_report_uuid` and may include an optional `reason` of up to 1,000 characters.
+The link request requires `canonical_report_uuid` and `expected_version`, and may include an optional `reason` of up to 1,000 characters.
+
+The link request may also include `close_duplicate` (boolean, default `false`). Linking stays non-destructive unless it is `true`.
+
+When `close_duplicate` is `true`, the API links the duplicate and closes its case in one database transaction with one version bump. The closure reuses the review closure writes (case state, review status, reviewer stamps, review event and final-review notification) and the link still writes its `report_audits` row. If the case cannot be closed, nothing persists. `close_duplicate` is rejected on `DELETE`.
+
+The same lifecycle guard applies with or without `close_duplicate`: a case that is not open, or whose field evidence is completed, is rejected with `422`. A case under another reviewer's active review lease is rejected with `423` when `close_duplicate` is `true`. A stale `expected_version` is rejected with `409`.
 
 The target must be a different root case that is not already linked as a duplicate.
 
@@ -99,6 +116,8 @@ The duplicate report, its submitted evidence, its child observations, and its re
 The link creates a `report_audits` row with the authorized actor, timestamp, canonical case UUID, and reason.
 
 The report detail response exposes the current `duplicate_linkage` and `audit.duplicate_linkages` values.
+
+`duplicate_linkage.link_blocked_reason` is `null` when linking can change, `closed` when the case is not open, and `visit_completed` when field evidence is completed. It is computed by the same guard the link endpoint enforces.
 
 Closing a linked duplicate is still an explicit review action and does not update the canonical report or its submitted evidence.
 

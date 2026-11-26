@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Actions\Reports\AssessIdentificationGap;
 use App\Actions\Reports\BuildReportCaseHistory;
 use App\Actions\Reports\CalibrateReportTriage;
+use App\Actions\Reports\GuardDuplicateLinkLifecycle;
 use App\Models\Report;
 use App\Models\ReportAudit;
 use App\Security\DistrictAccess;
@@ -440,6 +441,10 @@ class ReportResource extends JsonResource
             ] : null,
             'linked_at' => $isDuplicate ? $linkAudit?->created_at?->utc()->toISOString() : null,
             'reason' => $isDuplicate ? $linkAudit?->reason : null,
+            // Why linking is unavailable right now (the same guard the link
+            // endpoint enforces), so clients can disable it upfront.
+            'link_blocked_reason' => app(GuardDuplicateLinkLifecycle::class)
+                ->blockedReason($this->resource),
         ];
     }
 }

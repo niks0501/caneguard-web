@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Actions\Reports\FindPossibleRecentMatches;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\PossibleRecentMatchResource;
+use App\Http\Resources\OfficePossibleRecentMatchResource;
 use App\Models\Report;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -23,7 +23,9 @@ class ReportPossibleMatchesController extends Controller
             (int) $report->getKey(),
         );
 
-        return PossibleRecentMatchResource::collection($matches)
+        $matches->load('reporter');
+
+        return OfficePossibleRecentMatchResource::collection($matches)
             ->additional([
                 'message' => $matches->isNotEmpty()
                     ? 'Possible recent matches found. Compare the submitted evidence before deciding.'
