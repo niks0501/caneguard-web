@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Actions\Auth\RecordSecurityAudit;
+use App\Actions\Reports\BuildMobileAerialBrief;
 use App\Models\ReportAerialAnalysis;
 use App\Models\SecurityAudit;
 use Illuminate\Console\Command;
@@ -33,7 +34,12 @@ final class PruneRemovedAerialAnalyses extends Command
             ->chunkById(100, function ($rows) use ($disk, &$pruned, &$failed): void {
                 foreach ($rows as $row) {
                     $cleaned = true;
-                    foreach (array_filter([$row->image_path, $row->mask_path]) as $path) {
+                    $paths = array_filter([
+                        $row->image_path,
+                        $row->mask_path,
+                        ...BuildMobileAerialBrief::derivativePaths($row),
+                    ]);
+                    foreach ($paths as $path) {
                         if ($disk->exists($path) && ! $disk->delete($path)) {
                             $cleaned = false;
                             Log::warning('Failed to delete expired removed aerial file.', [

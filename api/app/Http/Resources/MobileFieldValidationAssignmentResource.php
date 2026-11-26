@@ -2,9 +2,12 @@
 
 namespace App\Http\Resources;
 
+use App\Actions\Reports\BuildMobileAerialBrief;
 use App\Contracts\MobileFieldValidationAssignmentContract;
 use App\Models\FieldValidationAssignment;
 use App\Models\Report;
+use App\Models\ReportAerialAnalysis;
+use App\Support\AerialSwitch;
 use App\Support\MobilePreviousVisit;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -19,6 +22,8 @@ class MobileFieldValidationAssignmentResource extends JsonResource
         $report = $this->report;
         $assignment = $this->resource;
         $lifecycle = $report->lifecycleSnapshot();
+
+        $aerial = self::aerialCheckPayload($assignment);
 
         return [
             'uuid' => $assignment->uuid,
@@ -56,6 +61,7 @@ class MobileFieldValidationAssignmentResource extends JsonResource
                 'confidence' => $report->confidence === null ? null : (float) $report->confidence,
             ] + (self::caseProjection($assignment) ?? []),
             'previous_visit' => self::previousVisitPayload($assignment),
+            'aerial_check' => $this->when($aerial !== null, $aerial),
         ];
     }
 
@@ -128,6 +134,62 @@ class MobileFieldValidationAssignmentResource extends JsonResource
                 ], false),
                 'content_type' => $report->image_mime_type,
                 'bytes' => (int) $report->image_size_bytes,
+            ],
+        ];
+    }
+
+    /**
+     * Optional read-only aerial brief for the assigned field inspector when
+     * the aerial switch is enabled and the case carries an active aerial check.
+     * Kept separate from ground area/loss fields; omitted when off or absent so
+     * existing wire shapes stay byte-identical.
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function aerialCheckPayload(FieldValidationAssignment $assignment): ?array
+    {
+        if (! AerialSwitch::enabled()) {
+            return null;
+        }
+
+        $report = $assignment->report;
+        /** @var ReportAerialAnalysis|null $latest */
+        $latest = $report->relationLoaded('aerialAnalyses')
+            ? $report->aerialAnalyses->first()
+            : $report->aerialAnalyses()->first();
+
+        if (! $latest instanceof ReportAerialAnalysis) {
+            return null;
+        }
+
+        $brief = app(BuildMobileAerialBrief::class)->ensure($latest);
+        if ($brief === null) {
+            return null;
+        }
+
+        $enough = $latest->canopy_coverage_percent
+            >= (float) config('caneguard.aerial.min_canopy_coverage_percent', 10);
+
+        return [
+            'uuid' => $latest->uuid,
+            'enough_canopy' => $enough,
+            'abnormal_canopy_percent' => $enough ? (float) $latest->abnormal_canopy_percent : null,
+            'canopy_coverage_percent' => (float) $latest->canopy_coverage_percent,
+            'model_version' => $latest->model_version,
+            'created_at' => $latest->created_at->utc()->toISOString(),
+            'preview' => [
+                'url' => route('api.v1.mobile.assignments.aerial-preview', [
+                    'assignment' => $assignment->uuid,
+                ], false),
+                'content_type' => 'image/jpeg',
+                'bytes' => $brief['preview_bytes'],
+            ],
+            'overlay' => [
+                'url' => route('api.v1.mobile.assignments.aerial-overlay', [
+                    'assignment' => $assignment->uuid,
+                ], false),
+                'content_type' => 'image/jpeg',
+                'bytes' => $brief['overlay_bytes'],
             ],
         ];
     }

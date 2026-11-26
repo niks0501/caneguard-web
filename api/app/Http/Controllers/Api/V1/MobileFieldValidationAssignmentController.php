@@ -7,6 +7,7 @@ use App\Http\Requests\MobileFieldValidationAssignmentRequest;
 use App\Http\Resources\MobileFieldValidationAssignmentResource;
 use App\Models\FieldValidationAssignment;
 use App\Models\Report;
+use App\Support\AerialSwitch;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -79,10 +80,15 @@ class MobileFieldValidationAssignmentController extends Controller
             })
             ->where('updated_at', '<=', $syncBefore);
 
+        $relations = ['assignee', 'report.reporter', 'completion'];
+        if (AerialSwitch::enabled()) {
+            $relations[] = 'report.aerialAnalyses';
+        }
+
         /** @var Collection<int, FieldValidationAssignment> $ownedRows */
         $ownedRows = (clone $owned)
             ->orderBy('id')
-            ->with(['assignee', 'report.reporter', 'completion'])
+            ->with($relations)
             ->get();
 
         $total = $ownedRows->count();
@@ -121,11 +127,7 @@ class MobileFieldValidationAssignmentController extends Controller
         $query = (clone $owned)
             ->whereIn('id', $selectedIds)
             ->orderBy('id')
-            ->with([
-                'assignee',
-                'report.reporter',
-                'completion',
-            ]);
+            ->with($relations);
         $assignments = $query
             ->cursorPaginate((int) ($request->validated('per_page') ?? 100))
             ->withQueryString()
@@ -203,6 +205,11 @@ class MobileFieldValidationAssignmentController extends Controller
                 $projection = MobileFieldValidationAssignmentResource::caseProjection($row);
                 if ($projection !== null) {
                     $entry[] = $projection;
+                }
+
+                $aerialCheck = MobileFieldValidationAssignmentResource::aerialCheckPayload($row);
+                if ($aerialCheck !== null) {
+                    $entry[] = ['aerial_check' => $aerialCheck];
                 }
 
                 return $entry;

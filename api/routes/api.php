@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\FieldValidationQueueController;
 use App\Http\Controllers\Api\V1\LinkDuplicateReportController;
 use App\Http\Controllers\Api\V1\LocationReferenceController;
 use App\Http\Controllers\Api\V1\MapReportController;
+use App\Http\Controllers\Api\V1\MobileAssignmentAerialMediaController;
 use App\Http\Controllers\Api\V1\MobileAssignmentFieldMapController;
 use App\Http\Controllers\Api\V1\MobileAuthController;
 use App\Http\Controllers\Api\V1\MobileFieldSurveyController;
@@ -262,6 +263,12 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified', 'mobile.token', 'in
     Route::get('/mobile/assignments/{assignment}/report-photo', MobileReportPhotoController::class)
         ->middleware(['abilities:assignment:read'])
         ->name('api.v1.mobile.assignments.report-photo');
+    Route::get('/mobile/assignments/{assignment}/aerial-preview', [MobileAssignmentAerialMediaController::class, 'preview'])
+        ->middleware(['abilities:assignment:read'])
+        ->name('api.v1.mobile.assignments.aerial-preview');
+    Route::get('/mobile/assignments/{assignment}/aerial-overlay', [MobileAssignmentAerialMediaController::class, 'overlay'])
+        ->middleware(['abilities:assignment:read'])
+        ->name('api.v1.mobile.assignments.aerial-overlay');
     Route::get('/mobile/notifications', MobileNotificationController::class)
         ->middleware(['abilities:notification:read']);
     Route::post('/mobile/notifications/read-all', [MobileNotificationController::class, 'markAllAsRead'])
