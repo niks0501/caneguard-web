@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\DistrictAccessController;
 use App\Http\Controllers\Api\V1\DistrictReportController;
 use App\Http\Controllers\Api\V1\DistrictReportingSettingsController;
 use App\Http\Controllers\Api\V1\DistrictRssiReportController;
+use App\Http\Controllers\Api\V1\FarmerInquiryController;
 use App\Http\Controllers\Api\V1\FieldReporterController;
 use App\Http\Controllers\Api\V1\FieldSurveyMapController;
 use App\Http\Controllers\Api\V1\FieldValidationPhotoController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Api\V1\MobileAssignmentAerialAnalysisController;
 use App\Http\Controllers\Api\V1\MobileAssignmentAerialMediaController;
 use App\Http\Controllers\Api\V1\MobileAssignmentFieldMapController;
 use App\Http\Controllers\Api\V1\MobileAuthController;
+use App\Http\Controllers\Api\V1\MobileFarmerInquiryController;
 use App\Http\Controllers\Api\V1\MobileFieldSurveyController;
 use App\Http\Controllers\Api\V1\MobileFieldSurveyOfficeStatusController;
 use App\Http\Controllers\Api\V1\MobileFieldValidationAssignmentController;
@@ -170,6 +172,14 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'access.identity', 'verified'])
         Route::get('/field-surveys', FieldSurveyMapController::class)
             ->middleware('throttle:30,1')
             ->name('api.v1.field-surveys.index');
+        // Farmer requests are community triage, apart from the report queue and every KPI.
+        Route::prefix('/farmer-inquiries')->middleware('farmer.feature:inquiries')->group(function () {
+            Route::get('/', [FarmerInquiryController::class, 'index']);
+            Route::get('/{inquiry}', [FarmerInquiryController::class, 'show'])->whereUuid('inquiry');
+            Route::post('/{inquiry}/review', [FarmerInquiryController::class, 'startReview'])->whereUuid('inquiry')->middleware('throttle:60,1');
+            Route::post('/{inquiry}/replies', [FarmerInquiryController::class, 'reply'])->whereUuid('inquiry')->middleware('throttle:30,1');
+            Route::get('/{inquiry}/photos/{position}', [FarmerInquiryController::class, 'photo'])->whereUuid('inquiry')->whereNumber('position');
+        });
         Route::get('/reports/field-validation-queue', FieldValidationQueueController::class)
             ->name('api.v1.reports.field-validation-queue');
         Route::get('/reports/{report}/image', ReportImageController::class)
@@ -231,6 +241,16 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'access.identity', 'verified'])
 // Intake routes look a resend up by client key before the access checks, so a
 // record the office already accepted is never refused after a lost reply.
 Route::prefix('v1')->middleware(['auth:sanctum', 'verified', 'mobile.token'])->group(function () {
+    // Farmer requests: own records only, behind the farmer:inquiry ability and its kill-switch.
+    Route::prefix('/mobile/farmer/inquiries')
+        ->middleware(['access.identity', 'farmer.feature:inquiries', 'abilities:farmer:inquiry'])
+        ->group(function () {
+            Route::get('/', [MobileFarmerInquiryController::class, 'index']);
+            Route::post('/', [MobileFarmerInquiryController::class, 'store'])->middleware('throttle:20,1');
+            Route::get('/{inquiry}', [MobileFarmerInquiryController::class, 'show'])->whereUuid('inquiry');
+            Route::post('/{inquiry}/photos', [MobileFarmerInquiryController::class, 'addPhoto'])->whereUuid('inquiry')->middleware('throttle:20,1');
+            Route::get('/{inquiry}/photos/{position}', [MobileFarmerInquiryController::class, 'photo'])->whereUuid('inquiry')->whereNumber('position');
+        });
     Route::post('/mobile/field-surveys', MobileFieldSurveyController::class)
         ->middleware(['throttle:30,1', 'intake.replay:survey', 'inspector.access', 'access.identity', 'abilities:report:submit'])
         ->name('api.v1.mobile.field-surveys.store');

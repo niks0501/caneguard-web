@@ -23,6 +23,7 @@ describe("quiet shell sidebar", () => {
       ["To do", "/todo"],
       ["Cases", "/reports"],
       ["Field visits", "/monitoring"],
+      ["Farmer requests", "/farmer-requests"],
       ["Reports", "/reports/print"],
       ["Settings", "/settings"],
     ]);

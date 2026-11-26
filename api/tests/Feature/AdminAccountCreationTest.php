@@ -1143,7 +1143,7 @@ class AdminAccountCreationTest extends TestCase
         $this->assertDatabaseHas('security_audits', ['target_user_id' => $user->id, 'action' => 'email_verification', 'outcome' => 'success']);
     }
 
-    public function test_office_issued_farmer_sets_password_then_gets_account_security_only_mobile_token(): void
+    public function test_office_issued_farmer_sets_password_then_gets_a_farmer_only_mobile_token(): void
     {
         Notification::fake();
         $district = $this->pilotDistrict();
@@ -1166,7 +1166,7 @@ class AdminAccountCreationTest extends TestCase
 
         $this->postJson('/api/v1/mobile/auth/login', ['email' => 'farmer@example.test', 'password' => 'Str0ng-Passphrase!42',
             'device_name' => 'Farmer phone', 'device_id' => 'farmer-phone-1'])->assertOk()->assertJsonPath('user.role', 'farmer');
-        $this->assertSame(['account:security'], $farmer->refresh()->tokens()->firstOrFail()->abilities);
+        $this->assertSame(['account:security', 'farmer:inquiry'], $farmer->refresh()->tokens()->firstOrFail()->abilities);
     }
 
     public function test_office_issued_farmer_is_listed_for_office_triage(): void
