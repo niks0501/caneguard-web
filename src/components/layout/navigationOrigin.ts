@@ -26,6 +26,7 @@ const sectionLabels: Array<[RegExp, string]> = [
   [/^\/accounts$/, "User Management"],
   [/^\/settings(\/[^/]+)?$/, "Settings"],
   [/^\/report-approval$/, "Report Approval"],
+  [/^\/farmer-broadcasts$/, "Barangay broadcasts"],
 ];
 
 function normalise(pathname: string) {

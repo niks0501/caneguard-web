@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\DistrictAccessController;
 use App\Http\Controllers\Api\V1\DistrictReportController;
 use App\Http\Controllers\Api\V1\DistrictReportingSettingsController;
 use App\Http\Controllers\Api\V1\DistrictRssiReportController;
+use App\Http\Controllers\Api\V1\FarmerBroadcastController;
 use App\Http\Controllers\Api\V1\FarmerInquiryController;
 use App\Http\Controllers\Api\V1\FieldReporterController;
 use App\Http\Controllers\Api\V1\FieldSurveyMapController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\Api\V1\MobileAssignmentAerialAnalysisController;
 use App\Http\Controllers\Api\V1\MobileAssignmentAerialMediaController;
 use App\Http\Controllers\Api\V1\MobileAssignmentFieldMapController;
 use App\Http\Controllers\Api\V1\MobileAuthController;
+use App\Http\Controllers\Api\V1\MobileFarmerAdvisoryController;
 use App\Http\Controllers\Api\V1\MobileFarmerInquiryController;
 use App\Http\Controllers\Api\V1\MobileFieldSurveyController;
 use App\Http\Controllers\Api\V1\MobileFieldSurveyOfficeStatusController;
@@ -138,6 +140,12 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'access.identity', 'verified'])
         Route::post('/district-reports/{version}/approve', [DistrictReportController::class, 'approve'])->middleware(EnsureAccountsAccess::class);
         Route::post('/district-reports/{version}/send', [DistrictReportController::class, 'send'])->middleware(EnsureAccountsAccess::class);
         Route::get('/dashboard/summary', DashboardSummaryController::class);
+        // Office guidance published to farmers by barangay; separate from cases and reports.
+        Route::prefix('/farmer-broadcasts')->middleware('farmer.feature:advisories')->group(function () {
+            Route::get('/', [FarmerBroadcastController::class, 'index']);
+            Route::post('/', [FarmerBroadcastController::class, 'store'])->middleware('throttle:20,1');
+            Route::post('/{broadcast}/retire', [FarmerBroadcastController::class, 'retire'])->whereUuid('broadcast')->middleware('throttle:20,1');
+        });
         Route::get('/advisories', [AdvisoryController::class, 'index'])
             ->name('api.v1.advisories.index');
         Route::post('/advisories', [AdvisoryController::class, 'store'])
@@ -263,6 +271,11 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'verified', 'mobile.token'])->g
     Route::post('/mobile/assignments/{assignment}/aerial-analyses', [MobileAssignmentAerialAnalysisController::class, 'store'])
         ->middleware(['throttle:6,1', 'intake.replay:aerial', 'inspector.access', 'access.identity', 'abilities:assignment:complete'])
         ->name('api.v1.mobile.assignments.aerial-analyses.store');
+    Route::get('/mobile/farmer/advisories', [MobileFarmerAdvisoryController::class, 'index'])
+        ->middleware(['access.identity', 'farmer.feature:advisories', 'abilities:farmer:advisory']);
+    // A farmer's own home barangay and language: account data, so it needs no feature ability.
+    Route::patch('/mobile/farmer/profile', [MobileFarmerAdvisoryController::class, 'profile'])
+        ->middleware(['access.identity', 'abilities:account:security', 'throttle:20,1']);
 });
 
 Route::prefix('v1')->middleware(['auth:sanctum', 'verified', 'mobile.token', 'inspector.access', 'access.identity'])->group(function () {

@@ -29,4 +29,5 @@ export const routes = {
   settingsSection: (section: string) => `/settings/${section}`,
   reportApproval: "/report-approval",
   adminSettings: "/admin-settings",
+  farmerBroadcasts: "/farmer-broadcasts",
 } as const;

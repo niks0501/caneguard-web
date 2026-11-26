@@ -19,6 +19,7 @@ import { NotFoundPage } from "../pages/NotFoundPage";
 import { MonitoringWorkspacePage } from "../pages/MonitoringWorkspacePage";
 import { FarmerRequestsPage } from "../pages/FarmerRequestsPage";
 import { TodoPage } from "../pages/TodoPage";
+import { FarmerBroadcastsPage } from "../pages/FarmerBroadcastsPage";
 import { LoginPage } from "../pages/LoginPage";
 import { LandingPage } from "../pages/LandingPage";
 import { GuidePage } from "../pages/GuidePage";
@@ -83,6 +84,7 @@ export const appRoutes: RouteObject[] = [
                   { path: "todo", element: <TodoPage /> },
                   { path: "farmer-requests", element: <FarmerRequestsPage /> },
                   { path: "needs-assessment", element: <Navigate replace to={routes.todo} /> },
+                  { path: "farmer-broadcasts", element: <FarmerBroadcastsPage /> },
                   { path: "reports/:reportId", element: <CaseReviewPage /> },
                   {
                     path: "settings",

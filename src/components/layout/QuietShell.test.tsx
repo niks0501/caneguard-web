@@ -25,6 +25,7 @@ describe("quiet shell sidebar", () => {
       ["Field visits", "/monitoring"],
       ["Farmer requests", "/farmer-requests"],
       ["Reports", "/reports/print"],
+      ["Barangay broadcasts", "/farmer-broadcasts"],
       ["Settings", "/settings"],
     ]);
     expect(screen.queryByRole("link", { name: "Dashboard" })).not.toBeInTheDocument();

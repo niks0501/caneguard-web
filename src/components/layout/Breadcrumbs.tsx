@@ -9,6 +9,7 @@ const sectionLabels: Record<string, string> = {
   "farmer-requests": "Farmer requests",
   accounts: "User Management",
   "report-approval": "Report Approval",
+  "farmer-broadcasts": "Barangay broadcasts",
 };
 
 /** Stops at the section name: Home has no trail and detail pages add no crumb. */
