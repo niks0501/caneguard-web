@@ -1,14 +1,17 @@
 import { createElement, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter, useLocation } from "react-router";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ReportLocationMap } from "./ReportLocationMap";
 import {
   DASHBOARD_PREFERENCES_STORAGE_KEY,
   DASHBOARD_PREFERENCES_VERSION,
 } from "./dashboardPreferences";
+import { mockReports } from "../../data/mock/mockReports";
 import { useFieldValidationMap } from "../../hooks/useFieldValidation";
+import { reportsRepository } from "../../services/reports.service";
 import type { FieldValidationMapData } from "../../domain/fieldValidation.types";
 
 vi.mock("../../hooks/useFieldValidation", () => ({
@@ -16,9 +19,13 @@ vi.mock("../../hooks/useFieldValidation", () => ({
 }));
 
 // The real map only mounts when a MapTiler key is configured.
-vi.mock("../../config/env", () => ({
-  env: { mapTilerKey: "test-map-key" },
-}));
+vi.mock("../../config/env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../config/env")>();
+  return {
+    ...actual,
+    env: { ...actual.env, mapTilerKey: "test-map-key" },
+  };
+});
 
 const mapState = vi.hoisted(() => ({
   sources: [] as Array<{ id: string; features: number }>,
@@ -92,7 +99,9 @@ vi.mock("react-map-gl/maplibre", () => {
     const mountedId = useMemo(() => id, []);
     // One record per mount, with the data present at that moment.
     const dataRef = useRef(data);
-    dataRef.current = data;
+    useEffect(() => {
+      dataRef.current = data;
+    });
     useEffect(() => {
       if (mountedId) {
         mapState.sources.push({
@@ -107,7 +116,9 @@ vi.mock("react-map-gl/maplibre", () => {
 
   const Layer = ({ id, paint, layout }: { id?: string; paint?: Record<string, unknown>; layout?: Record<string, unknown> }) => {
     const propsRef = useRef({ paint, layout });
-    propsRef.current = { paint, layout };
+    useEffect(() => {
+      propsRef.current = { paint, layout };
+    });
     useEffect(() => {
       if (id) mapState.layers.push({ id, ...propsRef.current });
     }, [id]);
@@ -217,6 +228,39 @@ function renderMap() {
     </MemoryRouter>,
   );
 }
+
+function LocationProbe() {
+  const location = useLocation();
+  return (
+    <>
+      <output data-testid="location">{location.pathname}{location.search}</output>
+      <output data-testid="location-state">{JSON.stringify(location.state ?? null)}</output>
+    </>
+  );
+}
+
+function renderMapWithQuery() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={["/dashboard?tab=trends"]}>
+        <ReportLocationMap
+          rows={rows}
+          scopeLabel="1–24 Sep 2026"
+          from="2026-09-01"
+          to="2026-09-24"
+        />
+        <LocationProbe />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 beforeEach(() => {
   mapState.sources.length = 0;
@@ -612,5 +656,181 @@ describe("ReportLocationMap layer memory", () => {
       { dateFrom: "2026-09-01", dateTo: "2026-09-24", limit: 100 },
       { enabled: false },
     );
+  });
+});
+
+describe("ReportLocationMap field map navigation", () => {
+  function plot(fieldSurveyId: number, capturedAt = "2026-09-01T02:00:00.000Z") {
+    return {
+      fieldSurveyId,
+      label: `Plot ${fieldSurveyId}`,
+      capturedAt,
+      outlineFromSurveyId: null,
+      areaSqm: 1200,
+      areaSource: "device_reported" as const,
+      geometry: { type: "Polygon" as const, coordinates: [] },
+      inspector: { uuid: "insp-1", name: "Inspector One" },
+      affectedAreaSqm: 200,
+      affectedPercent: 20,
+      lossRatePercent: null,
+    };
+  }
+
+  it("adds View Field Map links and returnContext in the GPS details list without extra API queries", async () => {
+    const getReportSpy = vi.spyOn(reportsRepository, "getReportById");
+    const user = userEvent.setup();
+    renderMapWithQuery();
+
+    await user.click(screen.getByRole("button", { name: "GPS points" }));
+    await user.click(screen.getByText("Reports shown on the GPS map"));
+
+    // Closed markers and opening the <details> list fire zero detail queries.
+    expect(getReportSpy).not.toHaveBeenCalled();
+
+    const list = screen.getByText("Reports shown on the GPS map").closest("details") as HTMLElement;
+    const firstRow = within(list).getByRole("link", { name: "CG-2026-0718" }).closest("li") as HTMLElement;
+    const fieldMapLink = within(firstRow).getByRole("link", { name: "View Field Map" });
+    expect(fieldMapLink).toHaveAttribute("href", "/monitoring?view=boundaries&report=00000000-0000-4000-8000-000000000001");
+
+    await user.click(fieldMapLink);
+    expect(screen.getByTestId("location")).toHaveTextContent("/monitoring?view=boundaries&report=00000000-0000-4000-8000-000000000001");
+    expect(JSON.parse(screen.getByTestId("location-state").textContent ?? "null")).toEqual({
+      returnContext: { to: "/dashboard?tab=trends", label: "Home" },
+    });
+  });
+
+  it("lazily resolves plot badges and boundary links for opened small GPS popups with returnContext", async () => {
+    const data = gpsData();
+    data.features.forEach((feature) => Object.assign(feature.properties, {
+      locationGroupKey: "shared",
+      locationGroupSize: 2,
+      locationGroupCoordinates: [120.6, 14.07],
+    }));
+    vi.mocked(useFieldValidationMap).mockReturnValue({ data, isPending: false, isError: false } as unknown as ReturnType<typeof useFieldValidationMap>);
+
+    const getReportSpy = vi.spyOn(reportsRepository, "getReportById").mockImplementation(async (uuid) => {
+      if (uuid === "00000000-0000-4000-8000-000000000001") {
+        return {
+          ...mockReports[0],
+          uuid,
+          affectedFields: [plot(11)],
+          inspectorAttachment: null,
+        };
+      }
+      return {
+        ...mockReports[1],
+        uuid,
+        affectedFields: [],
+        inspectorAttachment: { clientUuid: "att-1", arrived: true, confirmed: false, boundary: plot(22) },
+      };
+    });
+
+    const user = userEvent.setup();
+    renderMapWithQuery();
+    await user.click(screen.getByRole("button", { name: "GPS points" }));
+    expect(getReportSpy).not.toHaveBeenCalled();
+
+    mapState.mapClickEvent = {
+      features: [{ layer: { id: "dashboard-gps-point" }, properties: { groupKey: "shared" } }],
+      lngLat: { lng: 120.6, lat: 14.07 },
+    };
+    await user.click(screen.getByTestId("map-click"));
+
+    expect(getReportSpy).toHaveBeenCalledTimes(2);
+    const popup = screen.getByRole("group", { name: "Reports at this location" });
+    expect(await within(popup).findByText("Confirmed")).toBeInTheDocument();
+    expect(within(popup).getByText("Waiting")).toBeInTheDocument();
+
+    const popupLinks = within(popup).getAllByRole("link", { name: "View Field Map" });
+    expect(popupLinks[0]).toHaveAttribute("href", "/monitoring?view=boundaries&report=00000000-0000-4000-8000-000000000001&boundary=11");
+    expect(popupLinks[1]).toHaveAttribute("href", "/monitoring?view=boundaries&report=00000000-0000-4000-8000-000000000002&boundary=22");
+
+    await user.click(within(popup).getByRole("link", { name: "Open CG-2026-0718" }));
+    expect(JSON.parse(screen.getByTestId("location-state").textContent ?? "null")).toEqual({
+      returnContext: { to: "/dashboard?tab=trends", label: "Home" },
+    });
+  });
+
+  it("renders multi-plot, syncing, and no-plot badges and skips detail queries above 5 reports", async () => {
+    const base = gpsData();
+    const sixFeatures = Array.from({ length: 6 }, (_, index) => ({
+      ...base.features[0],
+      id: `report-${index + 1}`,
+      properties: {
+        ...base.features[0].properties,
+        uuid: `00000000-0000-4000-8000-00000000000${index + 1}`,
+        referenceCode: `CG-2026-071${index + 1}`,
+        locationGroupKey: "crowded",
+        locationGroupSize: 6,
+        locationGroupCoordinates: [120.6, 14.07] as [number, number],
+      },
+    }));
+    const getReportSpy = vi.spyOn(reportsRepository, "getReportById").mockImplementation(async (uuid) => {
+      if (uuid.endsWith("1")) {
+        return {
+          ...mockReports[0],
+          uuid,
+          affectedFields: [plot(31, "2026-09-01T01:00:00.000Z")],
+          inspectorAttachment: { clientUuid: "a1", arrived: true, confirmed: false, boundary: plot(32, "2026-09-02T01:00:00.000Z") },
+        };
+      }
+      if (uuid.endsWith("2")) {
+        return {
+          ...mockReports[0],
+          uuid,
+          affectedFields: [],
+          inspectorAttachment: { clientUuid: "a2", arrived: false, confirmed: false, boundary: null },
+        };
+      }
+      return { ...mockReports[0], uuid, affectedFields: [], inspectorAttachment: null };
+    });
+
+    const trioAndSix: FieldValidationMapData = {
+      ...base,
+      features: [
+        ...sixFeatures.slice(0, 3).map((f) => ({
+          ...f,
+          properties: { ...f.properties, locationGroupKey: "trio", locationGroupSize: 3 },
+        })),
+        ...sixFeatures.map((f, idx) => ({
+          ...f,
+          id: `six-${idx + 1}`,
+          properties: {
+            ...f.properties,
+            uuid: `10000000-0000-4000-8000-00000000000${idx + 1}`,
+            referenceCode: `CG-2026-080${idx + 1}`,
+            locationGroupKey: "six",
+            locationGroupSize: 6,
+          },
+        })),
+      ],
+      metadata: { ...base.metadata, returnedCount: 9, totalCount: 9, locatedCount: 9 },
+    };
+    vi.mocked(useFieldValidationMap).mockReturnValue({ data: trioAndSix, isPending: false, isError: false } as unknown as ReturnType<typeof useFieldValidationMap>);
+
+    const user = userEvent.setup();
+    renderMapWithQuery();
+    await user.click(screen.getByRole("button", { name: "GPS points" }));
+
+    mapState.mapClickEvent = {
+      features: [{ layer: { id: "dashboard-gps-point" }, properties: { groupKey: "trio" } }],
+      lngLat: { lng: 120.6, lat: 14.07 },
+    };
+    await user.click(screen.getByTestId("map-click"));
+    const popup = screen.getByRole("group", { name: "Reports at this location" });
+    expect(await within(popup).findByText("2 plots")).toBeInTheDocument();
+    expect(within(popup).getByText("Syncing from phone")).toBeInTheDocument();
+    expect(within(popup).getByText("No field map yet")).toBeInTheDocument();
+    expect(getReportSpy).toHaveBeenCalledTimes(3);
+
+    getReportSpy.mockClear();
+    mapState.mapClickEvent = {
+      features: [{ layer: { id: "dashboard-gps-point" }, properties: { groupKey: "six" } }],
+      lngLat: { lng: 120.6, lat: 14.07 },
+    };
+    await user.click(screen.getByTestId("map-click"));
+    expect(screen.getByText("6 reports at this point")).toBeInTheDocument();
+    expect(getReportSpy).not.toHaveBeenCalled();
+    expect(within(screen.getByRole("group", { name: "Reports at this location" })).getAllByRole("link", { name: "View Field Map" })).toHaveLength(6);
   });
 });

@@ -174,6 +174,7 @@ export function ValidationMap({
   const [providerState, setProviderState] = useState<MapProviderState>("loading");
   const mapRef = useRef<MapRef | null>(null);
   const fittedFrameKey = useRef<string | null>(null);
+  const lastFocusedCaseUuid = useRef<string | null>(null);
   // Resolved per render so tests, runtime configuration and the appearance
   // choice can all change the basemap without reloading the module.
   const theme = useTheme();
@@ -213,6 +214,11 @@ export function ValidationMap({
       return;
     }
 
+    if (selection?.kind === "case" && selection.coordinates) {
+      fittedFrameKey.current = frameKey;
+      return;
+    }
+
     if (data.features.length === 0) {
       map.easeTo({ center: [OPERATING_AREA_VIEW.longitude, OPERATING_AREA_VIEW.latitude], zoom: OPERATING_AREA_VIEW.zoom });
     } else if (data.features.length === 1) {
@@ -236,7 +242,24 @@ export function ValidationMap({
     }
 
     fittedFrameKey.current = frameKey;
-  }, [data.features, frameKey, isPlaceholderData, providerState]);
+  }, [data.features, frameKey, isPlaceholderData, providerState, selection]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (providerState !== "ready" || !map) return;
+    if (selection?.kind !== "case" || !selection.coordinates) {
+      lastFocusedCaseUuid.current = null;
+      return;
+    }
+    const caseUuid = selection.caseUuid ?? null;
+    if (!caseUuid || lastFocusedCaseUuid.current === caseUuid) return;
+    lastFocusedCaseUuid.current = caseUuid;
+    const currentZoom = typeof map.getZoom === "function" ? map.getZoom() : 0;
+    map.easeTo({
+      center: selection.coordinates,
+      zoom: Math.max(currentZoom, 14),
+    });
+  }, [providerState, selection]);
 
   const handleMapLoad = (event: { target: unknown }) => {
     mapRef.current = event.target as MapRef;

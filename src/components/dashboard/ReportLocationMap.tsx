@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
+import { QueryClientContext, useQueries } from "@tanstack/react-query";
 import { Link } from "react-router";
 import {
   Layer,
@@ -10,11 +11,16 @@ import {
 import type { MapLayerMouseEvent } from "react-map-gl/maplibre";
 import "../../lib/mapLibreWorker";
 import { routes } from "../../app/routes";
+import { summarizeCaseFieldMaps } from "../boundaries/fieldMapFreshness";
+import { createReturnContext, withReturnContext } from "../navigation/mapNavigationContext";
 import { locationGroupKey, locationGroupMembers } from "../fieldValidation/locationGroups";
 import { formatValidationDate } from "../fieldValidation/fieldValidation.format";
 import { QueueStatusCell } from "../reports/QueueRowCells";
 import { env } from "../../config/env";
 import type { BarangayValidationRow } from "../../domain/dashboard.types";
+import type { FieldValidationMapFeature } from "../../domain/fieldValidation.types";
+import type { DiseaseReport } from "../../domain/report.types";
+import { reportQueryOptions } from "../../hooks/reportQueries";
 import { useFieldValidationMap } from "../../hooks/useFieldValidation";
 import { useMapPaint } from "../../theme/mapTheme";
 import { useTheme } from "../../theme/useTheme";
@@ -31,8 +37,126 @@ import { registerMissingMapImage } from "./registerMissingMapImage";
 import { mapTilerStyleUrl } from "../fieldValidation/localBasemap";
 
 import "maplibre-gl/dist/maplibre-gl.css";
+import "../../styles/map-sidebar-navigation.css";
 
 const GPS_LIMIT = 100;
+const GPS_POPUP_DETAIL_LIMIT = 5;
+
+const dashboardReturnState = withReturnContext(
+  createReturnContext(routes.dashboardTab("trends"), "Home"),
+);
+
+function gpsPopupFieldMapBadge(report: DiseaseReport): {
+  label: string;
+  tone: "ready" | "waiting" | "pending" | "none";
+  primaryBoundaryId: number | null;
+} {
+  const summary = summarizeCaseFieldMaps(report);
+  if (summary.plots.length > 1) {
+    return {
+      label: `${summary.plots.length} plots`,
+      tone: "ready",
+      primaryBoundaryId: summary.primaryBoundaryId,
+    };
+  }
+  if (summary.plots.length === 1) {
+    return summary.confirmedCount === 1
+      ? { label: "Confirmed", tone: "ready", primaryBoundaryId: summary.primaryBoundaryId }
+      : { label: "Waiting", tone: "waiting", primaryBoundaryId: summary.primaryBoundaryId };
+  }
+  if (summary.pendingSync) {
+    return { label: "Syncing from phone", tone: "pending", primaryBoundaryId: null };
+  }
+  return { label: "No field map yet", tone: "none", primaryBoundaryId: null };
+}
+
+function GpsPopupReportsResolved({
+  reports,
+}: {
+  reports: FieldValidationMapFeature[];
+}) {
+  const queries = useQueries({
+    queries: reports.map((item) => reportQueryOptions(item.properties.uuid)),
+  });
+
+  return (
+    <ul className="location-group-reports">
+      {reports.map(({ properties }, index) => {
+        const reportData = queries[index]?.data;
+        const badge = reportData ? gpsPopupFieldMapBadge(reportData) : null;
+        return (
+          <li key={properties.uuid}>
+            <div className="gps-report-row__links">
+              <Link
+                className="decision-map__popup-link"
+                to={routes.reportDetail(properties.uuid)}
+                state={dashboardReturnState}
+                aria-label={`Open ${properties.referenceCode}`}
+              >
+                {properties.referenceCode}
+              </Link>
+              <Link
+                className="decision-map__popup-link"
+                to={routes.fieldMapForCase(properties.uuid, badge?.primaryBoundaryId)}
+                state={dashboardReturnState}
+              >
+                View Field Map
+              </Link>
+            </div>
+            <div className="gps-report-row__meta">
+              <QueueStatusCell row={properties} showIcon />
+              {badge ? (
+                <span className={`gps-report-row__plot-badge gps-report-row__plot-badge--${badge.tone}`}>
+                  {badge.label}
+                </span>
+              ) : null}
+            </div>
+            <time>{formatValidationDate(properties.observedAt)}</time>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function GpsPopupReportList({
+  reports,
+}: {
+  reports: FieldValidationMapFeature[];
+}) {
+  const queryClient = useContext(QueryClientContext);
+  if (queryClient && reports.length > 0 && reports.length <= GPS_POPUP_DETAIL_LIMIT) {
+    return <GpsPopupReportsResolved reports={reports} />;
+  }
+
+  return (
+    <ul className="location-group-reports">
+      {reports.map(({ properties }) => (
+        <li key={properties.uuid}>
+          <div className="gps-report-row__links">
+            <Link
+              className="decision-map__popup-link"
+              to={routes.reportDetail(properties.uuid)}
+              state={dashboardReturnState}
+              aria-label={`Open ${properties.referenceCode}`}
+            >
+              {properties.referenceCode}
+            </Link>
+            <Link
+              className="decision-map__popup-link"
+              to={routes.fieldMapForCase(properties.uuid)}
+              state={dashboardReturnState}
+            >
+              View Field Map
+            </Link>
+          </div>
+          <QueueStatusCell row={properties} showIcon />
+          <time>{formatValidationDate(properties.observedAt)}</time>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 /** Layer ids whose dots answer clicks (the map-wide handlers filter on these). */
 const INTERACTIVE_LAYER_IDS = [
@@ -406,15 +530,7 @@ export function ReportLocationMap({
                           {reportCount(selectedReports.length)} at this point
                         </strong>
                         {gps.data?.metadata.truncated ? <p>Within the returned map slice.</p> : null}
-                        <ul className="location-group-reports">
-                          {selectedReports.map(({ properties }) => (
-                            <li key={properties.uuid}>
-                              <Link className="decision-map__popup-link" to={routes.reportDetail(properties.uuid)} aria-label={`Open ${properties.referenceCode}`}>{properties.referenceCode}</Link>
-                              <QueueStatusCell row={properties} showIcon />
-                              <time>{formatValidationDate(properties.observedAt)}</time>
-                            </li>
-                          ))}
-                        </ul>
+                        <GpsPopupReportList reports={selectedReports} />
                       </>
                     )}
                   </div>
@@ -445,7 +561,16 @@ export function ReportLocationMap({
             <ul className="location-group-reports">
               {gps.data.features.map(({ properties }) => (
                 <li key={properties.uuid}>
-                  <Link to={routes.reportDetail(properties.uuid)}>{properties.referenceCode}</Link>
+                  <div className="gps-report-row__links">
+                    <Link to={routes.reportDetail(properties.uuid)} state={dashboardReturnState}>{properties.referenceCode}</Link>
+                    <Link
+                      className="decision-map__popup-link"
+                      to={routes.fieldMapForCase(properties.uuid)}
+                      state={dashboardReturnState}
+                    >
+                      View Field Map
+                    </Link>
+                  </div>
                   <QueueStatusCell row={properties} showIcon />
                   <time>{formatValidationDate(properties.observedAt)}</time>
                 </li>

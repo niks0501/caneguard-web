@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, useLocation } from "react-router";
 import { ZodError } from "zod";
 import { AxiosError } from "axios";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -1367,5 +1367,60 @@ describe("DashboardPage control memory", () => {
       "2026-09",
       dashboardSummaryOptions,
     );
+  });
+});
+
+describe("DashboardPage Trends URL tab preservation", () => {
+  function LocationProbe() {
+    const location = useLocation();
+    return <output data-testid="dashboard-location">{location.pathname}{location.search}</output>;
+  }
+
+  it("opens the Trends tab directly on /dashboard?tab=trends, syncs tab URL, and preserves map layer preference", async () => {
+    vi.useRealTimers();
+    saveDashboardScope({
+      mode: "month",
+      month: manilaMonthAt(),
+      from: `${manilaMonthAt()}-01`,
+      to: manilaDateAt(),
+    });
+    window.localStorage.setItem(
+      DASHBOARD_PREFERENCES_STORAGE_KEY,
+      JSON.stringify({
+        version: DASHBOARD_PREFERENCES_VERSION,
+        selection: {
+          mode: "month",
+          month: manilaMonthAt(),
+          from: `${manilaMonthAt()}-01`,
+          to: manilaDateAt(),
+        },
+        mapLayer: "gps",
+      }),
+    );
+    vi.mocked(useAnalytics).mockReturnValue(analyticsResult({ data: {
+      ...analytics,
+      period: { ...analytics.period, from: `${manilaMonthAt()}-01`, to: manilaDateAt() },
+    } }));
+
+    render(
+      <MemoryRouter initialEntries={["/dashboard?tab=trends"]}>
+        <DashboardPage />
+        <LocationProbe />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole("tab", { name: "Trends" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("group", { name: "Report scope" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "GPS points" }, { timeout: 5_000 }),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    openTab("Today");
+    expect(screen.getByRole("tab", { name: "Today" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByTestId("dashboard-location")).toHaveTextContent("/dashboard");
+    expect(screen.getByTestId("dashboard-location").textContent).not.toContain("tab=");
+
+    openTab("Trends");
+    expect(screen.getByTestId("dashboard-location")).toHaveTextContent("/dashboard?tab=trends");
   });
 });

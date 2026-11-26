@@ -1,0 +1,39 @@
+.map-sidebar__field-map-badge,
+.gps-report-row__plot-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.map-sidebar__field-map-badge--ready,
+.gps-report-row__plot-badge--ready {
+  color: var(--color-primary-text);
+  background: var(--color-primary-tint);
+}
+
+.map-sidebar__field-map-badge--waiting,
+.gps-report-row__plot-badge--waiting {
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
+.map-sidebar__field-map-badge--pending,
+.map-sidebar__field-map-badge--none,
+.gps-report-row__plot-badge--pending,
+.gps-report-row__plot-badge--none {
+  color: var(--color-secondary-text);
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+}
+
+.gps-report-row__links,
+.gps-report-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { MapPinOff, RefreshCw } from "lucide-react";
 import { ZodError } from "zod";
 import { ApiError, isApiConnectionError } from "../api/ApiError";
@@ -7,6 +7,11 @@ import { FieldValidationFilterBar } from "../components/fieldValidation/FieldVal
 import { CaseDetailsPanel, ClusterQueuePanel } from "../components/fieldValidation/MapSidebar";
 import { ValidationMap, type ValidationMapSelection } from "../components/fieldValidation/ValidationMap";
 import { locationGroupMembers } from "../components/fieldValidation/locationGroups";
+import {
+  createReturnContext,
+  readReturnContext,
+  withReturnContext,
+} from "../components/navigation/mapNavigationContext";
 import { PageContent, PageHeader } from "../components/layout/Page";
 import { WorkspaceFreshness } from "../components/layout/WorkspaceFreshness";
 import { Button } from "../components/ui/Button";
@@ -18,6 +23,7 @@ import { routes } from "../app/routes";
 import { env } from "../config/env";
 import { apiEndpointDetail, serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../lib/serviceMessages";
 import { parseMapUrl, writeMapUrl } from "./mapUrlState";
+import "../styles/map-sidebar-navigation.css";
 
 function isAccessDeniedError(error: unknown) {
   return error instanceof ApiError && error.status === 403;
@@ -96,10 +102,12 @@ function FilterChips({
 
 export function FieldValidationMapPage({ embedded = false }: { embedded?: boolean }) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const urlState = useMemo(() => parseMapUrl(searchParams), [searchParams]);
   const appliedFilters = urlState.filters;
   const reportParam = searchParams.get("report");
+  const incomingReturnContext = useMemo(() => readReturnContext(location.state), [location.state]);
 
   const mapQuery = useFieldValidationMap(appliedFilters, { enabled: !urlState.invalid });
   const mapAccessDenied = isAccessDeniedError(mapQuery.error);
@@ -116,6 +124,25 @@ export function FieldValidationMapPage({ embedded = false }: { embedded?: boolea
     return next;
   };
 
+  const incomingClusterExtra = useMemo(() => {
+    if (
+      !reportParam ||
+      !incomingReturnContext?.clusterKeys ||
+      !incomingReturnContext?.clusterCoordinates
+    ) {
+      return undefined;
+    }
+    const queryIndex = incomingReturnContext.to.indexOf("?");
+    if (queryIndex !== -1) {
+      const returnReport = new URLSearchParams(incomingReturnContext.to.slice(queryIndex)).get("report");
+      if (returnReport && returnReport !== reportParam) return undefined;
+    }
+    return {
+      fromClusterKeys: incomingReturnContext.clusterKeys,
+      fromClusterCoordinates: incomingReturnContext.clusterCoordinates,
+    };
+  }, [incomingReturnContext, reportParam]);
+
   // Deep links to a focused Map case keep resolving to an equivalent state
   // without an effect that mutates selection during render cascades.
   const selection = useMemo<MapSelection | null>(() => {
@@ -127,11 +154,32 @@ export function FieldValidationMapPage({ embedded = false }: { embedded?: boolea
         kind: "case",
         caseUuid: reportParam,
         coordinates: feature.properties.locationGroupCoordinates ?? feature.geometry.coordinates,
+        ...incomingClusterExtra,
       };
     }
-    if (mapData) return { kind: "case", caseUuid: reportParam, coordinates: null };
+    if (mapData) return { kind: "case", caseUuid: reportParam, coordinates: null, ...incomingClusterExtra };
     return null;
-  }, [userSelection, reportParam, mapData]);
+  }, [userSelection, reportParam, mapData, incomingClusterExtra]);
+
+  const currentMapUrl = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    if (selection?.kind === "case") {
+      params.set("report", selection.caseUuid);
+    }
+    const query = params.toString();
+    return query ? `${location.pathname}?${query}` : location.pathname;
+  }, [location.pathname, location.search, selection]);
+
+  const caseReturnState = useMemo(() => {
+    if (selection?.kind !== "case") return undefined;
+    const clusterExtra = selection.fromClusterKeys && selection.fromClusterCoordinates
+      ? {
+        clusterKeys: selection.fromClusterKeys,
+        clusterCoordinates: selection.fromClusterCoordinates,
+      }
+      : undefined;
+    return withReturnContext(createReturnContext(currentMapUrl, "Monitoring Map", clusterExtra));
+  }, [currentMapUrl, selection]);
 
   const applyFilters = (draft: FieldValidationFilters) => {
     setSearchParams(writeWorkspaceUrl({ ...draft, barangay: draft.barangay?.trim() || undefined }));
@@ -261,6 +309,7 @@ export function FieldValidationMapPage({ embedded = false }: { embedded?: boolea
       return (
         <CaseDetailsPanel
           feature={selectedFeature}
+          returnState={caseReturnState}
           onClose={closeSidebar}
           onReturnToArea={selection.fromClusterKeys ? returnToArea : undefined}
         />
@@ -276,7 +325,8 @@ export function FieldValidationMapPage({ embedded = false }: { embedded?: boolea
             This case is not in the current filtered Map scope, or it has no usable location.
           </p>
           <div className="map-sidebar__actions">
-            <Link className="button button--secondary" to={routes.reportDetail(selection.caseUuid)}>Open Case</Link>
+            <Link className="button button--secondary" to={routes.reportDetail(selection.caseUuid)} state={caseReturnState}>Open Case</Link>
+            <Link className="button button--quiet" to={routes.fieldMapForCase(selection.caseUuid)} state={caseReturnState}>View Field Map</Link>
           </div>
         </aside>
       );
