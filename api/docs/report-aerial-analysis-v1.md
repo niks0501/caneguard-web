@@ -10,9 +10,10 @@ The check is live only when two conditions hold. `CANEGUARD_AERIAL_ANALYSIS_ENAB
 (`caneguard.aerial.enabled`, the install gate) defaults to `false` and must be
 `true`. An Admin must also switch the check on in Admin Settings, which is stored
 in `feature_switches` and defaults to off. While either condition is unmet every
-route below returns `404` and `GET /api/v1/reports/{report}` carries no
-`aerial_analyses` key. The key is never on list, map, mobile, export or PDF
-payloads. For production staging and enablement, follow the
+route below returns `404`, `GET /api/v1/reports/{report}` carries no
+`aerial_analyses` key, and `GET /api/v1/mobile/assignments` carries no
+`aerial_check` key. Aerial metrics are never on report list, map, export, PDF,
+or farmer payloads. For production staging and enablement, follow the
 [aerial deployment runbook](../../docs/production-deployment.md#aerial-analysis-needs-python-and-the-model-staged-first).
 
 An active verified Admin reads and writes the switch through
@@ -51,6 +52,22 @@ Field reporters and mobile tokens get `403`.
 | `GET /api/v1/reports/{report}/aerial-analyses/{analysis}/mask` | 8-bit PNG class mask, same orientation as the displayed photo. |
 | `DELETE /api/v1/reports/{report}/aerial-analyses/{analysis}` | `200` with `{"data":{"removal_id":"…"}}`. Soft removal: the row is hidden, the files are kept and a new removal identity is minted. |
 | `POST /api/v1/reports/{report}/aerial-analyses/{analysis}/restore` | `200` with the analysis. Body `{"removal_id":"<uuid>"}` must name the current removal; undoing an already undone removal is returned unchanged. |
+
+### Mobile Field Validation brief routes
+
+When the aerial switch is enabled and an assigned case has an active aerial check,
+`GET /api/v1/mobile/assignments` includes an optional `aerial_check` summary with
+bounded JPEG derivatives (max 1600 px long side, well under the 10 MiB mobile
+offline media cap) and includes it in `sync.version`. The two routes below live in
+the `mobile.token` + `inspector.access` group (`abilities:assignment:read`) and
+enforce assignee ownership and district access (`403` for non-assignees, reviewers,
+farmers, or cross-district callers; `404` when the switch is off or no active check
+exists):
+
+| Route | Result |
+| --- | --- |
+| `GET /api/v1/mobile/assignments/{assignment}/aerial-preview` | Bounded JPEG aerial photo (≤ 1600 px), `Cache-Control: private, no-cache`, `nosniff`. |
+| `GET /api/v1/mobile/assignments/{assignment}/aerial-overlay` | Bounded JPEG aerial photo with class-2 problem areas tinted (`#ae8a1b`), `Cache-Control: private, no-cache`, `nosniff`. |
 
 Errors: `404` the check off (including when it is switched off while an upload
 is running, which saves nothing), unknown analysis, or a removed analysis on any

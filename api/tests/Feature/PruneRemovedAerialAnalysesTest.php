@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Reports\BuildMobileAerialBrief;
 use App\Models\Report;
 use App\Models\ReportAerialAnalysis;
 use App\Models\SecurityAudit;
@@ -30,6 +31,8 @@ class PruneRemovedAerialAnalysesTest extends TestCase
         $maskPath = "aerial/{$uuid}-mask.png";
         Storage::disk('local')->put($imagePath, 'img');
         Storage::disk('local')->put($maskPath, 'mask');
+        Storage::disk('local')->put("aerial/{$uuid}-mobile-preview.jpg", 'preview');
+        Storage::disk('local')->put("aerial/{$uuid}-mobile-overlay.jpg", 'overlay');
 
         return ReportAerialAnalysis::query()->create([
             'uuid' => $uuid,
@@ -77,6 +80,12 @@ class PruneRemovedAerialAnalysesTest extends TestCase
         Storage::disk('local')->assertExists($recentRemoved->mask_path);
         Storage::disk('local')->assertMissing($expiredRemoved->image_path);
         Storage::disk('local')->assertMissing($expiredRemoved->mask_path);
+        foreach (BuildMobileAerialBrief::derivativePaths($expiredRemoved) as $derivativePath) {
+            Storage::disk('local')->assertMissing($derivativePath);
+        }
+        foreach (BuildMobileAerialBrief::derivativePaths($active) as $derivativePath) {
+            Storage::disk('local')->assertExists($derivativePath);
+        }
 
         $audit = SecurityAudit::query()
             ->where('action', SecurityAudit::ACTION_PRUNE_RUN)
