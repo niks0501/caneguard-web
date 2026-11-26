@@ -57,6 +57,8 @@ class ResetPasswordController extends Controller
         return response()->json([
             'message' => 'Password updated. Sign in with your new password.',
             'code' => 'PASSWORD_RESET',
+            'sign_in_surface' => $resetUser->signInSurface(),
+            'locale_hint' => $resetUser->localeHint(),
         ]);
     }
 }

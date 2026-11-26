@@ -77,7 +77,7 @@ describe("User Management", () => {
     expect(await screen.findByText(/Next step: Tell them to sign in at the web sign-in page, then use the web workspace/)).toBeInTheDocument();
   });
 
-  it.each([true, false])("holds Farmer accounts instead of sending them to mobile sign-in (invite sent: %s)", async inviteSent => {
+  it.each([true, false])("tells the office a Farmer signs in on mobile and keeps scans on their phone (invite sent: %s)", async inviteSent => {
     const user = userEvent.setup();
     vi.mocked(api.createAccount).mockResolvedValue({ data: { uuid: webAccount.uuid, name: "Farm Person", email: "farm@example.test", role: "farmer" }, invite_sent: inviteSent });
     renderPage();
@@ -91,9 +91,9 @@ describe("User Management", () => {
     await user.click(within(dialog).getByRole("button", { name: "Create account" }));
 
     const notice = await screen.findByText(/Account created for Farm Person/);
-    expect(notice).toHaveTextContent("Farmer mobile sign-in is currently limited");
-    expect(notice).toHaveTextContent("hold this account and contact support");
-    expect(notice).not.toHaveTextContent("sign in through the mobile app");
+    expect(notice).toHaveTextContent("They sign in on CaneGuard Mobile to scan sugarcane");
+    expect(notice).toHaveTextContent("scans stay on their own phone and are not sent to the office");
+    expect(notice).not.toHaveTextContent("currently limited");
     if (!inviteSent) expect(notice).toHaveTextContent("an operator can issue a set-password link");
   });
 

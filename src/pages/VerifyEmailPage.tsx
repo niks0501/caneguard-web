@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { CircleCheck, MailCheck } from "lucide-react";
-import { Link, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import { ApiError } from "../api/ApiError";
 import { resendVerificationRequest, verifyEmailRequest } from "../auth/auth.api";
-import { routes } from "../app/routes";
 import { Button } from "../components/ui/Button";
 import { AuthPageFrame } from "./AuthPageFrame";
+import { SignInHandoff } from "./MobileSignInHandoff";
+import type { LocaleHint, SignInSurface } from "./MobileSignInHandoff";
 
 type VerificationState = "idle" | "loading" | "verified" | "invalid";
 
@@ -20,6 +21,7 @@ export function VerifyEmailPage() {
   const [verificationState, setVerificationState] = useState<VerificationState>(
     hasVerificationLink ? "loading" : "idle",
   );
+  const [handoff, setHandoff] = useState<{ surface?: SignInSurface; locale?: LocaleHint }>({});
   const [resendSent, setResendSent] = useState(false);
   const [isSubmitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -29,8 +31,10 @@ export function VerifyEmailPage() {
     let cancelled = false;
 
     void verifyEmailRequest(id, hash, { expires, signature })
-      .then(() => {
-        if (!cancelled) setVerificationState("verified");
+      .then((result) => {
+        if (cancelled) return;
+        setHandoff({ surface: result.sign_in_surface, locale: result.locale_hint });
+        setVerificationState("verified");
       })
       .catch(() => {
         if (!cancelled) setVerificationState("invalid");
@@ -80,13 +84,7 @@ export function VerifyEmailPage() {
       {verificationState === "loading" ? (
         <p className="auth-loading" role="status">Confirming your verification link...</p>
       ) : verificationState === "verified" ? (
-        <div className="auth-success" role="status">
-          <strong>Your email is verified.</strong>
-          <span>You can now sign in to continue.</span>
-          <Link className="button button--primary" to={routes.login}>
-            Return to sign in
-          </Link>
-        </div>
+        <SignInHandoff kind="verify" surface={handoff.surface} locale={handoff.locale} />
       ) : (
         <>
           {verificationState === "invalid" ? (

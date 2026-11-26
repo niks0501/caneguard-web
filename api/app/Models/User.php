@@ -105,6 +105,20 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasVerifiedEmail() && in_array($this->role, [self::ROLE_FARMER, self::ROLE_FIELD_REPORTER], true);
     }
 
+    /**
+     * Which app a person signs in to after proving control of an auth link.
+     * Role only: callers may reveal it solely after that proof succeeds.
+     */
+    public function signInSurface(): string
+    {
+        return in_array($this->role, [self::ROLE_FARMER, self::ROLE_FIELD_REPORTER], true) ? 'mobile' : 'web';
+    }
+
+    public function localeHint(): string
+    {
+        return $this->role === self::ROLE_FARMER ? 'tl' : 'en';
+    }
+
     public function holdsMobileInspectorSession(): bool
     {
         return $this->tokens->contains(
