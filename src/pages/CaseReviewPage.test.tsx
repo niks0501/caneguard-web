@@ -33,6 +33,9 @@ import { useReviewClaim } from "../hooks/useReviewClaim";
 vi.mock("../hooks/useReviewClaim", () => ({ useReviewClaim: vi.fn() }));
 vi.mock("../hooks/useReports", () => ({
   useAdvisories: vi.fn(),
+  useCreateAdvisory: vi.fn(() => ({ mutateAsync: vi.fn() })),
+  useUpdateAdvisory: vi.fn(() => ({ mutateAsync: vi.fn() })),
+  useDeleteAdvisory: vi.fn(() => ({ mutateAsync: vi.fn() })),
   useRecordHandoffNote: vi.fn(),
   useLinkDuplicateReport: vi.fn(),
   usePossibleRecentMatches: vi.fn(),
@@ -275,7 +278,7 @@ const officeAdvisory = {
 async function chooseAdvisory(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
   await user.click(screen.getByRole("button", { name: "Next" }));
-  await user.selectOptions(screen.getByLabelText("Validated advisory"), officeAdvisory.uuid);
+  await user.click(screen.getByRole("radio", { name: /Document and monitor affected rows/ }));
 }
 
 beforeEach(() => {
@@ -563,10 +566,9 @@ describe("CaseReviewPage", () => {
     await chooseAdvisory(user);
 
     const modal = screen.getByRole("form", { name: "Report Evidence Review" });
-    const advisorySelect = within(modal).getByLabelText("Validated advisory");
-    expect(within(advisorySelect).getAllByRole("option").map((option) => option.textContent)).toEqual([
-      "Select a validated advisory",
-      "ADV-OFFICE-OPS-001 - Document and monitor affected rows",
+    const advisories = within(modal).getByRole("radiogroup", { name: "Advisory to send" });
+    expect(within(advisories).getAllByRole("radio").map((radio) => radio.closest("label")?.textContent)).toEqual([
+      "Document and monitor affected rowsADV-OFFICE-OPS-001",
     ]);
   });
 

@@ -1,5 +1,6 @@
 import type {
   AerialAnalysis,
+  Advisory,
   DiseaseReport,
   IdentificationGap,
   PaginationMeta,
@@ -7,6 +8,7 @@ import type {
 } from "../../../domain/report.types";
 import type { InspectorBoundaryAttachment, ReportAffectedField } from "../../../domain/fieldSurvey.types";
 import type {
+  AdvisoryDto,
   ReportDetailDto,
   ReportListItemDto,
   ReportListResponseDto,
@@ -187,6 +189,19 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
   };
 }
 
+export function mapAdvisory(dto: AdvisoryDto): Advisory {
+  return {
+    uuid: dto.uuid,
+    code: dto.code,
+    title: dto.title,
+    content: dto.content,
+    status: dto.status,
+    category: dto.category,
+    validationProvenance: dto.validation_provenance,
+    validatedAt: dto.validated_at,
+  };
+}
+
 export function mapReportAffectedField(
   dto: NonNullable<ReportDetailDto["affected_fields"]>[number],
 ): ReportAffectedField {
@@ -316,13 +331,7 @@ export function mapReportDetail(
     actionTaken: dto.review.action_taken ?? undefined,
     advisory: dto.advisory
       ? {
-          uuid: dto.advisory.uuid,
-          code: dto.advisory.code,
-          title: dto.advisory.title,
-          content: dto.advisory.content,
-          status: dto.advisory.status,
-          validationProvenance: dto.advisory.validation_provenance,
-          validatedAt: dto.advisory.validated_at,
+          ...mapAdvisory(dto.advisory),
           selectedAt: dto.advisory.selected_at,
           deliveryState: dto.advisory.delivery_state,
           deliveredAt: dto.advisory.delivered_at,

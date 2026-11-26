@@ -266,19 +266,16 @@ describe("Report Evidence Review protected contract", () => {
     await user.click(screen.getByRole("button", { name: "Next" }));
     await clickChoice(user, "Advisory Guidance");
 
-    expect(screen.getByRole("option", { name: /ADV-VALID-001/i })).toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: /ADV-DRAFT-001/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: /ADV-RETIRED-001/i })).not.toBeInTheDocument();
+    expect(await screen.findByRole("radio", { name: /ADV-VALID-001/i })).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: /ADV-DRAFT-001/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: /ADV-RETIRED-001/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.click(screen.getByRole("button", { name: "Confirm decision" }));
     expect(reviewPayloads).toHaveLength(0);
-    expect(screen.getByText(/Select a validated advisory for Advisory Guidance/i)).toBeInTheDocument();
+    expect(screen.getByText(/Pick an advisory to send/i)).toBeInTheDocument();
 
-    const option = screen.getByRole("option", { name: /ADV-VALID-001/i });
-    const select = option.parentElement;
-    expect(select).toBeInstanceOf(HTMLSelectElement);
-    await user.selectOptions(select as HTMLSelectElement, validatedAdvisory.uuid);
+    await user.click(screen.getByRole("radio", { name: /ADV-VALID-001/i }));
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.click(screen.getByRole("button", { name: "Confirm decision" }));
 

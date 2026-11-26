@@ -8,6 +8,9 @@ import type { UpdateAffectedFieldsInput, UpdateAffectedFieldsResult } from "../.
 import type {
   AerialAnalysis,
   Advisory,
+  AdvisoryDeleteResult,
+  AdvisoryInput,
+  AdvisoryUpdateInput,
   DiseaseReport,
   PaginatedReports,
   PossibleRecentMatches,
@@ -21,6 +24,7 @@ import type {
 } from "../../domain/review.types";
 import { mapPossibleRecentMatches } from "./mappers/duplicate.mapper";
 import {
+  mapAdvisory,
   mapAerialAnalysis,
   mapPaginationMeta,
   mapReportAffectedField,
@@ -30,6 +34,8 @@ import {
 import { mapMonthlyReportSummary } from "./mappers/reporting.mapper";
 import {
   advisoriesResponseSchema,
+  advisoryDeleteResponseSchema,
+  advisoryResponseSchema,
   aerialAnalysisResponseSchema,
   aerialRemovalResponseSchema,
   possibleRecentMatchesResponseSchema,
@@ -112,6 +118,17 @@ function toQueryParams(
   };
 }
 
+/** Sends only the fields the caller set; a blank code is left for the server to generate. */
+function toAdvisoryPayload(input: AdvisoryUpdateInput) {
+  const code = input.code?.trim();
+  return {
+    ...(input.title !== undefined ? { title: input.title.trim() } : {}),
+    ...(input.content !== undefined ? { content: input.content.trim() } : {}),
+    ...(input.category !== undefined ? { category: input.category } : {}),
+    ...(code ? { code } : {}),
+  };
+}
+
 export class ApiReportsRepository implements ReportsRepository {
   private readonly client: AxiosInstance;
 
@@ -121,15 +138,22 @@ export class ApiReportsRepository implements ReportsRepository {
 
   async listAdvisories(): Promise<Advisory[]> {
     const response = await this.client.get('/api/v1/advisories');
-    return advisoriesResponseSchema.parse(response.data).data.map((advisory) => ({
-      uuid: advisory.uuid,
-      code: advisory.code,
-      title: advisory.title,
-      content: advisory.content,
-      status: advisory.status,
-      validationProvenance: advisory.validation_provenance,
-      validatedAt: advisory.validated_at,
-    }));
+    return advisoriesResponseSchema.parse(response.data).data.map(mapAdvisory);
+  }
+
+  async createAdvisory(input: AdvisoryInput): Promise<Advisory> {
+    const response = await this.client.post('/api/v1/advisories', toAdvisoryPayload(input));
+    return mapAdvisory(advisoryResponseSchema.parse(response.data).data);
+  }
+
+  async updateAdvisory(advisoryUuid: string, input: AdvisoryUpdateInput): Promise<Advisory> {
+    const response = await this.client.patch(`/api/v1/advisories/${advisoryUuid}`, toAdvisoryPayload(input));
+    return mapAdvisory(advisoryResponseSchema.parse(response.data).data);
+  }
+
+  async deleteAdvisory(advisoryUuid: string): Promise<AdvisoryDeleteResult> {
+    const response = await this.client.delete(`/api/v1/advisories/${advisoryUuid}`);
+    return advisoryDeleteResponseSchema.parse(response.data).data;
   }
 
   async listReports(filters?: ReportFilters): Promise<PaginatedReports> {

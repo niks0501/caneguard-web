@@ -1,5 +1,6 @@
 import type {
   ActionTaken,
+  AdvisoryCategory,
   ActiveAuthorityClassifiedCondition,
   AuthorityClassifiedCondition,
   CaseState,
@@ -134,6 +135,26 @@ export const actionTakenLabels: Record<ActionTaken, string> = {
   technical_assistance_provided: "Technical assistance provided",
   referred_for_expert_validation: "Expert referral (historical)",
   no_further_action_required: "No further action required",
+};
+
+/** Library order: diseases, then the pest, then general field operations. */
+export const advisoryCategories: AdvisoryCategory[] = ["rust", "smut", "mosaic", "rssi", "general"];
+
+export const advisoryCategoryLabels: Record<AdvisoryCategory, string> = {
+  rust: "Rust",
+  smut: "Smut",
+  mosaic: "Mosaic",
+  rssi: "RSSI (pest)",
+  general: "General field ops",
+};
+
+/** One-word topic names for tight rows; the full labels stay on the chips and the topic field. */
+export const advisoryCategoryShortLabels: Record<AdvisoryCategory, string> = {
+  rust: "Rust",
+  smut: "Smut",
+  mosaic: "Mosaic",
+  rssi: "RSSI",
+  general: "General",
 };
 
 export const submitterRoleLabels: Record<SubmitterRole, string> = {

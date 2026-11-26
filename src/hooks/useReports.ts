@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { DiseaseReport, ReportFilters } from "../domain/report.types";
+import type {
+  Advisory,
+  AdvisoryInput,
+  AdvisoryUpdateInput,
+  DiseaseReport,
+  ReportFilters,
+} from "../domain/report.types";
 import type { UpdateAffectedFieldsInput } from "../domain/fieldSurvey.types";
 import type {
   DuplicateLinkInput,
@@ -28,6 +34,56 @@ export function useMonthlyReportSummary(month?: string) {
 
 export function useAdvisories() {
   return useQuery(advisoriesQueryOptions());
+}
+
+/** Farmer-request replies and barangay broadcasts read the library under their own key. */
+const farmerAdvisoriesKey = ["farmer-inquiries", "advisories"] as const;
+
+/**
+ * Patch the cached library with the server's answer so the picker can select a new advisory
+ * at once, then refetch every list that shows advisories.
+ */
+function useAdvisoryLibraryMutation<TInput, TResult>(
+  mutationFn: (input: TInput) => Promise<TResult>,
+  patch: (list: Advisory[], result: TResult, input: TInput) => Advisory[],
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn,
+    onSuccess: (result, input) => {
+      queryClient.setQueryData<Advisory[]>(
+        reportKeys.advisories(),
+        (list) => (list ? patch(list, result, input) : list),
+      );
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: reportKeys.advisories() }),
+        queryClient.invalidateQueries({ queryKey: farmerAdvisoriesKey }),
+      ]);
+    },
+  });
+}
+
+export function useCreateAdvisory() {
+  return useAdvisoryLibraryMutation(
+    (input: AdvisoryInput) => reportsRepository.createAdvisory(input),
+    (list, created) => [...list, created],
+  );
+}
+
+export function useUpdateAdvisory() {
+  return useAdvisoryLibraryMutation(
+    (input: { advisoryUuid: string; changes: AdvisoryUpdateInput }) =>
+      reportsRepository.updateAdvisory(input.advisoryUuid, input.changes),
+    (list, updated) => list.map((item) => (item.uuid === updated.uuid ? updated : item)),
+  );
+}
+
+export function useDeleteAdvisory() {
+  return useAdvisoryLibraryMutation(
+    (advisoryUuid: string) => reportsRepository.deleteAdvisory(advisoryUuid),
+    (list, result) => list.filter((item) => item.uuid !== result.uuid),
+  );
 }
 
 export function useReports(

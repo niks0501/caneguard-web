@@ -169,12 +169,14 @@ export const advisoryDeliveryStateSchema = z.enum([
   "delivered",
   "acknowledged",
 ]);
+export const advisoryCategorySchema = z.enum(["rust", "smut", "mosaic", "rssi", "general"]);
 export const advisorySchema = z.object({
   uuid: z.string(),
   code: z.string(),
   title: z.string(),
   content: z.string(),
   status: advisoryStatusSchema,
+  category: advisoryCategorySchema.nullable().optional(),
   validation_provenance: z.string().nullable().optional(),
   validated_at: z.iso.datetime({ offset: true }).nullable().optional(),
   selected_at: z.iso.datetime({ offset: true }).nullable().optional(),
@@ -577,6 +579,15 @@ export const reportDetailSchema = z.object({
 export const advisoriesResponseSchema = z.object({
   data: z.array(advisorySchema),
 });
+export const advisoryResponseSchema = z.object({
+  data: advisorySchema,
+});
+export const advisoryDeleteResponseSchema = z.object({
+  data: z.object({
+    uuid: z.string(),
+    deleted: z.enum(["hard", "archived"]),
+  }),
+});
 
 export const reportDetailResponseSchema = z.object({
   data: reportDetailSchema,
@@ -591,6 +602,7 @@ export const updateAffectedFieldsResponseSchema = z.object({
   }),
 });
 
+export type AdvisoryDto = z.infer<typeof advisorySchema>;
 export type ReportLifecycleDto = z.infer<typeof reportLifecycleSchema>;
 export type ReportListItemDto = z.infer<typeof reportListItemSchema>;
 export type ReportListResponseDto = z.infer<typeof reportListResponseSchema>;

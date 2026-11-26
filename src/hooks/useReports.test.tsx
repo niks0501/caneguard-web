@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { createQueryClient } from "../app/queryClient";
 import { AerialAnalysisSettings } from "../components/reports/AerialAnalysisSettings";
-import type { DiseaseReport } from "../domain/report.types";
+import type { Advisory, DiseaseReport } from "../domain/report.types";
 import { mapReportDetail } from "../data/api/mappers/report.mapper";
 import { reportDetailResponseSchema } from "../data/api/schemas/report.schema";
 import { reportsRepository } from "../services/reports.service";
@@ -14,7 +14,7 @@ import { server } from "../test/server";
 import { fieldValidationKeys } from "./fieldValidationQueries";
 import { dashboardKeys } from "./useDashboard";
 import { aerialSettingsKey, caseReadsInFlight, reportKeys, reportQueryOptions } from "./reportQueries";
-import { useAddAerialAnalysis, useRecordHandoffNote, useUpdateReportReview } from "./useReports";
+import { useAddAerialAnalysis, useCreateAdvisory, useDeleteAdvisory, useRecordHandoffNote, useUpdateAdvisory, useUpdateReportReview } from "./useReports";
 
 vi.mock("../services/reports.service", () => ({
   reportsRepository: {
@@ -22,6 +22,9 @@ vi.mock("../services/reports.service", () => ({
     recordHandoffNote: vi.fn(),
     addAerialAnalysis: vi.fn(),
     getReportById: vi.fn(),
+    createAdvisory: vi.fn(),
+    updateAdvisory: vi.fn(),
+    deleteAdvisory: vi.fn(),
   },
 }));
 
@@ -298,5 +301,60 @@ describe("report mutations", () => {
 
       expect(queryClient.getQueryData<{ aerialAnalyses?: unknown }>(reportKeys.detail(report.uuid))?.aerialAnalyses).toBeUndefined();
     });
+  });
+});
+
+describe("advisory library mutations", () => {
+  const advisory: Advisory = { uuid: "a1", code: "ADV-1", title: "One", content: "First.", status: "validated", category: "rust" };
+  const farmerKey = ["farmer-inquiries", "advisories"];
+  function setup() {
+    const queryClient = createQueryClient();
+    queryClient.setQueryData(reportKeys.advisories(), [advisory]);
+    queryClient.setQueryData(farmerKey, [{ uuid: "a1" }]);
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+    return { queryClient, wrapper };
+  }
+
+  it("shows a created advisory in the cached library at once and refreshes every advisory list", async () => {
+    const { queryClient, wrapper } = setup();
+    const created: Advisory = { ...advisory, uuid: "a2", code: "ADV-2", title: "Two" };
+    vi.mocked(reportsRepository.createAdvisory).mockResolvedValueOnce(created);
+    const { result } = renderHook(() => useCreateAdvisory(), { wrapper });
+    await act(async () => { await result.current.mutateAsync({ title: "Two", content: "Second." }); });
+    expect(queryClient.getQueryData<Advisory[]>(reportKeys.advisories())?.map((item) => item.uuid)).toEqual(["a1", "a2"]);
+    expect(queryClient.getQueryState(reportKeys.advisories())?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(farmerKey)?.isInvalidated).toBe(true);
+  });
+
+  it("replaces an edited advisory in place", async () => {
+    const { queryClient, wrapper } = setup();
+    vi.mocked(reportsRepository.updateAdvisory).mockResolvedValueOnce({ ...advisory, title: "Reworded" });
+    const { result } = renderHook(() => useUpdateAdvisory(), { wrapper });
+    await act(async () => { await result.current.mutateAsync({ advisoryUuid: "a1", changes: { title: "Reworded" } }); });
+    expect(reportsRepository.updateAdvisory).toHaveBeenCalledWith("a1", { title: "Reworded" });
+    expect(queryClient.getQueryData<Advisory[]>(reportKeys.advisories())).toEqual([{ ...advisory, title: "Reworded" }]);
+    expect(queryClient.getQueryState(farmerKey)?.isInvalidated).toBe(true);
+  });
+
+  it.each(["hard", "archived"] as const)("drops a %s-deleted advisory from the library and the farmer lists refresh", async (deleted) => {
+    const { queryClient, wrapper } = setup();
+    vi.mocked(reportsRepository.deleteAdvisory).mockResolvedValueOnce({ uuid: "a1", deleted });
+    const { result } = renderHook(() => useDeleteAdvisory(), { wrapper });
+    let outcome: unknown;
+    await act(async () => { outcome = await result.current.mutateAsync("a1"); });
+    expect(outcome).toEqual({ uuid: "a1", deleted });
+    expect(queryClient.getQueryData(reportKeys.advisories())).toEqual([]);
+    expect(queryClient.getQueryState(farmerKey)?.isInvalidated).toBe(true);
+  });
+
+  it("leaves the cache alone when the server refuses", async () => {
+    const { queryClient, wrapper } = setup();
+    vi.mocked(reportsRepository.deleteAdvisory).mockRejectedValueOnce(new Error("down"));
+    const { result } = renderHook(() => useDeleteAdvisory(), { wrapper });
+    await act(async () => { await result.current.mutateAsync("a1").catch(() => undefined); });
+    expect(queryClient.getQueryData<Advisory[]>(reportKeys.advisories())).toEqual([advisory]);
+    expect(queryClient.getQueryState(farmerKey)?.isInvalidated).toBe(false);
   });
 });
