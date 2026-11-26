@@ -128,8 +128,9 @@ class ReportResource extends JsonResource
                 fn () => $this->advisory ? [
                     'uuid' => $this->advisory->uuid,
                     'code' => $this->advisory->code,
-                    'title' => $this->advisory->title,
-                    'content' => $this->advisory->content,
+                    // The wording sent to the reporter; later library edits never rewrite it.
+                    'title' => $this->advisory_title_snapshot ?? $this->advisory->title,
+                    'content' => $this->advisory_content_snapshot ?? $this->advisory->content,
                     'status' => $this->advisory->status,
                     'validation_provenance' => $this->advisory->validation_provenance,
                     'selected_at' => $this->advisory_selected_at?->utc()->toISOString(),

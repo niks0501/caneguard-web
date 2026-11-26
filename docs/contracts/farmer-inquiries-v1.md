@@ -30,7 +30,7 @@ Accepted: JPEG, PNG or WebP, 5 MiB or less, at most 8000 px a side and 40 megapi
 | GET | `/api/v1/farmer-inquiries` | `status`, `barangay`, `page`. Waiting requests first, oldest first. `meta.waiting` counts unanswered requests. |
 | GET | `/api/v1/farmer-inquiries/{uuid}` | Detail with `ai_hint.verified = false`. |
 | POST | `/api/v1/farmer-inquiries/{uuid}/review` | `expected_lock_version`. `new` becomes `reviewing`. |
-| POST | `/api/v1/farmer-inquiries/{uuid}/replies` | `expected_lock_version`, then `advisory_uuid` (a **validated** advisory only; `422` for a draft or retired one) and/or `body` (1000). Closes the request as `replied`. A stale version or a second reply answers `409`. The advisory title is frozen onto the reply. |
+| POST | `/api/v1/farmer-inquiries/{uuid}/replies` | `expected_lock_version`, then `advisory_uuid` (a **validated** advisory only; `422` for a draft, retired or archived one, the last with "This advisory was removed from the office library. Pick another one.") and/or `body` (1000). Closes the request as `replied`. A stale version or a second reply answers `409`. The advisory title is frozen onto the reply. |
 | GET | `/api/v1/farmer-inquiries/{uuid}/photos/{n}` | Private stream. |
 
 ## Not included

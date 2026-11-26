@@ -257,6 +257,33 @@ class FarmerInquiryTest extends TestCase
         $this->assertSame('new', FarmerInquiry::query()->firstOrFail()->status);
     }
 
+    public function test_an_advisory_used_in_a_reply_is_archived_and_the_reply_keeps_its_wording(): void
+    {
+        [, $token] = $this->farmerToken();
+        $uuid = $this->submit($token)->assertCreated()->json('data.uuid');
+        $reviewer = User::factory()->reviewer()->create();
+        $advisory = Advisory::factory()->validated()->create(['title' => 'Smut care', 'content' => 'Cut and bag affected shoots.']);
+        $version = FarmerInquiry::query()->where('uuid', $uuid)->value('lock_version');
+        $this->asOffice($reviewer)->postJson("/api/v1/farmer-inquiries/{$uuid}/replies", [
+            'expected_lock_version' => $version, 'advisory_uuid' => $advisory->uuid,
+        ])->assertOk();
+
+        $this->asOffice($reviewer)->deleteJson("/api/v1/advisories/{$advisory->uuid}")
+            ->assertOk()->assertExactJson(['data' => ['uuid' => $advisory->uuid, 'deleted' => 'archived']]);
+        $this->assertSoftDeleted('advisories', ['id' => $advisory->getKey()]);
+
+        $this->asToken($token)->getJson("/api/v1/mobile/farmer/inquiries/{$uuid}")->assertOk()
+            ->assertJsonPath('data.replies.0.advisory_title', 'Smut care')
+            ->assertJsonPath('data.replies.0.body', 'Cut and bag affected shoots.');
+
+        [, $otherToken] = $this->farmerToken();
+        $otherUuid = $this->submit($otherToken)->assertCreated()->json('data.uuid');
+        $otherVersion = FarmerInquiry::query()->where('uuid', $otherUuid)->value('lock_version');
+        $this->asOffice($reviewer)->postJson("/api/v1/farmer-inquiries/{$otherUuid}/replies", [
+            'expected_lock_version' => $otherVersion, 'advisory_uuid' => $advisory->uuid,
+        ])->assertUnprocessable()->assertJsonPath('errors.advisory_uuid.0', Advisory::REMOVED_FROM_LIBRARY_MESSAGE);
+    }
+
     public function test_two_reviewers_cannot_answer_the_same_request_twice(): void
     {
         [, $token] = $this->farmerToken();

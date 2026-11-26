@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Office side of barangay broadcasts: publish validated guidance to farmers,
@@ -74,7 +75,10 @@ class FarmerBroadcastController extends Controller
 
         $broadcast = DB::transaction(function () use ($request, $input, $all): FarmerAdvisoryBroadcast {
             // Only reviewed guidance is ever broadcast; the lock keeps it from being retired mid-publish.
-            $advisory = Advisory::query()->where('uuid', $input['advisory_uuid'])->lockForUpdate()->first();
+            $advisory = Advisory::query()->withTrashed()->where('uuid', $input['advisory_uuid'])->lockForUpdate()->first();
+            if ($advisory?->isRemovedFromLibrary()) {
+                throw ValidationException::withMessages(['advisory_uuid' => Advisory::REMOVED_FROM_LIBRARY_MESSAGE]);
+            }
             abort_if($advisory === null || $advisory->status !== Advisory::STATUS_VALIDATED, 422, 'Only a validated advisory can be broadcast.');
 
             return FarmerAdvisoryBroadcast::query()->create([

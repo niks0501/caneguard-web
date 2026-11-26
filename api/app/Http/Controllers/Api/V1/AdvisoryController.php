@@ -7,6 +7,10 @@ use App\Http\Requests\AdvisoryRequest;
 use App\Http\Requests\AdvisoryTransitionRequest;
 use App\Http\Resources\AdvisoryResource;
 use App\Models\Advisory;
+use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -14,6 +18,10 @@ use LogicException;
 
 class AdvisoryController extends Controller
 {
+    public const DELETED_HARD = 'hard';
+
+    public const DELETED_ARCHIVED = 'archived';
+
     public function index(): AnonymousResourceCollection
     {
         abort_unless(request()->user()?->isOfficeUser(), 403);
@@ -27,27 +35,10 @@ class AdvisoryController extends Controller
         );
     }
 
+    /** Creates an advisory that is immediately usable: the office pool is co-managed, so there is no draft step. */
     public function store(AdvisoryRequest $request): AdvisoryResource
     {
-        $data = $request->validated();
-        if (blank($data['code'] ?? null)) {
-            throw ValidationException::withMessages([
-                'code' => 'An advisory code is required.',
-            ]);
-        }
-        if (blank($data['title'] ?? null) || blank($data['content'] ?? null)) {
-            throw ValidationException::withMessages([
-                'content' => 'An advisory title and content are required.',
-            ]);
-        }
-
-        $advisory = Advisory::query()->create([
-            'code' => $data['code'],
-            'title' => $data['title'],
-            'content' => $data['content'],
-            'status' => Advisory::STATUS_DRAFT,
-            'created_by_id' => $request->user()->getKey(),
-        ]);
+        $advisory = $this->createWithGeneratedCode($request->validated(), $request->user());
 
         return new AdvisoryResource($advisory->load(['validatedBy', 'retiredBy']));
     }
@@ -59,30 +50,70 @@ class AdvisoryController extends Controller
         return new AdvisoryResource($advisory->load(['validatedBy', 'retiredBy']));
     }
 
+    /**
+     * Edits in place for draft and validated advisories. Past cases keep the
+     * wording they were sent (snapshotted on the report), so this never
+     * rewrites history. Retired and archived advisories stay frozen.
+     */
     public function update(AdvisoryRequest $request, Advisory $advisory): AdvisoryResource
     {
-        if ($advisory->status !== Advisory::STATUS_DRAFT) {
-            throw ValidationException::withMessages([
-                'status' => 'Only draft advisories can be edited.',
-            ]);
-        }
-
         $data = $request->validated();
         $updated = DB::transaction(function () use ($advisory, $data): Advisory {
             $locked = Advisory::query()
+                ->withTrashed()
                 ->lockForUpdate()
                 ->findOrFail($advisory->getKey());
-            if ($locked->status !== Advisory::STATUS_DRAFT) {
+            if ($locked->trashed()) {
                 throw ValidationException::withMessages([
-                    'status' => 'Only draft advisories can be edited.',
+                    'status' => 'This advisory was removed from the office library and can no longer be edited.',
                 ]);
             }
-            $locked->update(collect($data)->only(['code', 'title', 'content'])->all());
+            if ($locked->status === Advisory::STATUS_RETIRED) {
+                throw ValidationException::withMessages([
+                    'status' => 'Retired advisories can no longer be edited.',
+                ]);
+            }
+            $locked->update(collect($data)->only(['code', 'title', 'content', 'category'])->all());
 
             return $locked;
         });
 
         return new AdvisoryResource($updated->load(['validatedBy', 'retiredBy']));
+    }
+
+    /**
+     * Removes an advisory from the library. One nobody has used is deleted for
+     * good; one a report, farmer reply or broadcast points at is archived
+     * (soft-deleted) so that history and the broadcast foreign key stay intact.
+     */
+    public function destroy(Request $request, Advisory $advisory): JsonResponse
+    {
+        abort_unless($request->user()?->isOfficeUser(), 403);
+
+        $outcome = DB::transaction(function () use ($advisory): string {
+            $locked = Advisory::query()
+                ->withTrashed()
+                ->lockForUpdate()
+                ->findOrFail($advisory->getKey());
+            if ($locked->trashed()) {
+                return self::DELETED_ARCHIVED;
+            }
+
+            $referenced = DB::table('reports')->where('advisory_id', $locked->getKey())->exists()
+                || DB::table('farmer_inquiry_replies')->where('advisory_id', $locked->getKey())->exists()
+                || DB::table('farmer_advisory_broadcasts')->where('advisory_id', $locked->getKey())->exists();
+            if ($referenced) {
+                $locked->delete();
+
+                return self::DELETED_ARCHIVED;
+            }
+
+            $locked->forceDelete();
+
+            return self::DELETED_HARD;
+        });
+
+        return response()->json(['data' => ['uuid' => $advisory->uuid, 'deleted' => $outcome]]);
     }
 
     public function validate(
@@ -158,5 +189,47 @@ class AdvisoryController extends Controller
         });
 
         return new AdvisoryResource($updated->load(['validatedBy', 'retiredBy']));
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function createWithGeneratedCode(array $data, User $user): Advisory
+    {
+        $generate = blank($data['code'] ?? null);
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                return DB::transaction(fn (): Advisory => Advisory::query()->create([
+                    'code' => $generate ? $this->nextCode($data['category'] ?? null) : $data['code'],
+                    'title' => $data['title'],
+                    'content' => $data['content'],
+                    'category' => $data['category'] ?? null,
+                    'status' => Advisory::STATUS_VALIDATED,
+                    'validation_provenance' => 'Created in the shared office advisory library.',
+                    'created_by_id' => $user->getKey(),
+                    'validated_by_id' => $user->getKey(),
+                    'validated_at' => now()->utc(),
+                ]));
+            } catch (UniqueConstraintViolationException $exception) {
+                // A concurrent create took the generated code; only a generated one is worth retrying.
+                if (! $generate || $attempt >= 3) {
+                    throw $exception;
+                }
+            }
+        }
+    }
+
+    /** Next free `ADV-<CATEGORY>-NNN`, counting archived rows too because their codes stay reserved. */
+    private function nextCode(?string $category): string
+    {
+        $prefix = 'ADV-'.strtoupper($category ?? Advisory::CATEGORY_GENERAL).'-';
+        $highest = Advisory::query()
+            ->withTrashed()
+            ->where('code', 'like', $prefix.'%')
+            ->pluck('code')
+            ->map(fn (string $code): int => ctype_digit($suffix = substr($code, strlen($prefix))) ? (int) $suffix : 0)
+            ->max() ?? 0;
+
+        return $prefix.str_pad((string) ($highest + 1), 3, '0', STR_PAD_LEFT);
     }
 }

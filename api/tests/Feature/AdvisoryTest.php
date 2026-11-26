@@ -11,6 +11,7 @@ use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -29,20 +30,18 @@ class AdvisoryTest extends TestCase
         $reviewer = User::factory()->reviewer()->create();
         Sanctum::actingAs($reviewer);
 
-        $draft = $this->postJson('/api/v1/advisories', [
+        // Drafts only exist from before the shared pool (POST now creates an active advisory).
+        $draft = Advisory::factory()->create([
             'code' => 'ADV-SMUT-001',
             'title' => 'Smut sanitation steps',
             'content' => 'Remove affected stalks and disinfect tools.',
-        ])
-            ->assertCreated()
-            ->assertJsonPath('data.status', Advisory::STATUS_DRAFT)
-            ->json('data');
+        ]);
 
-        $this->postJson("/api/v1/advisories/{$draft['uuid']}/validate", [])
+        $this->postJson("/api/v1/advisories/{$draft->uuid}/validate", [])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('status');
 
-        $validated = $this->postJson("/api/v1/advisories/{$draft['uuid']}/validate", [
+        $validated = $this->postJson("/api/v1/advisories/{$draft->uuid}/validate", [
             'validation_provenance' => 'Validated against the 2026 office guidance register.',
         ])
             ->assertOk()
@@ -50,21 +49,236 @@ class AdvisoryTest extends TestCase
             ->assertJsonPath('data.validation_provenance', 'Validated against the 2026 office guidance register.')
             ->json('data');
 
+        // Q4 (shared co-managed pool): a validated advisory is now editable in place. The old
+        // "validated advisories cannot be edited" rule is replaced; past cases are protected by the
+        // wording snapshot on each report instead (see the snapshot tests below).
         $this->patchJson("/api/v1/advisories/{$validated['uuid']}", [
-            'content' => 'Attempted replacement after validation.',
+            'content' => 'Updated guidance after validation.',
         ])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('status');
+            ->assertOk()
+            ->assertJsonPath('data.content', 'Updated guidance after validation.')
+            ->assertJsonPath('data.status', Advisory::STATUS_VALIDATED);
 
         $this->postJson("/api/v1/advisories/{$validated['uuid']}/retire", [])
             ->assertOk()
             ->assertJsonPath('data.status', Advisory::STATUS_RETIRED);
+
+        $this->patchJson("/api/v1/advisories/{$validated['uuid']}", [
+            'content' => 'Retired advisories stay frozen.',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('status');
 
         $this->postJson("/api/v1/advisories/{$validated['uuid']}/validate", [
             'validation_provenance' => 'A second validation must not reopen retirement.',
         ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('status');
+    }
+
+    public function test_created_advisories_are_active_at_once_with_a_generated_or_given_code(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        Sanctum::actingAs($reviewer);
+
+        $this->postJson('/api/v1/advisories', ['title' => 'Rust scouting', 'content' => 'Scout leaves weekly.', 'category' => 'rust'])
+            ->assertCreated()
+            ->assertJsonPath('data.code', 'ADV-RUST-001')
+            ->assertJsonPath('data.category', 'rust')
+            ->assertJsonPath('data.status', Advisory::STATUS_VALIDATED)
+            ->assertJsonPath('data.validated_by.uuid', $reviewer->uuid);
+        $this->postJson('/api/v1/advisories', ['title' => 'Rust follow-up', 'content' => 'Re-scout in a week.', 'category' => 'RUST', 'code' => ''])
+            ->assertCreated()
+            ->assertJsonPath('data.code', 'ADV-RUST-002');
+        $this->postJson('/api/v1/advisories', ['title' => 'Field notes', 'content' => 'Keep the case notes together.'])
+            ->assertCreated()
+            ->assertJsonPath('data.code', 'ADV-GENERAL-001')
+            ->assertJsonPath('data.category', null);
+        $this->postJson('/api/v1/advisories', ['title' => 'Custom', 'content' => 'Custom code.', 'code' => 'OFFICE.CUSTOM-9'])
+            ->assertCreated()
+            ->assertJsonPath('data.code', 'OFFICE.CUSTOM-9');
+
+        $this->postJson('/api/v1/advisories', ['title' => 'Dup', 'content' => 'Dup.', 'code' => 'OFFICE.CUSTOM-9'])
+            ->assertUnprocessable()->assertJsonValidationErrors('code');
+        $this->postJson('/api/v1/advisories', ['title' => 'Bad', 'content' => 'Bad.', 'category' => 'weeds'])
+            ->assertUnprocessable()->assertJsonValidationErrors('category');
+        $this->postJson('/api/v1/advisories', ['content' => 'No title.'])
+            ->assertUnprocessable()->assertJsonValidationErrors('title');
+
+        $this->patchJson('/api/v1/advisories/'.Advisory::query()->where('code', 'ADV-GENERAL-001')->value('uuid'), [
+            'title' => 'Field notes v2', 'category' => 'smut', 'code' => 'ADV-SMUT-100',
+        ])->assertOk()->assertJsonPath('data.category', 'smut')->assertJsonPath('data.code', 'ADV-SMUT-100');
+    }
+
+    public function test_only_office_users_can_create_edit_or_delete_advisories(): void
+    {
+        $advisory = Advisory::factory()->validated()->create();
+
+        foreach ([User::factory()->fieldReporter()->create(), User::factory()->farmer()->create()] as $outsider) {
+            Sanctum::actingAs($outsider);
+            $this->postJson('/api/v1/advisories', ['title' => 'T', 'content' => 'C'])->assertForbidden();
+            $this->patchJson("/api/v1/advisories/{$advisory->uuid}", ['title' => 'Edited'])->assertForbidden();
+            $this->deleteJson("/api/v1/advisories/{$advisory->uuid}")->assertForbidden();
+        }
+        $this->assertDatabaseHas('advisories', ['id' => $advisory->getKey(), 'title' => $advisory->title, 'deleted_at' => null]);
+
+        Sanctum::actingAs(User::factory()->admin()->create());
+        $this->deleteJson("/api/v1/advisories/{$advisory->uuid}")->assertOk();
+    }
+
+    public function test_editing_an_advisory_never_rewrites_the_wording_a_past_case_was_sent(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $past = Report::factory()->create(['reporter_id' => $reporter]);
+        $next = Report::factory()->create(['reporter_id' => $reporter]);
+        $advisory = Advisory::factory()->validated($reviewer)->create([
+            'title' => 'Original title',
+            'content' => 'Original wording sent to the reporter.',
+        ]);
+
+        Sanctum::actingAs($reviewer);
+        $this->patchJson("/api/v1/reports/{$past->uuid}/review", ['advisory_uuid' => $advisory->uuid, 'expected_version' => 0])
+            ->assertOk()
+            ->assertJsonPath('data.advisory.title', 'Original title');
+        $this->assertDatabaseHas('reports', [
+            'id' => $past->getKey(),
+            'advisory_title_snapshot' => 'Original title',
+            'advisory_content_snapshot' => 'Original wording sent to the reporter.',
+        ]);
+
+        $this->patchJson("/api/v1/advisories/{$advisory->uuid}", ['title' => 'Edited title', 'content' => 'Edited wording.'])->assertOk();
+
+        $this->getJson("/api/v1/reports/{$past->uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.advisory.uuid', $advisory->uuid)
+            ->assertJsonPath('data.advisory.title', 'Original title')
+            ->assertJsonPath('data.advisory.content', 'Original wording sent to the reporter.');
+
+        $this->patchJson("/api/v1/reports/{$next->uuid}/review", ['advisory_uuid' => $advisory->uuid, 'expected_version' => 0])
+            ->assertOk()
+            ->assertJsonPath('data.advisory.title', 'Edited title')
+            ->assertJsonPath('data.advisory.content', 'Edited wording.');
+
+        $token = $reporter->createToken('advisory-snapshot', ['report:status'])->plainTextToken;
+        Auth::forgetGuards();
+        $statuses = collect($this->withToken($token)
+            ->getJson('/api/v3/mobile/reports/statuses?sync_before='.urlencode(now()->addMinute()->toISOString()))
+            ->assertOk()->json('data'))->keyBy('uuid');
+        $this->assertSame('Original title', $statuses[$past->uuid]['advisory']['title']);
+        $this->assertSame('Original wording sent to the reporter.', $statuses[$past->uuid]['advisory']['content']);
+        $this->assertSame('Edited title', $statuses[$next->uuid]['advisory']['title']);
+        $this->assertSame('Edited wording.', $statuses[$next->uuid]['advisory']['content']);
+    }
+
+    public function test_a_case_without_a_snapshot_falls_back_to_the_live_advisory_wording(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $advisory = Advisory::factory()->validated($reviewer)->create(['title' => 'Live title', 'content' => 'Live wording.']);
+        $report = Report::factory()->create([
+            'advisory_id' => $advisory->getKey(),
+            'advisory_selected_at' => now(),
+            'advisory_delivery_state' => Report::ADVISORY_DELIVERY_DELIVERED,
+        ]);
+
+        Sanctum::actingAs($reviewer);
+        $this->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.advisory.title', 'Live title')
+            ->assertJsonPath('data.advisory.content', 'Live wording.');
+    }
+
+    public function test_the_migration_backfills_the_current_wording_onto_reports_that_already_have_an_advisory(): void
+    {
+        $advisory = Advisory::factory()->validated()->create(['title' => 'Before deploy', 'content' => 'Wording before deploy.']);
+        $withAdvisory = Report::factory()->create(['advisory_id' => $advisory->getKey()]);
+        $without = Report::factory()->create();
+
+        $migration = require database_path('migrations/2026_11_27_000100_add_advisory_snapshots_category_and_soft_deletes.php');
+        $migration->down();
+        $this->assertFalse(Schema::hasColumn('reports', 'advisory_title_snapshot'));
+        $this->assertFalse(Schema::hasColumn('advisories', 'deleted_at'));
+        $migration->up();
+
+        $this->assertDatabaseHas('reports', [
+            'id' => $withAdvisory->getKey(),
+            'advisory_title_snapshot' => 'Before deploy',
+            'advisory_content_snapshot' => 'Wording before deploy.',
+        ]);
+        $this->assertDatabaseHas('reports', [
+            'id' => $without->getKey(),
+            'advisory_title_snapshot' => null,
+            'advisory_content_snapshot' => null,
+        ]);
+    }
+
+    public function test_an_unused_advisory_is_deleted_for_good(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        Sanctum::actingAs($reviewer);
+        $uuid = $this->postJson('/api/v1/advisories', ['title' => 'Throwaway', 'content' => 'Never used.'])->assertCreated()->json('data.uuid');
+
+        $this->deleteJson("/api/v1/advisories/{$uuid}")
+            ->assertOk()
+            ->assertExactJson(['data' => ['uuid' => $uuid, 'deleted' => 'hard']]);
+
+        $this->assertDatabaseMissing('advisories', ['uuid' => $uuid]);
+        $this->deleteJson("/api/v1/advisories/{$uuid}")->assertNotFound();
+    }
+
+    public function test_an_advisory_used_by_a_case_is_archived_and_the_history_survives(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $reporter = User::factory()->fieldReporter()->create();
+        $report = Report::factory()->create(['reporter_id' => $reporter]);
+        $other = Report::factory()->create(['reporter_id' => $reporter]);
+        $advisory = Advisory::factory()->validated($reviewer)->create(['title' => 'Kept title', 'content' => 'Kept wording.']);
+
+        Sanctum::actingAs($reviewer);
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", ['advisory_uuid' => $advisory->uuid, 'expected_version' => 0])->assertOk();
+
+        $this->deleteJson("/api/v1/advisories/{$advisory->uuid}")
+            ->assertOk()
+            ->assertExactJson(['data' => ['uuid' => $advisory->uuid, 'deleted' => 'archived']]);
+        $this->assertSoftDeleted('advisories', ['id' => $advisory->getKey()]);
+        // Repeating the request is harmless.
+        $this->deleteJson("/api/v1/advisories/{$advisory->uuid}")->assertOk()->assertJsonPath('data.deleted', 'archived');
+
+        $this->getJson('/api/v1/advisories')->assertOk()->assertJsonMissing(['uuid' => $advisory->uuid]);
+        $this->getJson("/api/v1/reports/{$report->uuid}")
+            ->assertOk()
+            ->assertJsonPath('data.advisory.uuid', $advisory->uuid)
+            ->assertJsonPath('data.advisory.title', 'Kept title')
+            ->assertJsonPath('data.advisory.content', 'Kept wording.');
+
+        $token = $reporter->createToken('advisory-archived', ['report:status'])->plainTextToken;
+        Auth::forgetGuards();
+        $status = collect($this->withToken($token)
+            ->getJson('/api/v3/mobile/reports/statuses?sync_before='.urlencode(now()->addMinute()->toISOString()))
+            ->assertOk()->json('data'))->firstWhere('uuid', $report->uuid);
+        $this->assertSame('Kept wording.', $status['advisory']['content']);
+        $this->withoutToken();
+        Auth::forgetGuards();
+        Sanctum::actingAs($reviewer);
+
+        $this->patchJson("/api/v1/advisories/{$advisory->uuid}", ['title' => 'Too late'])
+            ->assertUnprocessable()->assertJsonValidationErrors('status');
+        $this->patchJson("/api/v1/reports/{$other->uuid}/review", ['advisory_uuid' => $advisory->uuid, 'expected_version' => 0])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.advisory_uuid.0', Advisory::REMOVED_FROM_LIBRARY_MESSAGE);
+        $this->assertNull($other->fresh()->advisory_id);
+    }
+
+    public function test_a_retired_advisory_cannot_be_selected_for_a_case(): void
+    {
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->create();
+        $retired = Advisory::factory()->retired()->create();
+
+        Sanctum::actingAs($reviewer);
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", ['advisory_uuid' => $retired->uuid, 'expected_version' => 0])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.advisory_uuid.0', Advisory::REMOVED_FROM_LIBRARY_MESSAGE);
     }
 
     public function test_default_seeded_advisory_is_listed_and_can_be_attached_to_a_case(): void

@@ -70,6 +70,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'field_validation_state',
     'referral_state',
     'advisory_id',
+    'advisory_title_snapshot',
+    'advisory_content_snapshot',
     'advisory_selected_by_id',
     'advisory_selected_at',
     'advisory_delivery_state',
@@ -813,7 +815,8 @@ class Report extends Model
     /** @return BelongsTo<Advisory, $this> */
     public function advisory(): BelongsTo
     {
-        return $this->belongsTo(Advisory::class, 'advisory_id');
+        // Archived advisories stay readable: the case history still points at them.
+        return $this->belongsTo(Advisory::class, 'advisory_id')->withTrashed();
     }
 
     /** @return BelongsTo<User, $this> */

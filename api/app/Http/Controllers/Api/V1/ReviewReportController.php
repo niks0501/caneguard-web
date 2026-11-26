@@ -147,13 +147,19 @@ class ReviewReportController extends Controller
                 $advisoryForDelivery = null;
                 if (filled($data['advisory_uuid'] ?? null) || filled($data['advisory_id'] ?? null)) {
                     $selectedAdvisory = Advisory::query()
+                        ->withTrashed()
+                        ->lockForUpdate()
                         ->when(
                             filled($data['advisory_uuid'] ?? null),
                             fn ($query) => $query->where('uuid', $data['advisory_uuid']),
                             fn ($query) => $query->whereKey($data['advisory_id']),
                         )
-                        ->where('status', Advisory::STATUS_VALIDATED)
                         ->firstOrFail();
+                    // Re-checked under the lock: it may have been archived since validation.
+                    if ($selectedAdvisory->isRemovedFromLibrary()) {
+                        throw ValidationException::withMessages(['advisory_uuid' => Advisory::REMOVED_FROM_LIBRARY_MESSAGE]);
+                    }
+                    abort_unless($selectedAdvisory->status === Advisory::STATUS_VALIDATED, 422, 'Only a validated advisory can be delivered to a field reporter.');
                     $sameDeliveredAdvisory = (string) $locked->advisory_id === (string) $selectedAdvisory->getKey()
                         && in_array($locked->advisory_delivery_state, [
                             Report::ADVISORY_DELIVERY_DELIVERED,
@@ -162,6 +168,9 @@ class ReviewReportController extends Controller
                     if (! $sameDeliveredAdvisory) {
                         $advisoryForDelivery = $selectedAdvisory;
                         $reviewUpdate['advisory_id'] = $selectedAdvisory->getKey();
+                        // Freeze the wording sent now; later library edits never rewrite this case.
+                        $reviewUpdate['advisory_title_snapshot'] = $selectedAdvisory->title;
+                        $reviewUpdate['advisory_content_snapshot'] = $selectedAdvisory->content;
                         $reviewUpdate['advisory_selected_by_id'] = $request->user()->getKey();
                         $reviewUpdate['advisory_selected_at'] = now()->utc();
                         $reviewUpdate['advisory_delivery_state'] = Report::ADVISORY_DELIVERY_PENDING;
@@ -170,6 +179,8 @@ class ReviewReportController extends Controller
                     }
                 } else {
                     $reviewUpdate['advisory_id'] = null;
+                    $reviewUpdate['advisory_title_snapshot'] = null;
+                    $reviewUpdate['advisory_content_snapshot'] = null;
                     $reviewUpdate['advisory_selected_by_id'] = null;
                     $reviewUpdate['advisory_selected_at'] = null;
                     $reviewUpdate['advisory_delivery_state'] = Report::ADVISORY_DELIVERY_NOT_SELECTED;

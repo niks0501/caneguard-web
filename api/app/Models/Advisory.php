@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use LogicException;
 
 #[Fillable([
@@ -15,6 +16,7 @@ use LogicException;
     'code',
     'title',
     'content',
+    'category',
     'status',
     'validation_provenance',
     'created_by_id',
@@ -31,6 +33,19 @@ class Advisory extends Model
 
     public const STATUS_RETIRED = 'retired';
 
+    public const CATEGORY_RUST = 'rust';
+
+    public const CATEGORY_SMUT = 'smut';
+
+    public const CATEGORY_MOSAIC = 'mosaic';
+
+    public const CATEGORY_RSSI = 'rssi';
+
+    public const CATEGORY_GENERAL = 'general';
+
+    /** Shown when someone picks an advisory that was archived or retired. */
+    public const REMOVED_FROM_LIBRARY_MESSAGE = 'This advisory was removed from the office library. Pick another one.';
+
     /** Delivery is not available until a case selects this advisory. */
     public const DELIVERY_NOT_SELECTED = 'not_selected';
 
@@ -41,7 +56,7 @@ class Advisory extends Model
     public const DELIVERY_ACKNOWLEDGED = 'acknowledged';
 
     /** @use HasFactory<AdvisoryFactory> */
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $dateFormat = 'Y-m-d H:i:s.v';
 
@@ -81,6 +96,24 @@ class Advisory extends Model
             self::STATUS_VALIDATED,
             self::STATUS_RETIRED,
         ];
+    }
+
+    /** @return array<int, string> */
+    public static function categories(): array
+    {
+        return [
+            self::CATEGORY_RUST,
+            self::CATEGORY_SMUT,
+            self::CATEGORY_MOSAIC,
+            self::CATEGORY_RSSI,
+            self::CATEGORY_GENERAL,
+        ];
+    }
+
+    /** Archived (soft-deleted) or retired: kept for history, never offered for new use. */
+    public function isRemovedFromLibrary(): bool
+    {
+        return $this->trashed() || $this->status === self::STATUS_RETIRED;
     }
 
     public function isDeliverable(): bool

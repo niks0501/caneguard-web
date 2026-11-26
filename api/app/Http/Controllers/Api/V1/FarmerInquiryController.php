@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -83,15 +84,14 @@ class FarmerInquiryController extends Controller
         $body = trim((string) ($input['body'] ?? ''));
         abort_if($body === '' && empty($input['advisory_uuid']), 422, 'Choose an advisory or write a note.');
 
-        $advisory = null;
         if (! empty($input['advisory_uuid'])) {
-            // Only reviewed guidance reaches a farmer: never a draft, never a retired one.
-            $advisory = Advisory::query()->where('uuid', $input['advisory_uuid'])->where('status', Advisory::STATUS_VALIDATED)->first();
-            abort_if($advisory === null, 422, 'Only a validated advisory can be sent to a farmer.');
+            $this->assertAdvisoryCanBeSent($input['advisory_uuid'], false);
         }
 
-        return $this->locked($request, $inquiry, $input['expected_lock_version'], function (FarmerInquiry $locked) use ($request, $advisory, $body) {
+        return $this->locked($request, $inquiry, $input['expected_lock_version'], function (FarmerInquiry $locked) use ($request, $input, $body) {
             abort_if($locked->status === FarmerInquiry::STATUS_REPLIED, 409, 'This request already has a reply.');
+            // Locked so the advisory cannot be archived or hard-deleted between the check and the reply.
+            $advisory = empty($input['advisory_uuid']) ? null : $this->assertAdvisoryCanBeSent($input['advisory_uuid'], true);
             FarmerInquiryReply::query()->create([
                 'farmer_inquiry_id' => $locked->id,
                 'author_id' => $request->user()->id,
@@ -123,6 +123,18 @@ class FarmerInquiryController extends Controller
             'Cache-Control' => 'private, max-age=300',
             'X-Content-Type-Options' => 'nosniff',
         ]);
+    }
+
+    /** Only reviewed guidance reaches a farmer: never a draft, a retired or an archived one. */
+    private function assertAdvisoryCanBeSent(string $uuid, bool $lock): Advisory
+    {
+        $advisory = Advisory::query()->withTrashed()->where('uuid', $uuid)->when($lock, fn ($query) => $query->lockForUpdate())->first();
+        if ($advisory?->isRemovedFromLibrary()) {
+            throw ValidationException::withMessages(['advisory_uuid' => Advisory::REMOVED_FROM_LIBRARY_MESSAGE]);
+        }
+        abort_if($advisory === null || $advisory->status !== Advisory::STATUS_VALIDATED, 422, 'Only a validated advisory can be sent to a farmer.');
+
+        return $advisory;
     }
 
     /** One locked, version-checked write, so a stale or concurrent change answers 409. */

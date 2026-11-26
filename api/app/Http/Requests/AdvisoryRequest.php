@@ -14,17 +14,22 @@ class AdvisoryRequest extends ApiFormRequest
 
     public function rules(): array
     {
+        // Creating takes a title and content; the code may be left blank and is generated.
+        $creating = $this->isMethod('POST') && $this->route('advisory') === null;
+        $present = $creating ? [] : ['sometimes'];
+
         return [
             'code' => [
                 'sometimes',
-                'required',
+                $creating ? 'nullable' : 'required',
                 'string',
                 'max:64',
                 'regex:/^[A-Za-z0-9][A-Za-z0-9._-]*$/',
                 Rule::unique('advisories', 'code')->ignore($this->route('advisory')?->getKey()),
             ],
-            'title' => ['sometimes', 'required', 'string', 'max:160', 'not_regex:/^\\s*$/'],
-            'content' => ['sometimes', 'required', 'string', 'max:10000', 'not_regex:/^\\s*$/'],
+            'category' => ['sometimes', 'nullable', 'string', Rule::in(Advisory::categories())],
+            'title' => [...$present, 'required', 'string', 'max:160', 'not_regex:/^\\s*$/'],
+            'content' => [...$present, 'required', 'string', 'max:10000', 'not_regex:/^\\s*$/'],
             'body' => ['sometimes', 'string', 'max:10000', 'not_regex:/^\\s*$/'],
             'guidance' => ['sometimes', 'string', 'max:10000', 'not_regex:/^\\s*$/'],
             'validation_provenance' => ['sometimes', 'nullable', 'string', 'max:2000'],
@@ -58,6 +63,9 @@ class AdvisoryRequest extends ApiFormRequest
             if ($this->has($field) && is_string($this->input($field))) {
                 $trimmed[$field] = trim($this->input($field));
             }
+        }
+        if (is_string($this->input('category'))) {
+            $trimmed['category'] = strtolower(trim($this->input('category')));
         }
         if ($trimmed !== []) {
             $this->merge($trimmed);

@@ -295,20 +295,23 @@ class ReviewReportRequest extends ApiFormRequest
                 );
             }
 
-            if ((filled($this->input('advisory_uuid')) || filled($this->input('advisory_id')))
-                && ! Advisory::query()
+            if (filled($this->input('advisory_uuid')) || filled($this->input('advisory_id'))) {
+                $selected = Advisory::query()
+                    ->withTrashed()
                     ->when(
                         filled($this->input('advisory_uuid')),
                         fn ($query) => $query->where('uuid', $this->input('advisory_uuid')),
                         fn ($query) => $query->whereKey($this->input('advisory_id')),
                     )
-                    ->where('status', Advisory::STATUS_VALIDATED)
-                    ->exists()
-            ) {
-                $validator->errors()->add(
-                    'advisory_uuid',
-                    'Only a validated advisory can be delivered to a field reporter.',
-                );
+                    ->first();
+                if ($selected?->isRemovedFromLibrary()) {
+                    $validator->errors()->add('advisory_uuid', Advisory::REMOVED_FROM_LIBRARY_MESSAGE);
+                } elseif ($selected !== null && $selected->status !== Advisory::STATUS_VALIDATED) {
+                    $validator->errors()->add(
+                        'advisory_uuid',
+                        'Only a validated advisory can be delivered to a field reporter.',
+                    );
+                }
             }
 
             if (
