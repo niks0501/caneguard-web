@@ -7,14 +7,15 @@ export function GuidePage() {
   }, []);
 
   return (
-    <div className="pub-section">
-      <p className="eyebrow">Field Guide</p>
-      <h1>Know it before you report it</h1>
-      <p>
-        Reference photos, symptoms, prevention and management for the five
-        conditions CaneGuard staff watch for.
-      </p>
-      <GuideGallery />
+    <div className="pub-ambient">
+      <div className="pub-section">
+        <h1>Know it before you report it</h1>
+        <p>
+          Reference photos, symptoms, prevention and management for the five
+          conditions CaneGuard staff watch for.
+        </p>
+        <GuideGallery />
+      </div>
     </div>
   );
 }

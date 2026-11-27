@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { routes } from "../../app/routes";
 import { sourcesForEntry } from "../../features/field-guide/sources";
 import type { FieldGuideEntry, FieldGuideImage } from "../../features/field-guide/types";
+import "../../styles/public-guide.css";
 
 function creditLine(image: FieldGuideImage): string {
   if (image.credit.recorded && image.credit.attribution) {
@@ -37,7 +38,7 @@ export function GuideEntryView({ entry }: { entry: FieldGuideEntry }) {
         <span aria-current="page">{entry.shortName}</span>
       </nav>
 
-      <header className="pub-entry__head">
+      <header className="pub-entry__head pub-entry__hero pub-glass pub-glass--strong">
         <div>
           <span className="pub-chip">{entry.conditionLabel}</span>
           <h1>{entry.displayName}</h1>
@@ -71,28 +72,28 @@ export function GuideEntryView({ entry }: { entry: FieldGuideEntry }) {
       </header>
 
       <div className="pub-grid pub-grid--2">
-        <section className="pub-card" aria-labelledby="entry-signs">
+        <section className="pub-glass" aria-labelledby="entry-signs">
           <h2 id="entry-signs">Symptoms</h2>
           <List items={entry.signs} />
           <p className="pub-card__label">Where to look</p>
           <p>{entry.whereToLook}</p>
         </section>
-        <section className="pub-card" aria-labelledby="entry-impact">
+        <section className="pub-glass" aria-labelledby="entry-impact">
           <h2 id="entry-impact">Why it matters</h2>
           <p>{entry.impact}</p>
           <p>{entry.detail}</p>
         </section>
-        <section className="pub-card" aria-labelledby="entry-prevention">
+        <section className="pub-glass" aria-labelledby="entry-prevention">
           <h2 id="entry-prevention">Prevention</h2>
           <List items={entry.prevention} />
         </section>
-        <section className="pub-card" aria-labelledby="entry-management">
+        <section className="pub-glass" aria-labelledby="entry-management">
           <h2 id="entry-management">Management</h2>
           <List items={entry.management} />
         </section>
       </div>
 
-      <section className="pub-guide" aria-labelledby="entry-guide">
+      <section className="pub-guide pub-glass" aria-labelledby="entry-guide">
         <h2 id="entry-guide">The full guide</h2>
         <p>{entry.guide.intro}</p>
         {entry.guide.sections.map((section) => (
@@ -105,7 +106,7 @@ export function GuideEntryView({ entry }: { entry: FieldGuideEntry }) {
         ))}
       </section>
 
-      <section aria-labelledby="entry-sources">
+      <section className="pub-glass" aria-labelledby="entry-sources">
         <h2 id="entry-sources">Sources</h2>
         <ul className="pub-list">
           {sources.map((source) => (
