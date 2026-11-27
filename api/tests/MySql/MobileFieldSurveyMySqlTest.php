@@ -95,6 +95,7 @@ class MobileFieldSurveyMySqlTest extends TestCase
                 [122.9501, 10.7001], [122.9502, 10.7001], [122.9501, 10.7002], [122.9501, 10.7001],
             ]]],
         ];
+        $payload['area_sqm'] = 29160.0; // the affected area must fit inside the plot
         $payload['affected_area_sqm'] = 6986.1235;
         $payload['measurement_provenance'] = [
             'method' => 'wgs84-ellipsoid-geodesic',

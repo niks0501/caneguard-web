@@ -368,6 +368,17 @@ class ReviewReportController extends Controller
     }
 
     /**
+     * Corrected value field => the provenance field that must follow it.
+     *
+     * @var array<string, string>
+     */
+    private const MEASUREMENT_FIELDS = [
+        'plot_area_hectares' => 'plot_area_measurement',
+        'affected_area_hectares' => 'affected_area_measurement',
+        'affected_portion_percent' => 'affected_portion_measurement',
+    ];
+
+    /**
      * @param  array<string, mixed>  $corrections
      */
     private function applyMetadataCorrections(
@@ -400,6 +411,24 @@ class ReviewReportController extends Controller
             ]);
 
             $report->setAttribute($field, $correctedValue);
+        }
+
+        // A corrected figure and its provenance are one fact. Every correction
+        // of a measured field re-derives its measurement in the same write, even
+        // when the figure itself is unchanged, so an office edit can never leave
+        // a number marked not measured or an empty value marked measured. This
+        // runs inside the review transaction, so both land together or not at all.
+        foreach (self::MEASUREMENT_FIELDS as $valueField => $measurementField) {
+            if (! array_key_exists($valueField, $corrections)) {
+                continue;
+            }
+
+            $report->setAttribute(
+                $measurementField,
+                $report->getAttribute($valueField) === null
+                    ? Report::MEASUREMENT_NOT_MEASURED
+                    : Report::MEASUREMENT_MEASURED,
+            );
         }
     }
 

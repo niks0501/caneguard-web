@@ -80,7 +80,27 @@ class WeeklyReportContentTest extends TestCase
         $content = app(BuildWeeklyReportContent::class)->handle($district, '2026-W40');
         $smut = collect($content['hectares']['by_disease'])->keyBy('key')['smut'];
         $this->assertEquals(0, $smut['overlap_controlled_estimate']);
-        $this->assertEquals(30, $smut['sum_of_reported_areas_may_overlap']);
+        // The not-measured 10 ha is unknown, not a figure: it enters neither total.
+        $this->assertEquals(20, $smut['sum_of_reported_areas_may_overlap']);
+    }
+
+    public function test_measured_areas_accumulate_at_four_decimals_and_not_measured_rows_never_count(): void
+    {
+        $district = $this->pilotDistrict();
+        $this->report($district, ['farmer_or_farm_owner_name' => 'Farm One', 'affected_area_hectares' => 0.004]);
+        $this->report($district, ['farmer_or_farm_owner_name' => 'Farm Two', 'affected_area_hectares' => 0.0046]);
+        $this->report($district, ['farmer_or_farm_owner_name' => 'Farm Three', 'affected_area_hectares' => 0.0004]);
+        $this->report($district, ['farmer_or_farm_owner_name' => 'Farm Four', 'affected_area_hectares' => 8, 'affected_area_measurement' => 'not_measured']);
+        $this->report($district, ['farmer_or_farm_owner_name' => 'Farm Five', 'affected_area_hectares' => 0, 'affected_area_measurement' => 'measured']);
+
+        $content = app(BuildWeeklyReportContent::class)->handle($district, '2026-W40');
+        $smut = collect($content['hectares']['by_disease'])->keyBy('key')['smut'];
+
+        $this->assertEqualsWithDelta(0.009, $smut['overlap_controlled_estimate'], 1e-9);
+        $this->assertEqualsWithDelta(0.009, $smut['sum_of_reported_areas_may_overlap'], 1e-9);
+        $barangay = $content['barangays'][0]['hectares_by_disease']['smut'];
+        $this->assertEqualsWithDelta(0.009, $barangay['estimate'], 1e-9);
+        $this->assertEqualsWithDelta(0.009, $barangay['sum_may_overlap'], 1e-9);
     }
 
     public function test_manila_iso_week_is_half_open_and_late_receipts_stay_in_receipt_week(): void

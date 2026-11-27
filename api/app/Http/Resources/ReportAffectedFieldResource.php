@@ -23,6 +23,7 @@ class ReportAffectedFieldResource extends JsonResource
                 'name' => $this->inspector->name,
             ],
             'affected_area_sqm' => $this->affected_area_sqm === null ? null : (float) $this->affected_area_sqm,
+            'affected_area_measurement' => $this->affectedAreaMeasurement(),
             'affected_percent' => self::affectedPercent($this->resource),
             // Retired office input, kept as history; null once never entered.
             'loss_rate_percent' => $this->pivot->loss_rate_percent === null
@@ -32,12 +33,16 @@ class ReportAffectedFieldResource extends JsonResource
     }
 
     /**
-     * The phone's measured share of the plot that is affected, or null when no
-     * affected area was drawn or the plot has no usable area.
+     * The phone's measured share of the plot that is affected, or null when the
+     * affected area was not measured or the plot has no usable area. A plot-only
+     * survey is unmeasured, never "0% affected": legacy rows that stored 0 with
+     * no affected polygons read as not measured through the model's fallback.
      */
     public static function affectedPercent(FieldSurvey $survey): ?float
     {
-        if ($survey->affected_area_sqm === null || (float) $survey->area_sqm <= 0) {
+        if ($survey->affectedAreaMeasurement() !== FieldSurvey::MEASUREMENT_MEASURED
+            || $survey->affected_area_sqm === null
+            || (float) $survey->area_sqm <= 0) {
             return null;
         }
 

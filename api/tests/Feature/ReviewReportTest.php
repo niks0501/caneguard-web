@@ -576,7 +576,7 @@ class ReviewReportTest extends TestCase
         $this->assertSame(Report::STATUS_SUBMITTED_UNVERIFIED, $updated->review_status);
         $this->assertSame('Poblacion', $updated->barangay);
         $this->assertSame('Corrected Farmer', $updated->farmer_or_farm_owner_name);
-        $this->assertSame('12.25', $updated->affected_area_hectares);
+        $this->assertSame('12.2500', $updated->affected_area_hectares);
 
         $audits = $updated->audits()->with('actor')->get();
         $this->assertCount(3, $audits);
@@ -590,6 +590,69 @@ class ReviewReportTest extends TestCase
             $barangayAudit->reason,
         );
         $this->assertNotNull($barangayAudit->created_at);
+    }
+
+    public function test_metadata_corrections_sync_measurement_provenance_with_the_corrected_values_in_one_write(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'plot_area_hectares' => null,
+            'plot_area_measurement' => 'not_measured',
+            'affected_area_hectares' => 10.5,
+            'affected_area_measurement' => 'measured',
+            'affected_portion_percent' => null,
+            'affected_portion_measurement' => 'not_measured',
+        ]);
+        Sanctum::actingAs($reviewer);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'metadata_corrections' => [
+                'plot_area_hectares' => 1.2,
+                'affected_area_hectares' => null,
+                'affected_portion_percent' => 0,
+            ],
+            'correction_reason' => 'Re-measured from the inspector survey.',
+            'expected_version' => 0,
+        ])->assertOk();
+
+        $updated = $report->fresh();
+        $this->assertSame('1.2000', $updated->plot_area_hectares);
+        $this->assertSame('measured', $updated->plot_area_measurement);
+        $this->assertNull($updated->affected_area_hectares);
+        $this->assertSame('not_measured', $updated->affected_area_measurement);
+        $this->assertSame('0.00', $updated->affected_portion_percent);
+        $this->assertSame('measured', $updated->affected_portion_measurement);
+        // The existing audit trail still records each corrected value.
+        $this->assertEqualsCanonicalizing(
+            ['plot_area_hectares', 'affected_area_hectares', 'affected_portion_percent'],
+            $updated->audits()->pluck('field')->all(),
+        );
+    }
+
+    public function test_a_measured_zero_correction_is_measured_and_an_unchanged_figure_repairs_a_desynced_flag(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'affected_area_hectares' => 3,
+            'affected_area_measurement' => 'not_measured', // desynced
+        ]);
+        Sanctum::actingAs($reviewer);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'metadata_corrections' => ['affected_area_hectares' => 3],
+            'correction_reason' => 'Confirmed the figure.',
+            'expected_version' => 0,
+        ])->assertOk();
+        $this->assertSame('measured', $report->fresh()->affected_area_measurement);
+        $this->assertCount(0, $report->fresh()->audits);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'metadata_corrections' => ['affected_area_hectares' => 0],
+            'correction_reason' => 'Nothing affected on re-inspection.',
+            'expected_version' => 1,
+        ])->assertOk();
+        $this->assertSame('0.0000', $report->fresh()->affected_area_hectares);
+        $this->assertSame('measured', $report->fresh()->affected_area_measurement);
     }
 
     public function test_verification_does_not_close_a_case_until_closure_is_explicit(): void

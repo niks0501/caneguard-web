@@ -60,12 +60,18 @@ class ReferralSummaryResource extends JsonResource
                     : (float) $report->gps_accuracy,
             ],
             'affected' => [
+                'plot_area_hectares' => $report->plot_area_hectares === null
+                    ? null
+                    : (float) $report->plot_area_hectares,
+                'plot_area_measurement' => $report->plotAreaMeasurement(),
                 'area_hectares' => $report->affected_area_hectares === null
                     ? null
                     : (float) $report->affected_area_hectares,
+                'affected_area_measurement' => $report->affectedAreaMeasurement(),
                 'portion_percent' => $report->affected_portion_percent === null
                     ? null
                     : (float) $report->affected_portion_percent,
+                'affected_portion_measurement' => $report->affectedPortionMeasurement(),
             ],
             'primary_evidence' => [
                 'url' => route('api.v1.reports.image', ['report' => $report->uuid], false),

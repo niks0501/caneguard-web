@@ -100,6 +100,30 @@ class ReportSchemaAndSeederTest extends TestCase
         ]);
     }
 
+    public function test_plot_area_migration_widens_affected_area_and_is_reversible_without_losing_data(): void
+    {
+        $report = Report::factory()->create([
+            'plot_area_hectares' => 1.2,
+            'plot_area_measurement' => 'measured',
+            'affected_area_hectares' => 0.004,
+        ]);
+        $this->assertSame('0.0040', $report->fresh()->affected_area_hectares);
+
+        $migration = require database_path('migrations/2026_11_29_000000_add_plot_area_and_widen_affected_area_on_reports_table.php');
+        $migration->down();
+        $this->assertFalse(Schema::hasColumn('reports', 'plot_area_hectares'));
+        $this->assertFalse(Schema::hasColumn('reports', 'plot_area_measurement'));
+        // The wider column stays: narrowing would round the 40 m2 patch to 0.00.
+        $this->assertEqualsWithDelta(0.004, (float) DB::table('reports')->value('affected_area_hectares'), 1e-9);
+
+        $migration->up();
+        $this->assertTrue(Schema::hasColumn('reports', 'plot_area_hectares'));
+        $this->assertNull($report->fresh()->plot_area_hectares);
+        $this->assertSame('not_measured', $report->fresh()->plotAreaMeasurement());
+        $this->assertSame('0.0040', $report->fresh()->affected_area_hectares);
+        $migration->up(); // idempotent
+    }
+
     public function test_report_factory_supports_smart_field_values_and_casts_them(): void
     {
         $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
@@ -127,7 +151,7 @@ class ReportSchemaAndSeederTest extends TestCase
         $this->assertSame('PSR 86', $report->sugarcane_variety);
         $this->assertSame('6 months', $report->crop_age);
         $this->assertSame('Class A', $report->cane_class);
-        $this->assertSame('12.50', $report->affected_area_hectares);
+        $this->assertSame('12.5000', $report->affected_area_hectares);
         $this->assertSame('42.75', $report->affected_portion_percent);
         $this->assertSame('Observed along the eastern edge.', $report->field_notes);
         $this->assertSame('Juan Dela Cruz', $report->farmer_or_farm_owner_name);

@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Actions\Reports\BuildMonthlyReportSummary;
 use App\Models\FieldValidationAssignment;
 use App\Models\Report;
 use App\Models\ReportReferral;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -19,6 +21,39 @@ class ReportReportingTest extends TestCase
     {
         parent::setUp();
         $this->setUpPilotFixtures();
+    }
+
+    public function test_monthly_summary_sums_only_measured_areas_at_four_decimals(): void
+    {
+        $district = $this->pilotDistrict();
+        $submitted = CarbonImmutable::parse('2026-07-10T02:00:00Z');
+        Report::factory()->inDistrict($district)->create([
+            'predicted_label' => Report::LABEL_RUST, 'submitted_at' => $submitted,
+            'affected_area_hectares' => 0.004, 'affected_area_measurement' => 'measured',
+        ]);
+        Report::factory()->inDistrict($district)->create([
+            'predicted_label' => Report::LABEL_RUST, 'submitted_at' => $submitted,
+            'affected_area_hectares' => 0.0046, 'affected_area_measurement' => 'measured',
+        ]);
+        Report::factory()->inDistrict($district)->create([
+            'predicted_label' => Report::LABEL_RUST, 'submitted_at' => $submitted,
+            'affected_area_hectares' => 9, 'affected_area_measurement' => 'not_measured',
+        ]);
+        Report::factory()->inDistrict($district)->create([
+            'predicted_label' => Report::LABEL_RUST, 'submitted_at' => $submitted,
+            'affected_area_hectares' => null, 'affected_area_measurement' => 'not_measured',
+        ]);
+        // A row from before provenance existed still counts through the model's fallback.
+        $legacy = Report::factory()->inDistrict($district)->create([
+            'predicted_label' => Report::LABEL_RUST, 'submitted_at' => $submitted,
+            'affected_area_hectares' => 1, 'affected_area_measurement' => 'measured',
+        ]);
+        DB::table('reports')->where('id', $legacy->id)->update(['affected_area_measurement' => null]);
+
+        $summary = app(BuildMonthlyReportSummary::class)->buildFromQuery(Report::query(), '2026-07');
+
+        $this->assertSame(1.0086, $summary['estimated_affected_hectares']);
+        $this->assertSame(5, $summary['reported_cases']);
     }
 
     public function test_export_is_filter_scoped_and_includes_case_lifecycle_assignment_and_referral_fields(): void
@@ -119,7 +154,7 @@ class ReportReportingTest extends TestCase
             'Mabini',
             'Juan Dela Cruz',
             'Possible rust',
-            '12.50',
+            '12.5000',
             'Measured',
             '42.75',
             'Measured',

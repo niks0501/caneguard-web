@@ -140,7 +140,7 @@ class MobileReportUploadTest extends TestCase
         $this->assertSame('PSR 86', $report->sugarcane_variety);
         $this->assertSame('6 months', $report->crop_age);
         $this->assertSame('Class A', $report->cane_class);
-        $this->assertSame('12.50', $report->affected_area_hectares);
+        $this->assertSame('12.5000', $report->affected_area_hectares);
         $this->assertSame('42.75', $report->affected_portion_percent);
         $this->assertSame(
             'Rust symptoms concentrated on the eastern edge.',

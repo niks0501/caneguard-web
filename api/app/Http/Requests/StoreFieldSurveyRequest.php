@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\FieldSurvey;
 use App\Rules\AffectedAreaPolygons;
 use App\Rules\AffectedAreaWaypoints;
 use App\Rules\MeasurementProvenance;
@@ -12,6 +13,9 @@ use Illuminate\Validation\Rule;
 
 class StoreFieldSurveyRequest extends ApiFormRequest
 {
+    /** Geodesic rounding allowance: the affected area may exceed the plot by up to 1%. */
+    private const AFFECTED_AREA_TOLERANCE = 1.01;
+
     protected function prepareForValidation(): void
     {
         if (is_string($this->input('client_uuid'))) {
@@ -22,6 +26,38 @@ class StoreFieldSurveyRequest extends ApiFormRequest
             $label = trim($this->input('label'));
             $this->merge(['label' => $label === '' ? null : $label]);
         }
+
+        $this->merge($this->affectedAreaMeasurementDefaults());
+    }
+
+    /**
+     * Older phones omit affected_area_measurement. They also forced an affected
+     * area of 0 onto every survey with no affected polygons, so no build before
+     * this field could have confirmed a zero: that shape is stored as not
+     * measured with a null figure. Zero is never inferred as measured from empty
+     * polygons; only an explicit `measured` keeps it. An explicit value, valid or
+     * not, is left for the rules to judge.
+     *
+     * @return array<string, mixed>
+     */
+    private function affectedAreaMeasurementDefaults(): array
+    {
+        if ($this->input('affected_area_measurement') !== null) {
+            return [];
+        }
+
+        $sqm = $this->input('affected_area_sqm');
+        if ($sqm === null) {
+            return ['affected_area_measurement' => FieldSurvey::MEASUREMENT_NOT_MEASURED];
+        }
+
+        $polygons = $this->input('affected_area_polygons');
+        $isLegacyForcedZero = (is_int($sqm) || is_float($sqm)) && (float) $sqm === 0.0
+            && ($polygons === null || $polygons === []);
+
+        return $isLegacyForcedZero
+            ? ['affected_area_measurement' => FieldSurvey::MEASUREMENT_NOT_MEASURED, 'affected_area_sqm' => null]
+            : ['affected_area_measurement' => FieldSurvey::MEASUREMENT_MEASURED];
     }
 
     public function authorize(): bool
@@ -56,8 +92,32 @@ class StoreFieldSurveyRequest extends ApiFormRequest
                 if ((! is_int($value) && ! is_float($value)) || ! is_finite((float) $value)
                     || $value < 0 || $value >= 1.0E16) {
                     $fail('The affected area sqm must be a finite number greater than or equal to zero and less than 10000000000000000.');
+
+                    return;
+                }
+
+                $plot = $this->input('area_sqm');
+                if ((is_int($plot) || is_float($plot)) && is_finite((float) $plot) && $plot > 0
+                    && (float) $value > (float) $plot * self::AFFECTED_AREA_TOLERANCE) {
+                    $fail('The affected area sqm must not exceed the plot area sqm.');
                 }
             }],
+            // Whether the affected area was measured. Omitted by older phones; see
+            // affectedAreaMeasurementDefaults(). not_measured pairs with a null
+            // figure, measured with a figure of 0 or more and no more than the plot.
+            'affected_area_measurement' => ['required', 'string',
+                Rule::in([FieldSurvey::MEASUREMENT_MEASURED, FieldSurvey::MEASUREMENT_NOT_MEASURED]),
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    $sqm = $this->input('affected_area_sqm');
+
+                    if ($value === FieldSurvey::MEASUREMENT_NOT_MEASURED && $sqm !== null) {
+                        $fail('The affected area sqm must be null when the affected area is not measured.');
+                    }
+
+                    if ($value === FieldSurvey::MEASUREMENT_MEASURED && $sqm === null) {
+                        $fail('The affected area sqm is required when the affected area is measured.');
+                    }
+                }],
             'measurement_provenance' => ['nullable', new MeasurementProvenance],
             'affected_area_waypoints' => ['nullable', new AffectedAreaWaypoints],
             'captured_at' => ['required', 'string', 'max:40', 'date',

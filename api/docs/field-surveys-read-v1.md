@@ -95,6 +95,13 @@ is the phone-supplied combined damage size, or `null` when the survey carried
 none. Both keep the same `device_reported` provenance as `area_sqm` and are never
 recalculated or validated by the server.
 
+`affected_area_measurement` (`measured` or `not_measured`) says whether
+`affected_area_sqm` is a real measurement. `not_measured` means the affected area
+is unknown (a plot-only survey), never zero; `measured` with `0` is a confirmed
+zero. Surveys stored before the field existed read as `not_measured` when they
+hold no affected polygons and an `affected_area_sqm` of `0` (what older phones
+forced), and as `measured` otherwise.
+
 `cases` lists the cases in the pilot district that use the boundary, each as
 `{ "uuid", "reference_code", "link" }`. `link` is `confirmed` when the office
 linked the boundary to that case, and `attached` when the case

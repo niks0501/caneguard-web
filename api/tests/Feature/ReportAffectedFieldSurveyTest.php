@@ -267,6 +267,49 @@ class ReportAffectedFieldSurveyTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_percent_is_exposed_only_for_a_measured_affected_area(): void
+    {
+        $district = $this->pilotDistrict();
+        $inspector = User::factory()->inDistrict($district)->create();
+        $reviewer = User::factory()->reviewer()->create();
+        $attachedUuid = (string) Str::uuid();
+        $report = Report::factory()->inDistrict($district)->create([
+            'lock_version' => 0,
+            'field_survey_client_uuid' => $attachedUuid,
+        ]);
+
+        $drawn = $this->storeSurvey($district, $inspector, 12000);
+        $drawn->update(['affected_area_sqm' => 3000, 'affected_area_measurement' => 'measured']);
+        $plotOnly = $this->storeSurvey($district, $inspector, 12000);
+        $plotOnly->update(['affected_area_sqm' => null, 'affected_area_measurement' => 'not_measured']);
+        $confirmedZero = $this->storeSurvey($district, $inspector, 12000);
+        $confirmedZero->update(['affected_area_sqm' => 0, 'affected_area_measurement' => 'measured', 'affected_area_polygons' => []]);
+        // Legacy rows have no flag: an older phone forced 0 onto a plot-only survey.
+        $legacyZero = $this->storeSurvey($district, $inspector, 12000);
+        $legacyZero->update(['client_uuid' => $attachedUuid, 'affected_area_sqm' => 0, 'affected_area_polygons' => []]);
+
+        $response = $this->actingAs($reviewer, 'web')->putJson("/api/v1/reports/{$report->uuid}/affected-fields", [
+            'expected_version' => 0,
+            'affected_fields' => collect([$drawn, $plotOnly, $confirmedZero, $legacyZero])
+                ->map(fn (FieldSurvey $survey): array => ['field_survey_id' => $survey->id])->all(),
+        ])->assertOk();
+
+        $fields = collect($response->json('data.affected_fields'))->keyBy('field_survey_id');
+        $this->assertSame(25, $fields[$drawn->id]['affected_percent']);
+        $this->assertSame('measured', $fields[$drawn->id]['affected_area_measurement']);
+        $this->assertNull($fields[$plotOnly->id]['affected_percent']);
+        $this->assertSame('not_measured', $fields[$plotOnly->id]['affected_area_measurement']);
+        $this->assertSame(0, $fields[$confirmedZero->id]['affected_percent']);
+        $this->assertSame('measured', $fields[$confirmedZero->id]['affected_area_measurement']);
+        $this->assertNull($fields[$legacyZero->id]['affected_percent']);
+        $this->assertSame('not_measured', $fields[$legacyZero->id]['affected_area_measurement']);
+
+        // The case detail's inspector attachment follows the same rule.
+        $this->getJson("/api/v1/reports/{$report->uuid}")->assertOk()
+            ->assertJsonPath('data.inspector_attachment.field_survey.affected_percent', null)
+            ->assertJsonPath('data.inspector_attachment.field_survey.affected_area_measurement', 'not_measured');
+    }
+
     private function storeSurvey(District $district, User $inspector, float $areaSqm = 6075.12): FieldSurvey
     {
         return FieldSurvey::query()->create([

@@ -24,6 +24,18 @@ final class CheckMobileData extends Command
 
     private const HIDDEN = 'hidden from phone';
 
+    private const MEASUREMENT = 'wrong measurement';
+
+    /** Report figure => its provenance flag. */
+    private const MEASUREMENT_PAIRS = [
+        'plot_area_hectares' => 'plot_area_measurement',
+        'affected_area_hectares' => 'affected_area_measurement',
+        'affected_portion_percent' => 'affected_portion_measurement',
+    ];
+
+    /** A report and its survey agree to within one square metre (0.0001 ha) plus decimal rounding. */
+    private const HECTARE_TOLERANCE = 0.00015;
+
     private const LABELS = ['healthy', 'mosaic', 'rust', 'smut'];
 
     private const CASE_STATES = [Report::CASE_STATE_OPEN, Report::CASE_STATE_CLOSED];
@@ -104,15 +116,82 @@ final class CheckMobileData extends Command
             ->where('district_id', $this->pilotId)->whereNull('revoked_at')
             ->whereIn('user_id', $userIds)->pluck('user_id')->flip();
 
+        $surveyUuids = $reports->pluck('field_survey_client_uuid')->filter()
+            ->map(fn (string $uuid): string => strtolower($uuid))->unique()->values();
+        $surveys = $surveyUuids->isEmpty() ? collect() : DB::table('field_surveys')
+            ->whereIn('client_uuid', $surveyUuids)->get()->keyBy('client_uuid');
+
         foreach ($reports as $report) {
             $ref = $this->reference($report);
             $assignment = $assignments->get($report->id);
 
+            $this->checkMeasurements(
+                $report,
+                $ref,
+                $report->field_survey_client_uuid === null ? null : $surveys->get(strtolower($report->field_survey_client_uuid)),
+            );
             $this->checkReportContract($report, $ref, $users->get($report->reporter_id));
             $this->checkReportVisibility($report, $ref, $assignment, $assignment !== null && $completed->has($assignment->id));
             if ($assignment !== null) {
                 $this->checkAssignment($assignment, $ref, $users->get($assignment->assignee_id), $members->has($assignment->assignee_id));
             }
+        }
+    }
+
+    /**
+     * Measurement provenance and survey agreement. These rows still load on a
+     * phone, but a report whose flag contradicts its figure, or whose figures
+     * disagree with the survey it names, shows the office a wrong area.
+     */
+    private function checkMeasurements(object $report, string $ref, ?object $survey): void
+    {
+        if (! property_exists($report, 'plot_area_measurement')) {
+            return;
+        }
+
+        $flag = fn (string $reason) => $this->add($ref, self::MEASUREMENT, $reason);
+
+        foreach (self::MEASUREMENT_PAIRS as $valueField => $measurementField) {
+            $measurement = $report->{$measurementField};
+            $value = $report->{$valueField};
+
+            if ($measurement !== null && ! in_array($measurement, [Report::MEASUREMENT_MEASURED, Report::MEASUREMENT_NOT_MEASURED], true)) {
+                $flag("{$measurementField} '{$measurement}' is not measured or not_measured");
+            } elseif ($measurement === Report::MEASUREMENT_NOT_MEASURED && $value !== null) {
+                $flag("{$measurementField} is not_measured but {$valueField} holds {$value}");
+            } elseif ($measurement === Report::MEASUREMENT_MEASURED && $value === null) {
+                $flag("{$measurementField} is measured but {$valueField} is empty");
+            }
+        }
+
+        if ($survey === null) {
+            return;
+        }
+
+        $surveyMeasured = ($survey->affected_area_measurement ?? null) === 'measured'
+            || (($survey->affected_area_measurement ?? null) === null && $survey->affected_area_sqm !== null
+                && (float) $survey->affected_area_sqm > 0);
+
+        if ($report->plot_area_hectares !== null && $survey->area_sqm !== null
+            && abs((float) $report->plot_area_hectares - (float) $survey->area_sqm / 10000) > self::HECTARE_TOLERANCE) {
+            $flag("plot_area_hectares {$report->plot_area_hectares} differs from its survey's plot area of ".round((float) $survey->area_sqm / 10000, 4).' ha');
+        }
+
+        if ($report->affected_area_hectares === null) {
+            return;
+        }
+
+        $surveyHectares = $surveyMeasured && $survey->affected_area_sqm !== null
+            ? (float) $survey->affected_area_sqm / 10000
+            : null;
+
+        if ($surveyHectares === null) {
+            if ($survey->area_sqm !== null
+                && abs((float) $report->affected_area_hectares - (float) $survey->area_sqm / 10000) <= 0.01) {
+                $flag("affected_area_hectares {$report->affected_area_hectares} equals the plot area of a survey that measured no affected area");
+            }
+        } elseif (abs((float) $report->affected_area_hectares - $surveyHectares) > self::HECTARE_TOLERANCE) {
+            $flag("affected_area_hectares {$report->affected_area_hectares} differs from its survey's affected area of ".round($surveyHectares, 4).' ha');
         }
     }
 

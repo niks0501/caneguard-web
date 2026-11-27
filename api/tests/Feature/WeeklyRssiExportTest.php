@@ -296,6 +296,36 @@ class WeeklyRssiExportTest extends TestCase
             ->assertHeaderContains('Content-Disposition', 'caneguard-rssi-weekly-2026-09-28-to-2026-10-04.csv');
     }
 
+    public function test_rssi_rows_keep_four_decimals_and_only_measured_areas_carry_a_figure(): void
+    {
+        $district = $this->pilotDistrict();
+        $reviewer = User::factory()->inDistrict($district)->reviewer()->create();
+        foreach ([
+            ['CG-TINY', 0.004, 'measured'],
+            ['CG-ZERO', 0, 'measured'],
+            ['CG-UNMEASURED', 7, 'not_measured'],
+        ] as [$reference, $hectares, $measurement]) {
+            $this->report($district, [
+                'reference_code' => $reference,
+                'authority_classified_condition' => 'rssi',
+                'verification_outcome' => 'verified',
+                'affected_area_hectares' => $hectares,
+                'affected_area_measurement' => $measurement,
+            ]);
+        }
+
+        $rows = collect(app(BuildWeeklyRssiReport::class)
+            ->handle(['period_type' => 'weekly', 'week' => '2026-W40'], $reviewer)['sections']['validated']['rows'])
+            ->keyBy('case_reference');
+
+        $this->assertSame(0.004, $rows['CG-TINY']['area_hectares']);
+        $this->assertSame('Measured', $rows['CG-TINY']['area_measurement']);
+        $this->assertSame(0.0, $rows['CG-ZERO']['area_hectares']);
+        $this->assertSame('Measured', $rows['CG-ZERO']['area_measurement']);
+        $this->assertNull($rows['CG-UNMEASURED']['area_hectares']);
+        $this->assertSame('Not measured', $rows['CG-UNMEASURED']['area_measurement']);
+    }
+
     /**
      * @param  array<string, mixed>  $attributes
      */

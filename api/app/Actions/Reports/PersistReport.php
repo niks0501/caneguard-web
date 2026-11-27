@@ -53,6 +53,11 @@ class PersistReport
                 'sugarcane_variety' => $data['sugarcane_variety'] ?? null,
                 'crop_age' => $data['crop_age'] ?? null,
                 'cane_class' => $data['cane_class'] ?? null,
+                'plot_area_hectares' => $data['plot_area_hectares'] ?? null,
+                'plot_area_measurement' => $data['plot_area_measurement']
+                    ?? (($data['plot_area_hectares'] ?? null) === null
+                        ? Report::MEASUREMENT_NOT_MEASURED
+                        : Report::MEASUREMENT_MEASURED),
                 'affected_area_hectares' => $data['affected_area_hectares'] ?? null,
                 'affected_area_measurement' => $data['affected_area_measurement']
                     ?? (($data['affected_area_hectares'] ?? null) === null
