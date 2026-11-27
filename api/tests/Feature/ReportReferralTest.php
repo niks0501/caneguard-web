@@ -87,6 +87,24 @@ class ReportReferralTest extends TestCase
             ->assertOk()->assertSee('Historical finding')->assertSee('test-symptom');
     }
 
+    public function test_referral_summary_exposes_plot_area_and_each_measurement_state(): void
+    {
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'plot_area_hectares' => 1.2, 'plot_area_measurement' => 'measured',
+            'affected_area_hectares' => null, 'affected_area_measurement' => 'not_measured',
+            'affected_portion_percent' => null, 'affected_portion_measurement' => 'not_measured',
+        ]);
+        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
+
+        $this->getJson("/api/v1/reports/{$report->uuid}/referral/summary")->assertOk()
+            ->assertJsonPath('data.affected.plot_area_hectares', 1.2)
+            ->assertJsonPath('data.affected.plot_area_measurement', 'measured')
+            ->assertJsonPath('data.affected.area_hectares', null)
+            ->assertJsonPath('data.affected.affected_area_measurement', 'not_measured')
+            ->assertJsonPath('data.affected.portion_percent', null)
+            ->assertJsonPath('data.affected.affected_portion_measurement', 'not_measured');
+    }
+
     public function test_retirement_does_not_skip_consults_when_the_active_query_shrinks_between_batches(): void
     {
         $report = Report::factory()->inDistrict($this->pilotDistrict())->create();

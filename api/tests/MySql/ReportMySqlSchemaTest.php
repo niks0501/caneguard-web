@@ -69,7 +69,8 @@ class ReportMySqlSchemaTest extends TestCase
         $this->assertSame('unassigned', $columns->get('field_validation_state')->COLUMN_DEFAULT);
         $this->assertSame('not_referred', $columns->get('referral_state')->COLUMN_DEFAULT);
         $this->assertDecimal($columns, 'confidence', 8, 7);
-        $this->assertDecimal($columns, 'affected_area_hectares', 12, 2);
+        $this->assertDecimal($columns, 'affected_area_hectares', 12, 4);
+        $this->assertDecimal($columns, 'plot_area_hectares', 12, 4);
         $this->assertDecimal($columns, 'affected_portion_percent', 5, 2);
         $this->assertDecimal($columns, 'final_latitude', 10, 7);
         $this->assertDecimal($columns, 'final_longitude', 10, 7);

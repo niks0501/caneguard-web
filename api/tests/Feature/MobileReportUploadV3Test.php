@@ -6,6 +6,7 @@ use App\Models\Report;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -104,6 +105,128 @@ class MobileReportUploadV3Test extends TestCase
             'field_survey_client_uuid' => self::SURVEY_UUID,
             'location_source' => 'gps',
         ])->assertUnprocessable()->assertJsonValidationErrors('final_latitude');
+    }
+
+    public function test_v3_persists_plot_affected_area_and_percentage_as_three_separate_values(): void
+    {
+        Storage::fake('local');
+        $clientUuid = fake()->uuid();
+
+        $this->submit($clientUuid, [
+            'plot_area_hectares' => '1.2',
+            'affected_area_hectares' => '0.3',
+            'affected_portion_percent' => '25',
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.observations.plot_area_hectares', 1.2)
+            ->assertJsonPath('data.observations.plot_area_measurement', 'measured')
+            ->assertJsonPath('data.observations.affected_area_hectares', 0.3)
+            ->assertJsonPath('data.observations.affected_area_measurement', 'measured')
+            ->assertJsonPath('data.observations.affected_portion_percent', 25)
+            ->assertJsonPath('data.observations.affected_portion_measurement', 'measured');
+
+        $report = Report::query()->where('client_uuid', $clientUuid)->sole();
+        $this->assertSame('1.2000', $report->plot_area_hectares);
+        $this->assertSame('0.3000', $report->affected_area_hectares);
+        $this->assertSame('25.00', $report->affected_portion_percent);
+        $this->assertSame('measured', $report->plot_area_measurement);
+
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        Auth::forgetGuards();
+        $this->withoutToken()->actingAs($reviewer, 'web');
+        $this->getJson("/api/v1/reports/{$report->uuid}")->assertOk()
+            ->assertJsonPath('data.observations.plot_area_hectares', 1.2)
+            ->assertJsonPath('data.observations.plot_area_measurement', 'measured')
+            ->assertJsonPath('data.observations.affected_area_hectares', 0.3)
+            ->assertJsonPath('data.observations.affected_portion_percent', 25);
+    }
+
+    public function test_v3_accepts_a_measured_zero_affected_area_and_keeps_it_measured(): void
+    {
+        Storage::fake('local');
+        $clientUuid = fake()->uuid();
+
+        $this->submit($clientUuid, [
+            'plot_area_hectares' => '1.2',
+            'affected_area_hectares' => '0',
+            'affected_area_measurement' => 'measured',
+            'affected_portion_percent' => '0',
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.observations.affected_area_hectares', 0)
+            ->assertJsonPath('data.observations.affected_area_measurement', 'measured')
+            ->assertJsonPath('data.observations.affected_portion_percent', 0);
+
+        $report = Report::query()->where('client_uuid', $clientUuid)->sole();
+        $this->assertSame('0.0000', $report->affected_area_hectares);
+        $this->assertSame('measured', $report->affected_area_measurement);
+    }
+
+    public function test_v3_still_rejects_a_negative_or_unpaired_area(): void
+    {
+        Storage::fake('local');
+
+        $this->submit(fake()->uuid(), ['affected_area_hectares' => '-0.1'])
+            ->assertUnprocessable()->assertJsonValidationErrors('affected_area_hectares');
+        $this->submit(fake()->uuid(), ['plot_area_hectares' => '0'])
+            ->assertUnprocessable()->assertJsonValidationErrors('plot_area_hectares');
+        $this->submit(fake()->uuid(), ['plot_area_measurement' => 'measured'])
+            ->assertUnprocessable()->assertJsonValidationErrors('plot_area_measurement');
+        $this->submit(fake()->uuid(), ['plot_area_hectares' => '1.2', 'plot_area_measurement' => 'not_measured'])
+            ->assertUnprocessable()->assertJsonValidationErrors('plot_area_measurement');
+        $this->submit(fake()->uuid(), ['affected_area_measurement' => 'maybe'])
+            ->assertUnprocessable()->assertJsonValidationErrors('affected_area_measurement');
+        $this->assertSame(0, Report::query()->count());
+    }
+
+    public function test_v3_keeps_a_forty_square_metre_patch_instead_of_rounding_it_to_zero(): void
+    {
+        Storage::fake('local');
+        $clientUuid = fake()->uuid();
+
+        $this->submit($clientUuid, ['affected_area_hectares' => '0.0040'])
+            ->assertCreated()
+            ->assertJsonPath('data.observations.affected_area_hectares', 0.004)
+            ->assertJsonPath('data.observations.affected_area_measurement', 'measured');
+
+        $this->assertSame('0.0040', Report::query()->where('client_uuid', $clientUuid)->sole()->affected_area_hectares);
+    }
+
+    public function test_a_legacy_payload_without_plot_fields_is_accepted_and_reads_not_measured(): void
+    {
+        Storage::fake('local');
+        $clientUuid = fake()->uuid();
+
+        $this->submit($clientUuid, ['affected_area_hectares' => '2.5', 'affected_portion_percent' => '40'])
+            ->assertCreated()
+            ->assertJsonPath('data.observations.plot_area_hectares', null)
+            ->assertJsonPath('data.observations.plot_area_measurement', 'not_measured')
+            ->assertJsonPath('data.observations.affected_area_hectares', 2.5)
+            ->assertJsonPath('data.observations.affected_area_measurement', 'measured');
+
+        $report = Report::query()->where('client_uuid', $clientUuid)->sole();
+        $this->assertNull($report->plot_area_hectares);
+        $this->assertSame('not_measured', $report->plot_area_measurement);
+        $this->assertSame('2.5000', $report->affected_area_hectares);
+
+        $bare = fake()->uuid();
+        $this->submit($bare)->assertCreated();
+        $this->assertSame('not_measured', Report::query()->where('client_uuid', $bare)->sole()->affected_area_measurement);
+    }
+
+    public function test_v2_still_rejects_a_zero_affected_area_and_ignores_plot_fields(): void
+    {
+        Storage::fake('local');
+
+        $this->actingToken()
+            ->post('/api/v2/mobile/reports', $this->payload(fake()->uuid(), ['affected_area_hectares' => '0']))
+            ->assertUnprocessable()->assertJsonValidationErrors('affected_area_hectares');
+
+        $clientUuid = fake()->uuid();
+        $this->actingToken()
+            ->post('/api/v2/mobile/reports', $this->payload($clientUuid, ['plot_area_hectares' => '1.2']))
+            ->assertCreated();
+        $this->assertNull(Report::query()->where('client_uuid', $clientUuid)->sole()->plot_area_hectares);
     }
 
     private function actingToken(): static

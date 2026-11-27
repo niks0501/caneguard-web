@@ -19,6 +19,23 @@ The machine-readable source of truth is [`mobile-report-upload-v3.json`](mobile-
 - It does not change what counts as a confirmed location: `location_source`, coordinates and the unavailable-location rules are as in v2.
 - An invalid (non-UUID) value is rejected with `422` on `field_survey_client_uuid`.
 
+## Widened fields (same major)
+
+These optional fields were added to v3 as backward-compatible widening, using the artifact's `same_major_compatible_widening` rules. A payload that omits them is accepted and persisted exactly as before; there is no v4.
+
+| Name | Wire | Type | Required | Nullable | Notes |
+| --- | --- | --- | --- | --- | --- |
+| `plot_area_hectares` | text part | number `> 0`, at most `99999999.9999` | no | yes | Total plot area, kept separate from the affected ground area. An empty text part is stored as `null`. |
+| `plot_area_measurement` | text part | `measured` or `not_measured` | no | no | Inferred as `measured` when `plot_area_hectares` is present, otherwise `not_measured`. `measured` requires the value; `not_measured` forbids it. |
+
+`affected_area_hectares` now accepts `0` (`minimum: 0`, previously exclusive `0`). `0` is a **measured zero**: the inspector confirmed there is no affected area. An unmeasured area is omitted or null and pairs with `affected_area_measurement: not_measured`. `affected_portion_percent` already accepted `0`.
+
+Plot area, affected ground area and the affected percentage are three separate values. Example: a 1.2 ha plot with 0.3 ha affected sends `plot_area_hectares=1.2`, `affected_area_hectares=0.3`, `affected_portion_percent=25`, and the report resources return them unchanged.
+
+Affected area is stored to four decimals (`decimal(12,4)`), so a 40 m² patch is kept as `0.0040` ha rather than rounded to `0.00`.
+
+The upload response and `GET /api/v1/reports/{report}` expose `plot_area_hectares` and `plot_area_measurement` beside the existing `affected_*` fields.
+
 ## Idempotency
 
 Idempotency is keyed on the reporter and `client_uuid`, exactly as in v2. A retry returns the original report (`200`) and writes nothing, including a different or missing `field_survey_client_uuid`; the first accepted link stands. A corrected submission needs a new `client_uuid`.

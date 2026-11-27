@@ -136,6 +136,41 @@ All four may be omitted; a plot-only payload stores `null` for each, so older
 clients keep working without a backfill. Top-level fields this contract does
 not declare are ignored rather than stored.
 
+### Measured, not measured, and measured zero
+
+A fifth optional field, `affected_area_measurement` (`measured` or
+`not_measured`), says whether the affected area was actually measured. It keeps
+three different situations apart that a bare number cannot:
+
+| State | `affected_area_measurement` | `affected_area_sqm` | Meaning |
+| --- | --- | --- | --- |
+| Not measured | `not_measured` | `null` | Plot-only survey; the affected area is unknown, never zero. |
+| Measured zero | `measured` | `0` | The inspector explicitly confirmed there is no affected area. |
+| Measured | `measured` | `> 0` | One or more affected polygons were measured. |
+
+Rules, all returned as **422** field errors on `affected_area_measurement` or
+`affected_area_sqm`:
+
+- `not_measured` requires `affected_area_sqm` to be `null` or omitted.
+- `measured` requires a number greater than or equal to zero; `0` is accepted
+  only when sent with an explicit `measured`.
+- `affected_area_sqm` must not exceed `area_sqm` by more than 1% (the tolerance
+  absorbs geodesic rounding). The phone only measures affected areas inside the
+  plot, so this never rejects a genuine survey.
+
+Older phones do not send `affected_area_measurement`. The server fills it in so
+those payloads keep being accepted and are never mistaken for a confirmed zero:
+
+- `affected_area_polygons` missing or `[]` **and** `affected_area_sqm` of `0`
+  (what older phones forced onto every plot-only survey) is stored as
+  `not_measured` with `affected_area_sqm` of `null`. No build before this field
+  could confirm a zero, and zero is never inferred from empty polygons.
+- A missing `affected_area_sqm` is stored as `not_measured`.
+- Any other figure is stored as `measured`.
+
+An explicit but invalid `affected_area_measurement` is rejected, not corrected.
+Replays keep the original record, including its measurement state.
+
 ## Receipt and retries
 
 Create and valid replay both return HTTP **201**, with exactly:
@@ -170,7 +205,7 @@ Invalid fields return HTTP **422**, using the existing API error envelope:
 The phone can display each `errors[field]` string array. Geometry errors use the
 `polygon` key; the affected-area evidence reports under
 `affected_area_polygons`, `affected_area_polygons.N`, `affected_area_sqm`,
-`measurement_provenance` and `affected_area_waypoints`.
+`measurement_provenance`, `affected_area_measurement` and `affected_area_waypoints`.
 Missing, expired or deleted bearer credentials return **401** with
 `UNAUTHENTICATED`; a field-reporter bearer session that loses current
 membership or capability returns **403** with `CAPABILITY_REVOKED`, and so does

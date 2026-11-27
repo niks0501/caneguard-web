@@ -65,9 +65,12 @@ final class BuildMonthlyReportSummary
                 'predicted_label',
                 'possible_condition',
             ),
+            // Only measured areas count; unmeasured rows are neither zero nor a
+            // gap to fill. The four stored decimals are summed as they are and
+            // rounded only for display.
             'estimated_affected_hectares' => round(
-                (float) ((clone $baseQuery)->sum('affected_area_hectares')),
-                2,
+                (float) ((clone $baseQuery)->withMeasuredAffectedArea()->sum('affected_area_hectares')),
+                4,
             ),
             'reports_containing_farmer_farm_information' => (clone $baseQuery)
                 ->whereNotNull('farmer_or_farm_owner_name')

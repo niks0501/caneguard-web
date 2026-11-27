@@ -42,6 +42,8 @@
       "sugarcane_variety",
       "crop_age",
       "cane_class",
+      "plot_area_hectares",
+      "plot_area_measurement",
       "affected_area_hectares",
       "affected_area_measurement",
       "affected_portion_percent",
@@ -570,12 +572,42 @@
         "empty_string": "null"
       }
     },
-    "affected_area_hectares": {
+    "plot_area_hectares": {
+      "description": "Total plot area in hectares, kept separate from the affected ground area. Optional; older clients omit it and the report stores it as not measured.",
       "wire_type": "text",
       "type": "number",
       "required": false,
       "nullable": true,
       "exclusive_minimum": 0,
+      "maximum": 99999999.9999,
+      "normalization": {
+        "empty_string": "null"
+      }
+    },
+    "plot_area_measurement": {
+      "description": "Whether plot_area_hectares was actually measured. Inferred as measured when a hectare value is present and not_measured otherwise.",
+      "wire_type": "text",
+      "type": "string",
+      "required": false,
+      "nullable": false,
+      "enum": [
+        "measured",
+        "not_measured"
+      ],
+      "conditions": [
+        {
+          "rule": "measurement_pairing",
+          "value_field": "plot_area_hectares"
+        }
+      ]
+    },
+    "affected_area_hectares": {
+      "description": "Affected ground area in hectares, stored to 4 decimals (0.0001 ha = 1 m2). 0 is a measured zero (a value of 0 pairs with measured); an unmeasured area is omitted or null.",
+      "wire_type": "text",
+      "type": "number",
+      "required": false,
+      "nullable": true,
+      "minimum": 0,
       "normalization": {
         "empty_string": "null"
       }
@@ -688,7 +720,9 @@
       "Increasing the image hard maximum only when every existing v3 consumer remains safe with the wider value.",
       "Accepting optional measurement provenance while preserving existing numeric optionality.",
       "Accepting the additional location_source value unavailable for reports submitted without an exact coordinate.",
-      "Recording why a location was unavailable while keeping barangay mandatory."
+      "Recording why a location was unavailable while keeping barangay mandatory.",
+      "Accepting a measured affected_area_hectares of 0 by lowering its numeric minimum from exclusive 0 to 0; an unmeasured area stays omitted or null.",
+      "Accepting the optional plot_area_hectares and plot_area_measurement pair, with the same measurement pairing rule as affected_area_hectares."
     ],
     "new_major_required": [
       "Renaming or removing a field, changing its multipart encoding, or changing its type.",
@@ -697,6 +731,7 @@
       "Changing enum meaning, disease classes, conditional location requirements, server-derived metadata, or persistence semantics.",
       "Removing an existing image format or lowering the 10 MiB hard maximum."
     ],
-    "v3_introduction": "v3 is v2 plus the optional nullable field_survey_client_uuid. Every other field, bound, encoding, location rule and persistence meaning is identical to v2, and the v2 endpoint and artifact are unchanged."
+    "v3_introduction": "v3 is v2 plus the optional nullable field_survey_client_uuid. Every other field, bound, encoding, location rule and persistence meaning is identical to v2, and the v2 endpoint and artifact are unchanged.",
+    "v3_widenings": "Same-major widenings since introduction, all listed above and all backward compatible: optional plot_area_hectares and plot_area_measurement, and a measured affected_area_hectares of 0. A payload that omits them is accepted and persisted exactly as before."
   }
 }

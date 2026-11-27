@@ -81,10 +81,16 @@ unchanged, including every interior ring, in WGS84 `[longitude, latitude]`.
 `captured_at` is UTC ISO8601 with microseconds. `area_sqm` and
 `affected_area_sqm` are the phone-supplied measurements and stay labelled
 `device_reported`. `affected_percent` is derived, `affected_area_sqm / area_sqm`
-to one decimal, and is `null` when no affected area was drawn (never `0`).
+to one decimal, and is `null` unless the survey's `affected_area_measurement` is
+`measured` (never `0` for an unmeasured plot-only survey). A measured zero
+returns `0`. Surveys stored before `affected_area_measurement` existed have no
+stored value; one with no affected polygons and an `affected_area_sqm` of `0` is
+read as `not_measured`, because older phones forced that zero.
 `label` is the name the phone typed (or `null`) and `outline_from_survey_id` the
 earlier map whose outline it reused (or `null`); both are optional phone-supplied
-context, never edited here. `loss_rate_percent` is history only: `null` unless an older client stored one.
+context, never edited here. `affected_area_measurement` (`measured` or
+`not_measured`) is returned next to `affected_area_sqm` and is the only reliable
+way to tell an unmeasured area from a measured zero. `loss_rate_percent` is history only: `null` unless an older client stored one.
 No combined or server-measured area
 is stored or returned.
 
@@ -127,5 +133,5 @@ inspector are never disclosed. `confirmed` says this case already links the
 boundary as an affected field. Confirming is an ordinary write of this route:
 send the boundary's `field_survey_id` along with the already linked ones, and the
 same replacement array unlinks it again. `field_survey` carries the same
-`affected_area_sqm` and `affected_percent`. Mobile upload responses never carry
+`affected_area_sqm`, `affected_area_measurement` and `affected_percent`. Mobile upload responses never carry
 `inspector_attachment`.

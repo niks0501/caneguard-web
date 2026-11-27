@@ -101,7 +101,7 @@ class ReviewReportRequest extends ApiFormRequest
             ],
             'metadata_corrections' => [
                 'sometimes',
-                'array:barangay,farmer_or_farm_owner_name,province,municipality,affected_area_hectares,affected_portion_percent,final_latitude,final_longitude,location_source,gps_accuracy',
+                'array:barangay,farmer_or_farm_owner_name,province,municipality,plot_area_hectares,affected_area_hectares,affected_portion_percent,final_latitude,final_longitude,location_source,gps_accuracy',
                 'min:1',
             ],
             'metadata_corrections.barangay' => [
@@ -127,6 +127,13 @@ class ReviewReportRequest extends ApiFormRequest
                 'nullable',
                 'string',
                 'max:120',
+            ],
+            'metadata_corrections.plot_area_hectares' => [
+                'sometimes',
+                'nullable',
+                'numeric',
+                'gt:0',
+                'max:99999999.9999',
             ],
             'metadata_corrections.affected_area_hectares' => [
                 'sometimes',

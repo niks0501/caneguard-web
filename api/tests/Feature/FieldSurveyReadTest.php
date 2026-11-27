@@ -43,7 +43,7 @@ class FieldSurveyReadTest extends TestCase
         $feature = $response->json('features.0');
         $this->assertSame(['type', 'id', 'geometry', 'properties'], array_keys($feature));
         $this->assertSame([
-            'id', 'label', 'outline_from_survey_id', 'captured_at', 'area_sqm', 'area_source', 'affected_areas', 'affected_area_sqm', 'cases', 'inspector',
+            'id', 'label', 'outline_from_survey_id', 'captured_at', 'area_sqm', 'area_source', 'affected_areas', 'affected_area_sqm', 'affected_area_measurement', 'cases', 'inspector',
         ], array_keys($feature['properties']));
         $this->assertSame([], $feature['properties']['affected_areas']);
         $this->assertNull($feature['properties']['affected_area_sqm']);

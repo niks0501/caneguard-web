@@ -31,6 +31,7 @@ class MobileFieldSurveyController extends Controller
             'outline_from_survey_id' => $data['outline_from_survey_id'] ?? null,
             'affected_area_polygons' => $data['affected_area_polygons'] ?? null,
             'affected_area_sqm' => $data['affected_area_sqm'] ?? null,
+            'affected_area_measurement' => $data['affected_area_measurement'],
             'measurement_provenance' => $data['measurement_provenance'] ?? null,
             'affected_area_waypoints' => $data['affected_area_waypoints'] ?? null,
             'captured_at' => CarbonImmutable::parse($data['captured_at'])->utc(),

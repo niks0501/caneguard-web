@@ -226,7 +226,7 @@ final class BuildWeeklyRssiReport
                 ? 'RSSI'
                 : 'Not classified',
             'verification_outcome' => $this->verificationLabel($report->verification_outcome),
-            'area_hectares' => $measured ? round((float) $report->affected_area_hectares, 2) : null,
+            'area_hectares' => $measured ? round((float) $report->affected_area_hectares, 4) : null,
             'area_measurement' => $measured ? 'Measured' : 'Not measured',
         ];
     }

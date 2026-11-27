@@ -84,6 +84,7 @@ class MobileFieldSurveyTest extends TestCase
     {
         $this->loginInspector();
         $payload = $this->payload();
+        $payload['area_sqm'] = 29160.0; // the plot the provenance below describes
         $payload['affected_area_polygons'] = [
             $this->affectedPolygon(),
             ['type' => 'Polygon', 'coordinates' => [[
@@ -162,6 +163,7 @@ class MobileFieldSurveyTest extends TestCase
     {
         $this->loginInspector();
         $payload = $this->payload();
+        $payload['area_sqm'] = 9999999999999998.0;
         $payload['affected_area_sqm'] = 9999999999999998.0;
         $this->postJson(self::ENDPOINT, $payload)->assertCreated();
         $this->assertSame('9999999999999998.0000', FieldSurvey::query()->sole()->affected_area_sqm);
@@ -300,6 +302,114 @@ class MobileFieldSurveyTest extends TestCase
         $this->assertTrue(Schema::hasColumn('field_surveys', 'measurement_provenance'));
         $this->assertTrue(Schema::hasColumn('field_surveys', 'affected_area_waypoints'));
         $this->assertSame($before, FieldSurvey::query()->sole()->getRawOriginal());
+    }
+
+    public function test_not_measured_pairs_with_a_null_area_and_measured_zero_is_kept_only_when_explicit(): void
+    {
+        $this->loginInspector();
+
+        $unmeasured = $this->payload() + ['affected_area_measurement' => 'not_measured', 'affected_area_sqm' => null];
+        $this->postJson(self::ENDPOINT, $unmeasured)->assertCreated();
+        $confirmedZero = $this->payload() + [
+            'affected_area_polygons' => [],
+            'affected_area_sqm' => 0,
+            'affected_area_measurement' => 'measured',
+        ];
+        $this->postJson(self::ENDPOINT, $confirmedZero)->assertCreated();
+
+        $stored = FieldSurvey::query()->orderBy('id')->get();
+        $this->assertSame('not_measured', $stored[0]->affected_area_measurement);
+        $this->assertNull($stored[0]->affected_area_sqm);
+        $this->assertSame('measured', $stored[1]->affected_area_measurement);
+        $this->assertSame('0.0000', $stored[1]->affected_area_sqm);
+    }
+
+    public function test_affected_area_measurement_must_pair_with_its_value(): void
+    {
+        $this->loginInspector();
+
+        $this->postJson(self::ENDPOINT, $this->payload() + ['affected_area_measurement' => 'not_measured', 'affected_area_sqm' => 0])
+            ->assertUnprocessable()->assertJsonValidationErrors('affected_area_measurement');
+        $this->postJson(self::ENDPOINT, $this->payload() + ['affected_area_measurement' => 'not_measured', 'affected_area_sqm' => 12.5])
+            ->assertUnprocessable()->assertJsonValidationErrors('affected_area_measurement');
+        $this->postJson(self::ENDPOINT, $this->payload() + ['affected_area_measurement' => 'measured', 'affected_area_sqm' => null])
+            ->assertUnprocessable()->assertJsonValidationErrors('affected_area_measurement');
+        $this->postJson(self::ENDPOINT, $this->payload() + ['affected_area_measurement' => 'bogus', 'affected_area_sqm' => 12.5])
+            ->assertUnprocessable()->assertJsonValidationErrors('affected_area_measurement');
+        $this->postJson(self::ENDPOINT, $this->payload() + ['affected_area_measurement' => 'measured', 'affected_area_sqm' => -1])
+            ->assertUnprocessable()->assertJsonValidationErrors('affected_area_sqm');
+        $this->assertDatabaseCount('field_surveys', 0);
+    }
+
+    public function test_affected_area_cannot_exceed_the_plot_beyond_one_percent(): void
+    {
+        $this->loginInspector();
+        $payload = $this->payload(); // 6075.123 sqm plot
+
+        $this->postJson(self::ENDPOINT, $payload + ['affected_area_sqm' => 6075.123 * 1.011])
+            ->assertUnprocessable()->assertJsonValidationErrors('affected_area_sqm');
+        $this->assertDatabaseCount('field_surveys', 0);
+
+        $this->postJson(self::ENDPOINT, $payload + ['affected_area_sqm' => 6075.123 * 1.009])->assertCreated();
+        $this->postJson(self::ENDPOINT, ['client_uuid' => (string) Str::uuid()] + $payload + ['affected_area_sqm' => 6075.123])
+            ->assertCreated();
+        $this->assertDatabaseCount('field_surveys', 2);
+    }
+
+    public function test_a_forty_square_metre_patch_is_stored_exactly(): void
+    {
+        $this->loginInspector();
+        $this->postJson(self::ENDPOINT, $this->payload() + ['affected_area_sqm' => 40])->assertCreated();
+
+        $survey = FieldSurvey::query()->sole();
+        $this->assertSame('40.0000', $survey->affected_area_sqm);
+        $this->assertSame('measured', $survey->affected_area_measurement);
+    }
+
+    public function test_legacy_empty_polygons_with_a_forced_zero_normalize_to_not_measured(): void
+    {
+        $this->loginInspector();
+
+        // What an older phone sent for a plot-only survey: [] and a forced 0, no enum.
+        $this->postJson(self::ENDPOINT, $this->payload() + ['affected_area_polygons' => [], 'affected_area_sqm' => 0])
+            ->assertCreated();
+        $this->postJson(self::ENDPOINT, $this->payload() + ['affected_area_sqm' => 0])->assertCreated();
+        // A legacy payload with polygons and an area keeps meaning measured.
+        $this->postJson(self::ENDPOINT, $this->payload() + [
+            'affected_area_polygons' => [$this->affectedPolygon()],
+            'affected_area_sqm' => 1200.5,
+        ])->assertCreated();
+        // A plot-only payload with no evidence at all is not measured either.
+        $this->postJson(self::ENDPOINT, $this->payload())->assertCreated();
+
+        $surveys = FieldSurvey::query()->orderBy('id')->get();
+        foreach ([0, 1, 3] as $index) {
+            $this->assertSame('not_measured', $surveys[$index]->affected_area_measurement);
+            $this->assertNull($surveys[$index]->affected_area_sqm);
+        }
+        $this->assertSame('measured', $surveys[2]->affected_area_measurement);
+        $this->assertSame('1200.5000', $surveys[2]->affected_area_sqm);
+    }
+
+    public function test_the_measurement_migration_is_reversible_and_leaves_existing_surveys_untouched(): void
+    {
+        $this->loginInspector();
+        $this->postJson(self::ENDPOINT, $this->payload() + ['affected_area_sqm' => 12.5])->assertCreated();
+        $before = FieldSurvey::query()->sole()->getAttributes();
+        unset($before['affected_area_measurement']);
+
+        $migration = require database_path('migrations/2026_11_29_000100_add_affected_area_measurement_to_field_surveys_table.php');
+        $migration->down();
+        $this->assertFalse(Schema::hasColumn('field_surveys', 'affected_area_measurement'));
+        $migration->up();
+        $this->assertTrue(Schema::hasColumn('field_surveys', 'affected_area_measurement'));
+
+        $after = FieldSurvey::query()->sole();
+        $this->assertNull($after->getRawOriginal('affected_area_measurement'));
+        $this->assertSame('measured', $after->affectedAreaMeasurement()); // legacy fallback: a figure with no flag
+        $attributes = $after->getAttributes();
+        unset($attributes['affected_area_measurement']);
+        $this->assertSame($before, $attributes);
     }
 
     public function test_replay_is_owner_bound_and_does_not_disclose_another_inspectors_receipt(): void

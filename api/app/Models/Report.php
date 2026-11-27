@@ -40,6 +40,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'sugarcane_variety',
     'crop_age',
     'cane_class',
+    'plot_area_hectares',
+    'plot_area_measurement',
     'affected_area_hectares',
     'affected_area_measurement',
     'affected_portion_percent',
@@ -254,6 +256,15 @@ class Report extends Model
     {
         return $this->affected_area_measurement
             ?? ($this->affected_area_hectares === null
+                ? self::MEASUREMENT_NOT_MEASURED
+                : self::MEASUREMENT_MEASURED);
+    }
+
+    /** @see affectedAreaMeasurement() */
+    public function plotAreaMeasurement(): string
+    {
+        return $this->plot_area_measurement
+            ?? ($this->plot_area_hectares === null
                 ? self::MEASUREMENT_NOT_MEASURED
                 : self::MEASUREMENT_MEASURED);
     }
@@ -618,6 +629,26 @@ class Report extends Model
         return $query->whereNull($query->qualifyColumn('predicted_label'));
     }
 
+    /**
+     * Reports whose affected area is a real measurement, for aggregates.
+     *
+     * Rows written before D-01 carry no provenance, so a stored figure with a
+     * null measurement still reads as measured (see affectedAreaMeasurement());
+     * anything marked not_measured, or with no figure, never contributes.
+     *
+     * @param  Builder<Report>  $query
+     * @return Builder<Report>
+     */
+    public function scopeWithMeasuredAffectedArea(Builder $query): Builder
+    {
+        return $query
+            ->whereNotNull($query->qualifyColumn('affected_area_hectares'))
+            ->where(function (Builder $measured) use ($query): void {
+                $measured->where($query->qualifyColumn('affected_area_measurement'), self::MEASUREMENT_MEASURED)
+                    ->orWhereNull($query->qualifyColumn('affected_area_measurement'));
+            });
+    }
+
     public function hasAiScan(): bool
     {
         return $this->predicted_label !== null;
@@ -904,7 +935,9 @@ class Report extends Model
             'sugarcane_variety' => 'string',
             'crop_age' => 'string',
             'cane_class' => 'string',
-            'affected_area_hectares' => 'decimal:2',
+            'plot_area_hectares' => 'decimal:4',
+            'plot_area_measurement' => 'string',
+            'affected_area_hectares' => 'decimal:4',
             'affected_area_measurement' => 'string',
             'affected_portion_percent' => 'decimal:2',
             'affected_portion_measurement' => 'string',

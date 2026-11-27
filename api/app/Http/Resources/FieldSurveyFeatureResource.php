@@ -24,6 +24,7 @@ class FieldSurveyFeatureResource extends JsonResource
                 'affected_area_sqm' => $this->affected_area_sqm === null
                     ? null
                     : (float) $this->affected_area_sqm,
+                'affected_area_measurement' => $this->resource->affectedAreaMeasurement(),
                 'cases' => $this->resource->getAttribute('case_links') ?? [],
                 'inspector' => [
                     'uuid' => $this->inspector->uuid,

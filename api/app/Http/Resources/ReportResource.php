@@ -81,6 +81,10 @@ class ReportResource extends JsonResource
                 'sugarcane_variety' => $this->sugarcane_variety,
                 'crop_age' => $this->crop_age,
                 'cane_class' => $this->cane_class,
+                'plot_area_hectares' => $this->plot_area_hectares === null
+                    ? null
+                    : (float) $this->plot_area_hectares,
+                'plot_area_measurement' => $this->resource->plotAreaMeasurement(),
                 'affected_area_hectares' => $this->affected_area_hectares === null
                     ? null
                     : (float) $this->affected_area_hectares,
@@ -404,6 +408,7 @@ class ReportResource extends JsonResource
                     'name' => $survey->inspector->name,
                 ],
                 'affected_area_sqm' => $survey->affected_area_sqm === null ? null : (float) $survey->affected_area_sqm,
+                'affected_area_measurement' => $survey->affectedAreaMeasurement(),
                 'affected_percent' => ReportAffectedFieldResource::affectedPercent($survey),
             ],
         ];

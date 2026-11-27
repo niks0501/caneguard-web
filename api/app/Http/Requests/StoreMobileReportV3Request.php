@@ -30,6 +30,7 @@ class StoreMobileReportV3Request extends ApiFormRequest
         $provenance = [];
 
         foreach ([
+            'plot_area_measurement' => 'plot_area_hectares',
             'affected_area_measurement' => 'affected_area_hectares',
             'affected_portion_measurement' => 'affected_portion_percent',
         ] as $measurementField => $valueField) {

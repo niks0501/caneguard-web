@@ -20,6 +20,9 @@ final class BuildWeeklyReportContent
 
     public const FIRST_CASE_LOOKBACK_WEEKS = 4;
 
+    /** Areas accumulate in these integer units per hectare: the 4 decimals the reports table stores. */
+    private const AREA_UNITS_PER_HECTARE = 10000;
+
     public function period(string $week): array
     {
         if (! preg_match('/^(\d{4})-W(\d{2})$/', $week, $parts)) {
@@ -90,15 +93,20 @@ final class BuildWeeklyReportContent
                 $farmers[json_encode([$bkey, $name], JSON_THROW_ON_ERROR)] = true;
                 $namedReports++;
             }
-            if ($disease !== null && $report->affected_area_hectares !== null) {
-                $cents = max(0, (int) round((float) $report->affected_area_hectares * 100));
-                $area[$disease]['sum_of_reported_areas_may_overlap'] += $cents;
+            // Only a measured area counts. A not-measured row is unknown, not zero,
+            // and must not enter either the estimate or the overlapping sum.
+            // Areas accumulate as integer ten-thousandths of a hectare (the stored
+            // 4 decimals) and are divided down once, so a 40 m2 patch is kept.
+            if ($disease !== null && $report->affected_area_hectares !== null
+                && $report->affectedAreaMeasurement() === Report::MEASUREMENT_MEASURED) {
+                $units = max(0, (int) round((float) $report->affected_area_hectares * self::AREA_UNITS_PER_HECTARE));
+                $area[$disease]['sum_of_reported_areas_may_overlap'] += $units;
                 $barangays[$bkey]['hectares_by_disease'][$disease] ??= ['estimate' => 0, 'sum_may_overlap' => 0];
-                $barangays[$bkey]['hectares_by_disease'][$disease]['sum_may_overlap'] += $cents;
+                $barangays[$bkey]['hectares_by_disease'][$disease]['sum_may_overlap'] += $units;
                 // An unnamed farm cannot establish an overlap-controlled group. Do not invent one.
-                if ($name !== '' && $report->affectedAreaMeasurement() === 'measured') {
+                if ($name !== '') {
                     $gkey = json_encode([$bkey, $name, $disease], JSON_THROW_ON_ERROR);
-                    $groups[$gkey] = ['barangay' => $bkey, 'disease' => $disease, 'max' => max($groups[$gkey]['max'] ?? 0, $cents)];
+                    $groups[$gkey] = ['barangay' => $bkey, 'disease' => $disease, 'max' => max($groups[$gkey]['max'] ?? 0, $units)];
                 }
             }
             if (in_array($report->action_taken, ['advisory_provided', 'technical_assistance_provided', 'no_further_action_required'], true)) {
@@ -126,15 +134,15 @@ final class BuildWeeklyReportContent
             $barangays[$group['barangay']]['hectares_by_disease'][$group['disease']]['estimate'] += $group['max'];
         }
         foreach ($area as &$item) {
-            $item['overlap_controlled_estimate'] /= 100;
-            $item['sum_of_reported_areas_may_overlap'] /= 100;
+            $item['overlap_controlled_estimate'] /= self::AREA_UNITS_PER_HECTARE;
+            $item['sum_of_reported_areas_may_overlap'] /= self::AREA_UNITS_PER_HECTARE;
         }
         unset($item);
         foreach ($barangays as &$barangay) {
             ksort($barangay['hectares_by_disease']);
             foreach ($barangay['hectares_by_disease'] as &$hectares) {
-                $hectares['estimate'] /= 100;
-                $hectares['sum_may_overlap'] /= 100;
+                $hectares['estimate'] /= self::AREA_UNITS_PER_HECTARE;
+                $hectares['sum_may_overlap'] /= self::AREA_UNITS_PER_HECTARE;
             }
             unset($hectares);
         }
