@@ -21,11 +21,9 @@ describe("mock review persistence", () => {
     expect(assignment?.fieldValidationAssignment?.targetVisitDate).toBe("2026-12-01");
     expect(assignment?.lifecycle?.fieldValidationState).toBe("assigned");
 
-    await repository.recordHandoffNote(initial.uuid, {
+    await repository.updateReview(initial.uuid, {
       expectedVersion: reviewed.reviewVersion!,
-      destination: "District office",
-      sentDate: "2026-12-02",
-      note: "Request follow-up",
+      notes: "Inspect the affected field",
     });
     await expect(repository.updateReview(initial.uuid, {
       expectedVersion: reviewed.reviewVersion!,
@@ -34,7 +32,6 @@ describe("mock review persistence", () => {
 
     const latest = await repository.getReportById(initial.uuid);
     expect(latest?.reviewNotes).toBe("Inspect the affected field");
-    expect(latest?.handoffNotes?.[0].note).toBe("Request follow-up");
     const updated = await repository.updateReview(initial.uuid, {
       expectedVersion: latest!.reviewVersion!,
       actionTaken: "technical_assistance_provided",
@@ -47,17 +44,11 @@ describe("mock review persistence", () => {
     expect(saved?.reviewVersion).toBe(updated.reviewVersion);
   });
 
-  it("rejects stale handoff notes, boundary links and duplicate links with a conflict", async () => {
+  it("rejects stale boundary links and duplicate links with a conflict", async () => {
     const repository = new MockReportsRepository();
     const [first, second] = (await repository.listReports()).reports;
     const version = first.reviewVersion ?? 0;
     const staleVersion = version - 1;
-
-    await expect(repository.recordHandoffNote(first.uuid, {
-      expectedVersion: staleVersion,
-      destination: "District office",
-      sentDate: "2026-12-02",
-    })).rejects.toMatchObject({ name: "ApiError", status: 409 });
 
     await expect(repository.updateAffectedFields(first.uuid, {
       expectedVersion: staleVersion,

@@ -19,7 +19,6 @@ import type {
   DuplicateLinkInput,
   DuplicateUnlinkInput,
   ReportReviewInput,
-  HandoffNoteInput,
 } from "../../domain/review.types";
 import { noAiScanLabel, predictedDiseaseLabel } from "../../domain/report.metadata";
 import { deriveWorkflowStatus } from "../../domain/workflowStatus";
@@ -559,24 +558,6 @@ export class MockReportsRepository implements ReportsRepository {
     };
     this.reports[index] = updated;
     return cloneMockReport(updated);
-  }
-
-  async recordHandoffNote(reportId: string, input: HandoffNoteInput): Promise<DiseaseReport> {
-    const report = this.reports.find((item) => item.uuid === reportId);
-    if (!report) throw new Error(`Report ${reportId} was not found.`);
-    if ((report.reviewVersion ?? 0) !== input.expectedVersion) {
-      throw new ApiError("The report changed while the handoff note was being saved.", { status: 409 });
-    }
-    report.handoffNotes = [{
-      id: (report.handoffNotes?.length ?? 0) + 1,
-      destination: input.destination.trim(),
-      reference: input.reference?.trim() || null,
-      sent_date: input.sentDate,
-      note: input.note?.trim() || null,
-      advice_received_note: input.adviceReceivedNote?.trim() || null,
-    }, ...(report.handoffNotes ?? [])];
-    report.reviewVersion = input.expectedVersion + 1;
-    return cloneMockReport(report);
   }
 
   async linkDuplicate(

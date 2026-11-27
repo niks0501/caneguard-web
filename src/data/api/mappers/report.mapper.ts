@@ -366,7 +366,6 @@ export function mapReportDetail(
             : undefined,
         }
       : dto.field_validation_assignment,
-    handoffNotes: dto.handoff_notes ?? [],
     referral: dto.referral
       ? {
           id: dto.referral.id,

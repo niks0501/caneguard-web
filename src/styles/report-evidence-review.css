@@ -353,3 +353,134 @@
   .advisory-delete-modal .modal-footer { flex-wrap: wrap; }
   .advisory-delete-modal .modal-footer .button { flex: 1 1 100%; }
 }
+
+/* Case review: one structural-green case bar carries identity, progress and the
+   next step; a quiet toolbar holds case tools; evidence and the decision rail
+   share one card language below. Scoped to Case Review selectors only. */
+.case-bar {
+  --case-bar-rule: rgba(240, 228, 184, 0.22);
+  --case-bar-track: rgba(240, 228, 184, 0.24);
+  --case-bar-reached: var(--brand-cream);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-4) var(--space-6);
+  margin: var(--space-2) 0 var(--space-3);
+  padding: var(--space-5) var(--space-6) 0;
+  color: var(--case-bar-ink);
+  background: var(--case-bar-bg);
+  border: 1px solid var(--case-bar-border);
+  border-radius: var(--radius-case-card);
+  overflow: hidden;
+}
+:root[data-theme="dark"] .case-bar { --case-bar-rule: rgba(240, 228, 184, 0.16); }
+.case-bar__identity { min-width: 0; }
+.case-bar h1 {
+  margin: 0;
+  color: inherit;
+  font-family: var(--font-heading);
+  font-size: var(--text-page-title);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.case-bar__identity p { margin: var(--space-2) 0 0; color: var(--case-bar-muted); font-size: var(--text-body-sm); }
+.case-bar__status { display: flex; justify-content: flex-end; min-width: 0; }
+.case-bar .workflow-status { align-items: flex-end; gap: var(--space-3); }
+.case-bar .workflow-status-badge { color: var(--brand-structural-green); background: var(--brand-cream); border-color: transparent; }
+.case-bar .workflow-status-badge--resolved { color: var(--brand-structural-green); background: var(--case-bar-resolved); }
+.case-bar .workflow-track { display: grid; grid-template-columns: repeat(4, minmax(5.5rem, auto)); gap: var(--space-2); color: var(--case-bar-muted); font-size: var(--text-body-sm); }
+.case-bar .workflow-track__separator { display: none; }
+.case-bar .workflow-track__step { display: grid; gap: 6px; padding: 0; }
+.case-bar .workflow-track__step::before { content: ""; display: block; height: 4px; border-radius: var(--radius-track); background: var(--case-bar-track); }
+.case-bar .workflow-track__step.is-reached { color: var(--case-bar-ink); }
+.case-bar .workflow-track__step.is-reached::before { background: var(--case-bar-reached); }
+.case-bar .workflow-track__step.is-current::before { background: var(--case-bar-current); }
+.case-bar__guide {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-5);
+  margin: 0 calc(-1 * var(--space-6));
+  padding: var(--space-3) var(--space-6);
+  border-top: 1px solid var(--case-bar-rule);
+  background: rgba(0, 0, 0, 0.16);
+}
+.case-bar .review-next-line { margin: 0; padding: 0; border: 0; background: none; color: var(--case-bar-ink); font-size: var(--text-body-sm); }
+.case-bar .review-next-line strong { color: var(--case-bar-current); }
+.case-bar .review-case-meta__queue { margin: 0; color: var(--case-bar-muted); font-size: var(--text-body-sm); }
+.case-bar .review-case-meta__queue a { color: var(--case-bar-ink); font-weight: 700; text-underline-offset: 3px; }
+.case-bar a:focus-visible { outline: none; border-radius: var(--radius-sm); box-shadow: var(--focus-ring); }
+
+.case-toolbar { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-2) var(--space-4); margin: 0 0 var(--space-4); }
+.case-toolbar__tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); min-width: 0; }
+.case-toolbar__tools > .button svg { width: 17px; height: 17px; flex: none; }
+.case-toolbar .review-handoff-panel { flex-basis: 100%; order: 10; padding: var(--space-4); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+.case-toolbar .needs-decision-banner { margin: 0; padding: 0; border: 0; }
+.case-toolbar .needs-decision-banner .button { color: var(--color-inverse-text); background: var(--color-action); border-color: var(--color-action); }
+.case-toolbar .needs-decision-banner .button:hover { background: var(--color-action-hover); }
+
+/* Case-level banners share the case card corner. */
+.case-toolbar ~ .duplicate-strip,
+.case-toolbar ~ .duplicate-banner,
+.case-toolbar ~ .resolved-summary { border-radius: var(--radius-case-card); }
+
+/* Cautions read as one warning callout with its guidance tucked inside. */
+.review-status-chips:empty { display: none; }
+.review-status-chips:not(:empty) { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-4); margin: 0 0 var(--space-4); padding: var(--space-3) var(--space-4); background: var(--color-warning-soft); border: 1px solid color-mix(in srgb, var(--color-warning) 35%, transparent); border-left: 4px solid var(--color-warning); border-radius: var(--radius-md); }
+.review-status-chips .review-caution-line { margin: 0; color: var(--color-text); font-weight: 600; }
+.review-status-chips .review-caution-guidance { margin: 0; color: var(--color-secondary-text); }
+.review-status-chips .review-caution-guidance[open] { flex-basis: 100%; }
+.review-status-chips .review-caution-guidance summary { color: var(--color-warning); font-weight: 600; }
+
+/* Evidence: one heading scale, the AI hint as its own quiet panel, places as chips. */
+.review-single-column .review-card { border: 1px solid var(--color-border); border-radius: var(--radius-case-card); box-shadow: none; }
+.review-single-column .review-evidence > h2 { margin: 0 0 var(--space-4); font-size: var(--text-section-title); font-weight: 700; color: var(--color-primary-dark); }
+.review-single-column .review-evidence__photo .section-heading { margin-bottom: var(--space-3); }
+.review-single-column .review-evidence__photo .section-heading h2,
+.review-single-column .review-evidence__observations h3 { margin: 0 0 var(--space-2); font-size: var(--text-body-sm); font-weight: 700; letter-spacing: 0; color: var(--color-secondary-text); }
+.review-single-column .review-evidence__photo .evidence-stage { border-radius: var(--radius-case-inner); overflow: hidden; }
+.review-single-column .review-evidence__photo .evidence-meta { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); margin-top: var(--space-3); color: var(--color-muted); font-size: var(--text-body-sm); }
+.review-single-column .review-evidence__observations { gap: var(--space-5); align-content: start; }
+.review-single-column .review-evidence__observations > section:first-child { padding: var(--space-4); background: var(--color-surface-soft); border-radius: var(--radius-case-inner); border-left: 4px solid var(--brand-gold); }
+.review-single-column .review-evidence__observations > section:first-child p { margin: var(--space-2) 0 0; color: var(--color-secondary-text); font-size: var(--text-body-sm); }
+.review-single-column .review-evidence__observations p { font-size: var(--text-body-sm); }
+.review-single-column .review-evidence__context { grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)); }
+.review-single-column .review-evidence__context .detail-field:first-child { grid-column: 1 / -1; }
+.case-location { display: grid; gap: var(--space-2); }
+.case-location__sync { color: var(--color-warning); font-weight: 600; }
+.case-location__links { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.link-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 var(--space-3); color: var(--color-primary-dark); font-size: var(--text-body-sm); font-weight: 600; text-decoration: none; background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill); }
+.link-chip svg { width: 16px; height: 16px; flex: none; }
+.link-chip:hover { background: var(--color-primary-tint); border-color: var(--color-primary); }
+.link-chip:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Decision rail: the whole three-step form reads as one card. */
+.review-single-column > .review-decision-flow { gap: 0; padding: var(--space-5); background: var(--color-surface); border: 1px solid var(--color-border-strong); border-top: 4px solid var(--color-primary-fill); border-radius: var(--radius-case-card); }
+.review-single-column > .review-decision-flow > .review-card { padding: 0; border: 0; border-radius: 0; box-shadow: none; background: none; }
+.review-single-column > .review-decision-flow h2 { margin: 0 0 var(--space-3); font-size: var(--text-section-title); font-weight: 700; color: var(--color-primary-dark); }
+.review-single-column > .review-decision-flow .review-actions > legend { margin-bottom: var(--space-3); color: var(--color-secondary-text); font-size: var(--text-body-sm); font-weight: 600; }
+.review-single-column > .review-decision-flow .review-action-pill { border-radius: var(--radius-case-inner); transition: border-color var(--transition-fast), background-color var(--transition-fast); }
+.review-single-column > .review-decision-flow .review-action-pill.is-selected,
+.review-single-column > .review-decision-flow .review-action-pill:has(input:checked) { border-color: var(--color-primary); background: var(--color-primary-tint); box-shadow: inset 3px 0 0 var(--color-primary-fill); }
+.review-single-column > .review-decision-flow .review-decision-controls { margin-top: var(--space-4); padding: var(--space-4) 0 0; border-top: 1px solid var(--color-border); }
+
+@media (max-width: 760px) {
+  .case-bar { grid-template-columns: minmax(0, 1fr); padding: var(--space-4) var(--space-4) 0; }
+  .case-bar__status { justify-content: flex-start; }
+  .case-bar .workflow-status { align-items: flex-start; }
+  .case-bar .workflow-track { grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; }
+  .case-bar__guide { margin: 0 calc(-1 * var(--space-4)); padding: var(--space-3) var(--space-4); }
+  .case-toolbar .needs-decision-banner,
+  .case-toolbar .needs-decision-banner .button { width: 100%; }
+  .review-single-column .review-evidence__context { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .review-single-column > .review-decision-flow .review-action-pill { transition: none; }
+}
+@media print {
+  .case-bar { color: var(--color-text); background: none; border: 1px solid var(--color-text); }
+  .case-toolbar { display: none; }
+}

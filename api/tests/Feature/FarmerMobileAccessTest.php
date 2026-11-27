@@ -73,7 +73,6 @@ class FarmerMobileAccessTest extends TestCase
             '/api/v2/mobile/reports',
             '/api/v1/mobile/field-surveys',
             '/api/v1/district-reports',
-            "/api/v1/reports/{$report->uuid}/handoff-notes",
         ] as $path) {
             $this->postJson($path, [])->assertForbidden();
         }

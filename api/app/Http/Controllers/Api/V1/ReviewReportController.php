@@ -312,7 +312,6 @@ class ReviewReportController extends Controller
             'referrals.expert',
             'referral.symptomFindings',
             'referrals.symptomFindings',
-            'handoffNotes',
             'audits.actor',
             ...$this->reviewEventRelations(),
             ...AerialSwitch::relations(),

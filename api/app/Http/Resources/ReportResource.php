@@ -315,7 +315,6 @@ class ReportResource extends JsonResource
                     ])
                     ->values(),
             ],
-            'handoff_notes' => $this->handoffNotes,
             'first_reviewed_at' => $this->first_reviewed_at?->utc()->toISOString(),
             'scheduled_revisit' => (bool) $this->scheduled_revisit,
             'attention_band' => $riskBand['band'],

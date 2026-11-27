@@ -20,7 +20,6 @@ import type {
   DuplicateLinkInput,
   DuplicateUnlinkInput,
   ReportReviewInput,
-  HandoffNoteInput,
 } from "../../domain/review.types";
 import { mapPossibleRecentMatches } from "./mappers/duplicate.mapper";
 import {
@@ -304,18 +303,6 @@ export class ApiReportsRepository implements ReportsRepository {
       payload,
     );
 
-    return mapReportDetail(reviewResponseSchema.parse(response.data).data);
-  }
-
-  async recordHandoffNote(reportId: string, input: HandoffNoteInput): Promise<DiseaseReport> {
-    const response = await this.client.post(`/api/v1/reports/${encodeURIComponent(reportId)}/handoff-notes`, {
-      destination: input.destination.trim(),
-      reference: input.reference?.trim() || null,
-      sent_date: input.sentDate,
-      note: input.note?.trim() || null,
-      advice_received_note: input.adviceReceivedNote?.trim() || null,
-      expected_version: input.expectedVersion,
-    });
     return mapReportDetail(reviewResponseSchema.parse(response.data).data);
   }
 

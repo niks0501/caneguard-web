@@ -15,7 +15,6 @@ import type {
   DuplicateLinkInput,
   DuplicateUnlinkInput,
   ReportReviewInput,
-  HandoffNoteInput,
 } from "../../domain/review.types";
 
 export interface ReportsRepository {
@@ -47,7 +46,6 @@ export interface ReportsRepository {
     reportId: string,
     input: ReportReviewInput,
   ): Promise<DiseaseReport>;
-  recordHandoffNote(reportId: string, input: HandoffNoteInput): Promise<DiseaseReport>;
   linkDuplicate(
     reportId: string,
     input: DuplicateLinkInput,

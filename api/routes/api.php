@@ -45,7 +45,6 @@ use App\Http\Controllers\Api\V1\ReportAnalyticsController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\ReportDocumentController;
 use App\Http\Controllers\Api\V1\ReportExportController;
-use App\Http\Controllers\Api\V1\ReportHandoffNoteController;
 use App\Http\Controllers\Api\V1\ReportImageController;
 use App\Http\Controllers\Api\V1\ReportPossibleMatchesController;
 use App\Http\Controllers\Api\V1\ReportReviewClaimController;
@@ -231,7 +230,6 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'access.identity', 'verified'])
             ->name('api.v1.reports.review-claim.destroy');
         Route::post('/reports/{report}/open', OpenReportController::class)
             ->name('api.v1.reports.open');
-        Route::post('/reports/{report}/handoff-notes', ReportHandoffNoteController::class);
         Route::post('/reports/{report}/duplicate-link', [LinkDuplicateReportController::class, 'store'])
             ->name('api.v1.reports.duplicate-link');
         Route::delete('/reports/{report}/duplicate-link', [LinkDuplicateReportController::class, 'destroy'])

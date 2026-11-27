@@ -14,12 +14,11 @@ import { server } from "../test/server";
 import { fieldValidationKeys } from "./fieldValidationQueries";
 import { dashboardKeys } from "./useDashboard";
 import { aerialSettingsKey, caseReadsInFlight, reportKeys, reportQueryOptions } from "./reportQueries";
-import { useAddAerialAnalysis, useCreateAdvisory, useDeleteAdvisory, useRecordHandoffNote, useUpdateAdvisory, useUpdateReportReview } from "./useReports";
+import { useAddAerialAnalysis, useCreateAdvisory, useDeleteAdvisory, useUpdateAdvisory, useUpdateReportReview } from "./useReports";
 
 vi.mock("../services/reports.service", () => ({
   reportsRepository: {
     updateReview: vi.fn(),
-    recordHandoffNote: vi.fn(),
     addAerialAnalysis: vi.fn(),
     getReportById: vi.fn(),
     createAdvisory: vi.fn(),
@@ -46,25 +45,6 @@ describe("report mutations", () => {
     });
     expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true);
   });
-  it("caches the version returned by a plain handoff save", async () => {
-    const queryClient = createQueryClient();
-    const report = mapReportDetail(reportDetailResponseSchema.parse({
-      data: { ...reportDetailDto, version: reportDetailDto.version + 1 },
-    }).data);
-    vi.mocked(reportsRepository.recordHandoffNote).mockResolvedValue(report);
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-    );
-    const { result } = renderHook(() => useRecordHandoffNote(report.uuid), { wrapper });
-    await act(async () => {
-      await result.current.mutateAsync({ destination: "Offline validator", sentDate: "2026-10-04", expectedVersion: reportDetailDto.version });
-    });
-    expect(queryClient.getQueryData(reportKeys.detail(report.uuid))).toEqual(report);
-    expect(reportsRepository.recordHandoffNote).toHaveBeenCalledWith(report.uuid, {
-      destination: "Offline validator", sentDate: "2026-10-04", expectedVersion: reportDetailDto.version,
-    });
-  });
-
   it("updates detail and invalidates all report-dependent queries after success", async () => {
     const queryClient = createQueryClient();
     const report = mapReportDetail(

@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -114,7 +115,6 @@ class ReportReferralTest extends TestCase
             $this->getJson('/api/v1/reports')->assertForbidden();
             $this->getJson("/api/v1/reports/{$report->uuid}")->assertForbidden();
             $this->get("/api/v1/reports/{$report->uuid}/referral/summary?download=1")->assertForbidden();
-            $this->postJson("/api/v1/reports/{$report->uuid}/handoff-notes", [])->assertForbidden();
         }
         $this->assertNotContains('expert', User::roles());
         $this->assertNotContains('expert', User::webRoles());
@@ -149,39 +149,17 @@ class ReportReferralTest extends TestCase
         $this->assertArrayNotHasKey('experts:referral-reminders', Artisan::all());
     }
 
-    public function test_plain_handoff_note_does_not_write_an_expert_lifecycle_or_notification(): void
-    {
-        $report = Report::factory()->inDistrict($this->pilotDistrict())->create(['referral_state' => 'expert_response_received', 'action_taken' => 'referred_for_expert_validation']);
-        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
-        $this->postJson("/api/v1/reports/{$report->uuid}/handoff-notes", [
-            'destination' => ' Offline agronomy desk ', 'reference' => ' EXT-42 ', 'sent_date' => '2026-10-04',
-            'note' => 'Printed case summary sent.', 'advice_received_note' => 'Offline advice retained as a note.', 'expected_version' => 0,
-        ])->assertOk()->assertJsonPath('data.handoff_notes.0.destination', 'Offline agronomy desk');
-        $this->assertDatabaseCount('report_referrals', 0);
-        $this->assertDatabaseCount('notifications', 0);
-        $this->assertSame('expert_response_received', $report->fresh()->referral_state);
-        $this->assertSame('referred_for_expert_validation', $report->fresh()->action_taken);
-        $this->assertSame(1, $report->fresh()->lock_version);
-        $migration = require database_path('migrations/2026_10_04_000001_create_report_handoff_notes_table.php');
-        $migration->down();
-        $migration->up();
-        $this->assertDatabaseCount('report_handoff_notes', 1);
-        $this->get("/api/v1/reports/{$report->uuid}/referral/summary?download=1")
-            ->assertOk()->assertSee('Offline agronomy desk')->assertSee('EXT-42')->assertSee('Offline advice retained as a note.');
-    }
-
-    public function test_handoff_notes_require_authority_valid_fields_and_current_version(): void
+    public function test_offline_handoff_notes_are_removed(): void
     {
         $report = Report::factory()->inDistrict($this->pilotDistrict())->create();
         Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create());
-        $url = "/api/v1/reports/{$report->uuid}/handoff-notes";
-        $this->postJson($url, ['expected_version' => 0])->assertUnprocessable();
-        $input = ['destination' => 'Desk', 'sent_date' => '2026-10-04', 'expected_version' => 1];
-        $this->postJson($url, $input)->assertConflict();
-        $this->postJson($url, [...$input, 'expected_version' => 0, 'due_date' => '2026-10-11'])->assertUnprocessable();
-        Sanctum::actingAs(User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create());
-        $this->postJson($url, [...$input, 'expected_version' => 0])->assertForbidden();
-        $this->assertDatabaseCount('report_handoff_notes', 0);
+        $this->postJson("/api/v1/reports/{$report->uuid}/handoff-notes", [
+            'destination' => 'Desk', 'sent_date' => '2026-10-04', 'expected_version' => 0,
+        ])->assertNotFound();
+        $this->getJson("/api/v1/reports/{$report->uuid}")->assertOk()->assertJsonMissingPath('data.handoff_notes');
+        $this->get("/api/v1/reports/{$report->uuid}/referral/summary")->assertOk()->assertDontSee('Offline handoff note');
+        $this->assertFalse(Schema::hasTable('report_handoff_notes'));
+        $this->assertSame(0, $report->fresh()->lock_version);
     }
 
     public function test_historical_records_and_recommendations_remain_readable_and_printable(): void

@@ -6,8 +6,8 @@ offline client.
 
 ## Current policy: online-only writes with protected in-memory drafts
 
-- Every Web write is a live, authenticated request. A review, handoff note,
-  visit assignment, boundary link or account change is confirmed only after the
+- Every Web write is a live, authenticated request. A review, visit
+  assignment, boundary link or account change is confirmed only after the
   server acknowledges it.
 - There is no Web outbox, no queued mutation and no automatic replay. Nothing a
   reviewer typed is sent later on their behalf, and an outage never produces a
@@ -16,7 +16,7 @@ offline client.
   refusal, a failed save, an expired conflict and a connectivity loss, but a
   page reload or a closed tab discards it. This is intentional on shared office
   computers.
-- Leaving a dirty review, handoff note, visit editor or boundary-rate draft is
+- Leaving a dirty review, visit editor or boundary-rate draft is
   blocked behind one explicit Stay / Discard decision, and the browser's unload
   warning stays active while the draft is dirty.
 - Official weekly preparation, approval and sending are online-only. They are

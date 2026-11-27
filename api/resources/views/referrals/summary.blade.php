@@ -208,18 +208,6 @@
             </dl>
         </section>
         @endforeach
-        @foreach ($summary['handoff_notes'] as $handoff)
-        <section>
-            <h2>Offline handoff note</h2>
-            <dl>
-                <div><dt>Destination</dt><dd>{{ $handoff->destination }}</dd></div>
-                <div><dt>External reference</dt><dd>{{ $handoff->reference ?: 'Not recorded' }}</dd></div>
-                <div><dt>Sent date</dt><dd>{{ $handoff->sent_date->format('j F Y') }}</dd></div>
-                <div class="full"><dt>Note</dt><dd>{{ $handoff->note ?: 'Not recorded' }}</dd></div>
-                <div class="full"><dt>Advice received note</dt><dd>{{ $handoff->advice_received_note ?: 'Not recorded' }}</dd></div>
-            </dl>
-        </section>
-        @endforeach
     </main>
     <script nonce="{{ request()->attributes->get('csp_nonce') }}">
         document.getElementById('print-summary')?.addEventListener('click', () => window.print());

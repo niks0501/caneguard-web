@@ -11,7 +11,6 @@ import type {
   DuplicateLinkInput,
   DuplicateUnlinkInput,
   ReportReviewInput,
-  HandoffNoteInput,
 } from "../domain/review.types";
 import { reportsRepository } from "../services/reports.service";
 import {
@@ -177,11 +176,6 @@ export function useUpdateReportReview(reportId: string) {
     reportId,
     (input) => reportsRepository.updateReview(reportId, input),
   );
-}
-
-export function useRecordHandoffNote(reportId: string) {
-  return useReportMutation<HandoffNoteInput>(reportId,
-    (input) => reportsRepository.recordHandoffNote(reportId, input));
 }
 
 export function useLinkDuplicateReport(reportId: string) {

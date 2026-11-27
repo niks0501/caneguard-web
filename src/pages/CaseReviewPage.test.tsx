@@ -16,7 +16,6 @@ import { useFieldReporters } from "../hooks/useFieldReporters";
 import { useFieldSurveys } from "../hooks/fieldSurveys";
 import {
   useAdvisories,
-  useRecordHandoffNote,
   useLinkDuplicateReport,
   usePossibleRecentMatches,
   useReports,
@@ -36,7 +35,6 @@ vi.mock("../hooks/useReports", () => ({
   useCreateAdvisory: vi.fn(() => ({ mutateAsync: vi.fn() })),
   useUpdateAdvisory: vi.fn(() => ({ mutateAsync: vi.fn() })),
   useDeleteAdvisory: vi.fn(() => ({ mutateAsync: vi.fn() })),
-  useRecordHandoffNote: vi.fn(),
   useLinkDuplicateReport: vi.fn(),
   usePossibleRecentMatches: vi.fn(),
   useReports: vi.fn(),
@@ -283,7 +281,6 @@ async function chooseAdvisory(user: ReturnType<typeof userEvent.setup>) {
 
 beforeEach(() => {
   vi.mocked(useAdvisories).mockReturnValue({ data: [officeAdvisory], isError: false } as unknown as ReturnType<typeof useAdvisories>);
-  vi.mocked(useRecordHandoffNote).mockReturnValue({ mutateAsync: vi.fn(), isPending: false, isError: false } as unknown as ReturnType<typeof useRecordHandoffNote>);
   vi.mocked(useFieldReporters).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useFieldReporters>);
   vi.mocked(useFieldSurveys).mockReturnValue({
     data: { type: "FeatureCollection", features: [], metadata: { totalCount: 0, returnedCount: 0, limit: 250, truncated: false } },
@@ -420,7 +417,6 @@ describe("CaseReviewPage", () => {
       <Route path="/reports/:reportId" element={<><CaseReviewPage /><Link to="/reports/next-case">Open other case</Link></>} />
     </Routes></MemoryRouter>);
     fireEvent.error(screen.getByRole("img", { name: `Submitted sugarcane photo for ${report.referenceCode}` }));
-    await user.click(screen.getByText("Other case actions"));
     await user.click(screen.getByRole("button", { name: "Correct case information" }));
     const correction = screen.getByRole("dialog", { name: "Correct case information" });
     await user.clear(within(correction).getByLabelText("Farmer or farm owner"));
@@ -429,7 +425,6 @@ describe("CaseReviewPage", () => {
     await user.click(screen.getByRole("link", { name: "Open other case" }));
     expect(screen.getByRole("heading", { level: 1, name: "CG-NEXT" })).toBeInTheDocument();
     expect(screen.queryByText("Image could not be loaded.")).not.toBeInTheDocument();
-    await user.click(screen.getByText("Other case actions"));
     await user.click(screen.getByRole("button", { name: "Correct case information" }));
     expect(screen.getByLabelText("Farmer or farm owner")).toHaveValue("Next farm owner");
     discard.mockRestore();
@@ -463,7 +458,6 @@ describe("CaseReviewPage", () => {
       ],
     }], { initialEntries: [`/reports/${report.uuid}`] });
     render(<RouterProvider router={router} />);
-    await user.click(screen.getByText("Other case actions"));
     await user.click(screen.getByRole("button", { name: "Correct case information" }));
     const correction = screen.getByRole("dialog", { name: "Correct case information" });
     await user.type(within(correction).getByLabelText("Farmer or farm owner"), " edited");
@@ -515,22 +509,15 @@ describe("CaseReviewPage", () => {
     expect(save.mock.calls[0][0].actionTaken).toBe("advisory_provided");
   });
 
-  it("keeps a printable case summary and plain handoff note without creating a consult", async () => {
-    const user = userEvent.setup();
-    const save = vi.fn().mockResolvedValue(report);
-    vi.mocked(useRecordHandoffNote).mockReturnValue({ mutateAsync: save, isPending: false, isError: false } as unknown as ReturnType<typeof useRecordHandoffNote>);
+  it("keeps the printable case summary in the case actions without a handoff note form", () => {
     renderPage();
+    const actions = screen.getByRole("region", { name: "Case actions" });
+    const summaryUrl = `${env.apiBaseUrl.replace(/\/$/, "")}/api/v1/reports/${report.uuid}/referral/summary`;
+    expect(within(actions).getByRole("link", { name: "Print case summary" })).toHaveAttribute("href", summaryUrl);
+    expect(within(actions).getByRole("link", { name: "Download case summary" })).toHaveAttribute("href", `${summaryUrl}?download=1`);
     expect(screen.queryByRole("heading", { name: "Expert referral (historical)" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Print case summary" })).toHaveAttribute("href", `${env.apiBaseUrl.replace(/\/$/, "")}/api/v1/reports/${report.uuid}/referral/summary`);
-    await user.click(screen.getByText("Add handoff note"));
-    await user.type(screen.getByLabelText("Destination"), "Offline desk");
-    await user.type(screen.getByLabelText("Sent date"), "2026-10-04");
-    await user.type(screen.getByLabelText("Advice received note (optional)"), "Offline advice");
-    await user.click(screen.getByRole("button", { name: "Save handoff note" }));
-    expect(save).toHaveBeenCalledWith({
-      destination: "Offline desk", reference: "", sentDate: "2026-10-04", note: "", adviceReceivedNote: "Offline advice", expectedVersion: report.reviewVersion,
-    });
-    expect(screen.queryByLabelText(/due date/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/handoff note/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Destination")).not.toBeInTheDocument();
   });
 
   it("offers validated office advisories and excludes drafts and retired items", async () => {
@@ -1092,7 +1079,6 @@ describe("CaseReviewPage", () => {
     expect(strip).toHaveTextContent("Possible Rust");
     expect(strip).toHaveTextContent("Lumbangan");
     expect(strip).toHaveTextContent("Jul 20, 2026, 6:00 PM");
-    expect(screen.getByText("Other case actions").closest("details")).not.toHaveAttribute("open");
     // The strip sits above the evidence and the decision form.
     const decision = screen.getByRole("form", { name: "Report Evidence Review" });
     expect(strip.compareDocumentPosition(decision) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -1949,15 +1935,14 @@ describe("CaseReviewPage", () => {
   });
 
 
-  it("keeps only case information correction under Other case actions", async () => {
+  it("keeps case information correction in the case actions, outside the decision", async () => {
     const user = userEvent.setup();
     withNearbyMatches();
     renderPage();
     await chooseAdvisory(user);
     await user.click(screen.getByRole("button", { name: "Next" }));
 
-    const moreActions = screen.getByRole("region", { name: "Other case actions" });
-    expect(moreActions.closest("details")).toBeInTheDocument();
+    const moreActions = screen.getByRole("region", { name: "Case actions" });
     const decision = screen.getByRole("region", { name: "Review Summary" });
     expect(
       within(decision).queryByRole("button", { name: "Correct case information" }),

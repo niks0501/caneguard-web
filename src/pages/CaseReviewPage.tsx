@@ -2,18 +2,21 @@ import { use, useEffect, useRef, useState } from "react";
 import "../styles/report-evidence-review.css";
 import {
   ClipboardList,
+  Download,
   Drone,
+  ExternalLink,
   History,
   Image as ImageIcon,
-  Link2,
   Map as MapIcon,
-  MoreHorizontal,
+  MapPinned,
+  PencilLine,
+  Printer,
 } from "lucide-react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { ZodError } from "zod";
 import { routes } from "../app/routes";
 import { ApiError } from "../api/ApiError";
-import { DetailField, PageContent, PageHeader } from "../components/layout/Page";
+import { DetailField, PageContent } from "../components/layout/Page";
 import { BeforeAfterPanels } from "../components/reports/BeforeAfterPanels";
 import { EvidenceThumbnail } from "../components/reports/EvidenceThumbnail";
 import { AerialCheckCard } from "../components/reports/AerialCheckCard";
@@ -25,7 +28,6 @@ import { BackLink } from "../components/layout/BackLink";
 import { summarizeCaseFieldMaps } from "../components/boundaries/fieldMapFreshness";
 import { createReturnContext, withReturnContext } from "../components/navigation/mapNavigationContext";
 import { returnLinkLabel, reviewQueueContext } from "../components/reports/reviewQueueContext";
-import { OfflineHandoffNotes } from "../components/reports/OfflineHandoffNotes";
 import { HistoricalReferralPanel } from "../components/reports/HistoricalReferralPanel";
 import { DuplicateCompareModal } from "../components/reports/DuplicateCompareModal";
 import { DuplicateLinkedBanner } from "../components/reports/DuplicateLinkedBanner";
@@ -73,6 +75,7 @@ import {
   useUpdateReportReview,
 } from "../hooks/useReports";
 import { formatCalendarDate, formatClockTime, formatDate, formatDateTime } from "../lib/formatters";
+import { env } from "../config/env";
 import { AuthContext } from "../auth/auth.context";
 import { useReviewClaim } from "../hooks/useReviewClaim";
 
@@ -644,6 +647,7 @@ function CaseReviewContent() {
   if ((reportQuery.isError && (!report || suppressCachedDetail)) || !report) return <PageContent><ErrorState message={detailErrorMessage} onRetry={suppressCachedDetail ? undefined : () => reportQuery.refetch()} /></PageContent>;
 
   const caseFieldMaps = summarizeCaseFieldMaps(report);
+  const caseSummaryUrl = `${env.apiBaseUrl.replace(/\/$/, "")}/api/v1/reports/${encodeURIComponent(report.uuid)}/referral/summary`;
   const caseReturnState = withReturnContext(createReturnContext(routes.reportDetail(report.uuid), `Case ${report.referenceCode}`));
   const fieldMapLinkLabel = caseFieldMaps.plots.length > 1
     ? `View Field Map (${caseFieldMaps.plots.length} plots)`
@@ -779,7 +783,17 @@ function CaseReviewContent() {
             </div>
           </div>
           <dl className="review-evidence__context">
-            <DetailField label="Location"><span>{humanLocationFor(report)}{!hasUsableCoordinates(report) ? ` · Location not available${locationUnavailableReasonFor(report) ? ` — ${locationUnavailableReasonFor(report)}` : ""}` : null}{caseFieldMaps.pendingSync && caseFieldMaps.plots.length === 0 ? <> · <span role="status">Field map syncing from phone</span></> : null} · <Link className="table-action" to={routes.fieldMapForCase(report.uuid, caseFieldMaps.primaryBoundaryId)} state={caseReturnState}>{fieldMapLinkLabel}</Link>{hasUsableCoordinates(report) ? <> · <Link className="table-action" to={routes.monitoringMapForReport(report.uuid)} state={caseReturnState}>View on Monitoring Map</Link></> : null}{mapUrl ? <> · <a className="table-action" href={mapUrl} target="_blank" rel="noreferrer">Open in Google Maps</a></> : null}</span></DetailField>
+            <DetailField label="Location">
+              <span className="case-location">
+                <span>{humanLocationFor(report)}{!hasUsableCoordinates(report) ? ` · Location not available${locationUnavailableReasonFor(report) ? ` — ${locationUnavailableReasonFor(report)}` : ""}` : null}</span>
+                {caseFieldMaps.pendingSync && caseFieldMaps.plots.length === 0 ? <span className="case-location__sync" role="status">Field map syncing from phone</span> : null}
+                <span className="case-location__links">
+                  <Link className="link-chip" to={routes.fieldMapForCase(report.uuid, caseFieldMaps.primaryBoundaryId)} state={caseReturnState}><MapIcon aria-hidden="true" />{fieldMapLinkLabel}</Link>
+                  {hasUsableCoordinates(report) ? <Link className="link-chip" to={routes.monitoringMapForReport(report.uuid)} state={caseReturnState}><MapPinned aria-hidden="true" />View on Monitoring Map</Link> : null}
+                  {mapUrl ? <a className="link-chip" href={mapUrl} target="_blank" rel="noreferrer"><ExternalLink aria-hidden="true" />Open in Google Maps</a> : null}
+                </span>
+              </span>
+            </DetailField>
             {contextFields.filter((field) => field.value !== null).map((field) => <DetailField key={field.label} label={field.label}>{field.value}</DetailField>)}
           </dl>
           {missingContextFields.length ? <p className="review-evidence__missing">Not provided: {missingContextFields.join(", ")}</p> : null}
@@ -956,27 +970,49 @@ function CaseReviewContent() {
         preferred={queueContext ? { to: queueContext.returnTo, label: returnLinkLabel(queueContext.returnTo).replace(/^Back to /, "") } : null}
         fallback={{ to: routes.reports, label: "Cases" }}
       />
-      <PageHeader
-        title={report.referenceCode}
-        description={humanLocationFor(report)}
-        actions={<QueueStatusCell row={report} showIcon />}
-      />
-      <div className="review-case-meta">
-        <p className="review-case-meta__queue">
-          {queueContext && Number.isSafeInteger(queueContext.loadedPosition) && queueContext.loadedPosition! > 0
-            ? `Loaded position ${queueContext.loadedPosition} · ` : null}
-          {queueLeft.length} more loaded
-          {queueContext && nextCaseId ? <> · <Link to={routes.reportDetail(nextCaseId)} state={{ reviewQueue: {
-            returnTo: queueContext.returnTo, filters: queueContext.filters, remainingIds: queueLeft.slice(1),
-            reviewedIds: queueContext.reviewedIds,
-            ...(Number.isSafeInteger(queueContext.loadedPosition) && queueContext.loadedPosition! > 0
-              ? { loadedPosition: queueContext.loadedPosition! + queueContext.remainingIds.indexOf(nextCaseId) + 1 } : {}),
-            ...(queueContext.snapshotOnly ? { snapshotOnly: true } : {}),
-            ...(queueContext.snapshotTruncated ? { snapshotTruncated: true } : {}),
-          } }}>Next case</Link></> : null}
-        </p>
-        <p className="review-next-line"><strong>Next:</strong> {nextLine}</p>
-      </div>
+      <header className="case-bar">
+        <div className="case-bar__identity">
+          <h1>{report.referenceCode}</h1>
+          <p>{humanLocationFor(report)}</p>
+        </div>
+        <div className="case-bar__status">
+          <QueueStatusCell row={report} showIcon />
+        </div>
+        <div className="case-bar__guide review-case-meta">
+          <p className="review-next-line"><strong>Next:</strong> {nextLine}</p>
+          <p className="review-case-meta__queue">
+            {queueContext && Number.isSafeInteger(queueContext.loadedPosition) && queueContext.loadedPosition! > 0
+              ? `Loaded position ${queueContext.loadedPosition} · ` : null}
+            {queueLeft.length} more loaded
+            {queueContext && nextCaseId ? <> · <Link to={routes.reportDetail(nextCaseId)} state={{ reviewQueue: {
+              returnTo: queueContext.returnTo, filters: queueContext.filters, remainingIds: queueLeft.slice(1),
+              reviewedIds: queueContext.reviewedIds,
+              ...(Number.isSafeInteger(queueContext.loadedPosition) && queueContext.loadedPosition! > 0
+                ? { loadedPosition: queueContext.loadedPosition! + queueContext.remainingIds.indexOf(nextCaseId) + 1 } : {}),
+              ...(queueContext.snapshotOnly ? { snapshotOnly: true } : {}),
+              ...(queueContext.snapshotTruncated ? { snapshotTruncated: true } : {}),
+            } }}>Next case</Link></> : null}
+          </p>
+        </div>
+      </header>
+      <section className="case-toolbar" aria-label="Case actions">
+        <div className="case-toolbar__tools">
+          {!reviewLocked ? (
+            <ReviewHandoffPanel
+              onRelease={async (note) => {
+                await reviewClaim.release(note);
+                navigate(queueContext?.returnTo ?? routes.reports);
+              }}
+            />
+          ) : null}
+          <a className="button button--quiet" href={caseSummaryUrl} target="_blank" rel="noreferrer"><Printer aria-hidden="true" />Print case summary</a>
+          <a className="button button--quiet" href={`${caseSummaryUrl}?download=1`}><Download aria-hidden="true" />Download case summary</a>
+          <Button type="button" variant="quiet" icon={<PencilLine aria-hidden="true" />} onClick={openMetadataCorrectionModal}>
+            Correct case information
+          </Button>
+        </div>
+        {awaitingDecision ? <NeedsDecisionBanner targetId="review-decision" /> : null}
+      </section>
       {duplicateLinked && report.canonicalLinkage ? (
         <DuplicateLinkedBanner
           reportId={report.uuid}
@@ -995,7 +1031,6 @@ function CaseReviewContent() {
           onDismiss={() => setMatchStripDismissed(true)}
         />
       ) : null}
-      {awaitingDecision ? <NeedsDecisionBanner targetId="review-decision" /> : null}
       {workflowStatus === "resolved" ? (
         <ResolvedCaseSummary
           report={report}
@@ -1049,21 +1084,11 @@ function CaseReviewContent() {
         </div>
       ) : null}
 
-      {!reviewLocked ? (
-        <div className="review-handoff">
-          {report.reviewHandoff ? (
-            <div className="detail-refresh-warning" role="status" data-testid="review-handoff-banner">
-              <span>
-                {`${report.reviewHandoff.by?.name ?? "A reviewer"} stepped away at ${formatClockTime(report.reviewHandoff.at)}${report.reviewHandoff.note ? `: ${report.reviewHandoff.note}` : "."}`}
-              </span>
-            </div>
-          ) : null}
-          <ReviewHandoffPanel
-            onRelease={async (note) => {
-              await reviewClaim.release(note);
-              navigate(queueContext?.returnTo ?? routes.reports);
-            }}
-          />
+      {!reviewLocked && report.reviewHandoff ? (
+        <div className="detail-refresh-warning" role="status" data-testid="review-handoff-banner">
+          <span>
+            {`${report.reviewHandoff.by?.name ?? "A reviewer"} stepped away at ${formatClockTime(report.reviewHandoff.at)}${report.reviewHandoff.note ? `: ${report.reviewHandoff.note}` : "."}`}
+          </span>
         </div>
       ) : null}
 
@@ -1126,31 +1151,6 @@ function CaseReviewContent() {
         />
 
         <HistoricalReferralPanel report={report} />
-        <OfflineHandoffNotes report={report} />
-
-        {/* Q3 = A: the remaining case actions live under one disclosure */}
-        <details className="review-card case-history-disclosure">
-          <summary>
-            <div className="disclosure-left">
-              <strong>Other case actions</strong>
-            </div>
-            <MoreHorizontal aria-hidden="true" />
-          </summary>
-          <div className="disclosure-content">
-        <section className="other-case-actions" aria-label="Other case actions">
-          <div className="more-actions-row">
-            <Button
-              type="button"
-              variant="secondary"
-              icon={<Link2 aria-hidden="true" />}
-              onClick={openMetadataCorrectionModal}
-            >
-              Correct case information
-            </Button>
-          </div>
-        </section>
-          </div>
-        </details>
       </div>
 
       <DuplicateCompareModal

@@ -107,7 +107,6 @@ class ReferralSummaryResource extends JsonResource
                     'name' => $report->advisory->validatedBy->name,
                 ] : null,
             ] : null,
-            'handoff_notes' => $report->handoffNotes,
             ...$this->historicalRecord($report, $referral),
         ];
     }

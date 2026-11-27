@@ -47,7 +47,6 @@ class ReportController extends Controller
             'referrals.consultReviewedBy',
             'referral.symptomFindings',
             'referrals.symptomFindings',
-            'handoffNotes',
             'classScores',
             'symptoms',
             'qualityWarnings',

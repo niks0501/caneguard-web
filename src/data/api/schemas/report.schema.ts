@@ -439,14 +439,6 @@ export const reportListResponseSchema = z.object({
   meta: paginationMetaSchema,
 });
 
-export const handoffNoteSchema = z.object({
-  id: z.number(),
-  destination: z.string(),
-  reference: z.string().nullable(),
-  sent_date: z.string(),
-  note: z.string().nullable(),
-  advice_received_note: z.string().nullable(),
-});
 export const reportDetailSchema = z.object({
   identity: z.object({
     uuid: z.string(),
@@ -558,7 +550,6 @@ export const reportDetailSchema = z.object({
   advisory: advisorySchema.nullable().optional(),
   field_validation_assignment: fieldValidationAssignmentSchema.nullable().optional(),
   referral: reportReferralSchema.nullable().optional(),
-  handoff_notes: z.array(handoffNoteSchema).optional(),
   consults: z.array(reportConsultSchema).optional(),
   review_events: z.array(reportReviewEventSchema).optional(),
   version: z.number().int().nonnegative(),
