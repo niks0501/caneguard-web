@@ -12,9 +12,9 @@ import { usePublicTheme } from "../../theme/usePublicTheme";
 import { PublicThemeToggle } from "./PublicThemeToggle";
 
 const sectionLinks = [
+  { hash: "guide", label: "Field Guide" },
   { hash: "what", label: "Sugarcane" },
   { hash: "growth", label: "Growth" },
-  { hash: "guide", label: "Field Guide" },
   { hash: "quiz", label: "Quiz" },
   { hash: "history", label: "History" },
   { hash: "legacy", label: "Legacy" },
@@ -56,32 +56,34 @@ export function PublicLayout() {
       <a className="skip-link" href="#pub-main">
         Skip to content
       </a>
-      <header className="pub-nav">
-        <Link className="pub-nav__brand" to={routes.home}>
-          <img
-            src={theme === "dark" ? caneGuardLogoOnDark : caneGuardLogo}
-            alt=""
-            aria-hidden="true"
-          />
-          <span>CaneGuard</span>
-        </Link>
-        <nav className="pub-nav__links" aria-label="Page sections">
-          {sectionLinks.map((link) => (
-            <Link key={link.hash} to={`${routes.home}#${link.hash}`}>
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="pub-nav__end">
-          <PublicThemeToggle />
-          <Link
-            className="button button--secondary"
-            to={signedIn ? routes.dashboard : routes.login}
-          >
-            {signedIn ? "Open workspace" : "Staff sign in"}
+      <div className="pub-nav-wrap">
+        <header className="pub-nav">
+          <Link className="pub-nav__brand" to={routes.home}>
+            <img
+              src={theme === "dark" ? caneGuardLogoOnDark : caneGuardLogo}
+              alt=""
+              aria-hidden="true"
+            />
+            <span>CaneGuard</span>
           </Link>
-        </div>
-      </header>
+          <nav className="pub-nav__links" aria-label="Page sections">
+            {sectionLinks.map((link) => (
+              <Link key={link.hash} to={`${routes.home}#${link.hash}`}>
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="pub-nav__end">
+            <PublicThemeToggle />
+            <Link
+              className="pub-nav__cta"
+              to={signedIn ? routes.dashboard : routes.login}
+            >
+              {signedIn ? "Open workspace" : "Staff sign in"}
+            </Link>
+          </div>
+        </header>
+      </div>
       <main id="pub-main" className="pub-main">
         <Outlet />
       </main>

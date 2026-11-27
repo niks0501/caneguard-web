@@ -13,10 +13,8 @@ export function HistoryTimeline() {
           }
         >
           <span className="pub-timeline__when">{event.when}</span>
-          <div>
-            <h3>{event.title}</h3>
-            <p>{event.text}</p>
-          </div>
+          <h3>{event.title}</h3>
+          <p>{event.text}</p>
         </li>
       ))}
     </ol>

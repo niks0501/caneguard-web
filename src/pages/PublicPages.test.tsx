@@ -67,6 +67,26 @@ describe("public landing page", () => {
   });
 });
 
+describe("Botanical Glass landing structure", () => {
+  it("promotes the guide after the hero and drops section eyebrows", async () => {
+    const { container } = render(
+      <AuthContext.Provider value={authValue("unauthenticated")}>
+        <RouterProvider router={createMemoryRouter(appRoutes, { initialEntries: ["/"] })} />
+      </AuthContext.Provider>,
+    );
+    await screen.findByRole("heading", { level: 1, name: /Learn the cane/ });
+
+    expect(container.querySelectorAll(".eyebrow")).toHaveLength(0);
+    const ids = Array.from(container.querySelectorAll(".pub-ambient > section")).map((el) => el.id);
+    expect(ids).toEqual(["guide", "what", "growth", "quiz", "history", "legacy", "how", "sources"]);
+    expect(screen.getByText("Nasugbu · Batangas · Sugarcane country")).toBeInTheDocument();
+    expect(container.querySelector(".pub-nav-wrap > header.pub-nav")).not.toBeNull();
+    expect(container.querySelectorAll(".pub-specimen")).toHaveLength(3);
+    expect(container.querySelectorAll(".pub-stats .pub-stat")).toHaveLength(4);
+    expect(container.querySelectorAll(".pub-flow__badge")).toHaveLength(4);
+  });
+});
+
 describe("Field Guide routes", () => {
   it("renders an entry without signing in, with symptoms, prevention and management", async () => {
     renderAt("/guide/rust");
