@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parse } from "yaml";
@@ -104,3 +104,66 @@ test("production deployment and configuration workflows stay restricted to main 
     assert.equal(job?.environment, "production", `${name} must target production environment`);
   }
 });
+
+test("production deployment depends on a read-only CI admission job for its exact commit", () => {
+  const gate = workflow.jobs["verify-revision"];
+  assert.deepEqual(gate.permissions, { actions: "read" });
+  assert.equal(gate.if, workflow.jobs.deploy.if);
+  assert.equal(workflow.jobs.deploy.needs, "verify-revision");
+  assert.equal(workflow.jobs.deploy.steps[0].with.ref, "${{ github.sha }}");
+});
+
+const requestedSha = "a".repeat(40);
+const successfulRun = {
+  head_sha: requestedSha,
+  head_branch: "main",
+  event: "push",
+  status: "completed",
+  conclusion: "success",
+  html_url: "https://github.com/example/repo/actions/runs/1",
+};
+
+for (const [name, run, message] of [
+  ["matching success", successfulRun, null],
+  ["missing run", null, /No main quality gate run/],
+  ["pending run", { ...successfulRun, status: "in_progress", conclusion: null }, /must succeed/],
+  ["failed run", { ...successfulRun, conclusion: "failure" }, /must succeed/],
+  ["cancelled run", { ...successfulRun, conclusion: "cancelled" }, /must succeed/],
+  ["wrong SHA", { ...successfulRun, head_sha: "b".repeat(40) }, /does not match/],
+  ["wrong branch", { ...successfulRun, head_branch: "staging" }, /does not match/],
+  ["wrong event", { ...successfulRun, event: "pull_request" }, /does not match/],
+  ["unavailable API", false, /request failed/],
+]) {
+  test(`release CI admission handles ${name}`, (t) => {
+    const binDir = mkdtempSync(join(tmpdir(), "release-ci-bin-"));
+    t.after(() => rmSync(binDir, { recursive: true, force: true }));
+    writeFileSync(join(binDir, "gh"), `#!/bin/sh
+set -eu
+test "$1" = api
+test "$2" = "repos/example/repo/actions/workflows/web-api-pr-quality-gate.yml/runs?event=push&branch=main&head_sha=$GITHUB_SHA&per_page=1"
+if [ "$MOCK_RESPONSE" = unavailable ]; then
+  echo 'request failed' >&2
+  exit 1
+fi
+printf '%s\n' "$MOCK_RESPONSE"
+`, { mode: 0o755 });
+    const result = spawnSync("bash", ["-e", "-c", workflow.jobs["verify-revision"].steps[0].run], {
+      encoding: "utf8",
+      env: {
+        PATH: `${binDir}:${process.env.PATH}`,
+        GITHUB_REPOSITORY: "example/repo",
+        GITHUB_SHA: requestedSha,
+        MOCK_RESPONSE: run === false
+          ? "unavailable"
+          : JSON.stringify({ workflow_runs: run ? [run] : [] }),
+      },
+    });
+    if (message) {
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, message);
+    } else {
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /Verified .* in https:/);
+    }
+  });
+}

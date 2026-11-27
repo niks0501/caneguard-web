@@ -16,9 +16,41 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: Verify, package and deploy
+  verify-revision:
+    name: Require successful CI for the release commit
     if: github.ref == 'refs/heads/main' && inputs.confirmation == 'deploy-caneguard'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+    steps:
+      - name: Check latest main quality gate run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          response=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/web-api-pr-quality-gate.yml/runs?event=push&branch=main&head_sha=$GITHUB_SHA&per_page=1")
+          CI_RUN_RESPONSE="$response" node <<'NODE'
+          const sha = process.env.GITHUB_SHA;
+          const [run] = JSON.parse(process.env.CI_RUN_RESPONSE).workflow_runs;
+          if (!run) {
+            console.error(`No main quality gate run found for ${sha}. Wait for CI, then dispatch again.`);
+            process.exit(1);
+          }
+          if (run.head_sha !== sha || run.head_branch !== "main" || run.event !== "push") {
+            console.error("The quality gate run does not match the requested main commit.");
+            process.exit(1);
+          }
+          if (run.status !== "completed" || run.conclusion !== "success") {
+            console.error(`The quality gate must succeed for ${sha}. See ${run.html_url}, then dispatch again.`);
+            process.exit(1);
+          }
+          console.log(`Verified ${sha} in ${run.html_url}`);
+          NODE
+
+  deploy:
+    name: Package and deploy
+    if: github.ref == 'refs/heads/main' && inputs.confirmation == 'deploy-caneguard'
+    needs: verify-revision
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 45
@@ -31,6 +63,7 @@ jobs:
       - name: Checkout exact approved revision
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Setup Node
@@ -47,27 +80,14 @@ jobs:
           tools: composer:v2
           coverage: none
 
-      - name: Install dependencies
-        run: |
-          npm ci --no-audit --no-fund
-          composer install --working-dir=api --no-interaction --no-progress --prefer-dist
+      - name: Install Web dependencies
+        run: npm ci --no-audit --no-fund
 
       - name: Check dependency advisories
         run: |
           npm audit --audit-level=high
           composer audit --working-dir=api --locked --no-interaction --no-dev --abandoned=fail
 
-      - name: Prepare isolated Laravel test configuration
-        run: |
-          cp api/.env.example api/.env
-          php api/artisan key:generate --force --no-interaction
-
-      - name: Verify Web and Laravel
-        run: |
-          npm run check:web
-          npm run check:api
-
-      # Keep production VITE_* variables out of Vitest, whose mocks use localhost.
       - name: Build production React assets
         env:
           VITE_API_BASE_URL: https://caneguard.online
