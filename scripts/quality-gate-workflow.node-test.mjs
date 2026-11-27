@@ -33,8 +33,6 @@ function stepNamed(name) {
 }
 
 const securityStepNames = [
-  "Verify dependency audit gate contract",
-  "Verify MapLibre dependency security contract",
   "Audit Web dependencies (high and critical advisories fail)",
   "Audit Laravel dependencies (advisories and abandoned packages fail)",
   "Prepare MySQL integration database",
@@ -42,10 +40,10 @@ const securityStepNames = [
   "Run consumer contract suite",
 ];
 
-test("quality gate triggers on pull requests targeting any branch including base branch changes", () => {
+test("quality gate checks stacked pull requests and every landed main commit", () => {
   const triggers = workflow?.on;
   assert.ok(triggers && typeof triggers === "object", "workflow must define triggers");
-  assert.equal(Object.hasOwn(triggers, "push"), false, "PR quality gate must not duplicate runs on push");
+  assert.deepEqual(triggers.push, { branches: ["main"] });
 
   const pr = triggers.pull_request;
   assert.ok(pr && typeof pr === "object", "pull_request trigger must be configured");
@@ -82,6 +80,12 @@ test("security steps cannot be skipped or ignored", () => {
       `${name} must not define continue-on-error`,
     );
   }
+  const webChecks = qualityGateSteps().find((step) => step.run === "npm run check:web");
+  assert.ok(webChecks);
+  assert.equal(Object.hasOwn(webChecks, "if"), false);
+  assert.equal(Object.hasOwn(webChecks, "continue-on-error"), false);
+  assert.match(packageJson.scripts["check:web"], /npm run test:quality-gate-workflow/);
+  assert.match(packageJson.scripts["check:web"], /npm run security:dependency-check/);
 });
 
 test("each dependency installation exists once and precedes its audit", () => {
