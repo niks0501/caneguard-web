@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vitest";
 import indexCss from "../index.css?raw";
+import publicCss from "./public.css?raw";
 import tokensCss from "./tokens.css?raw";
 
-// `src/styles/tokens.css` and `src/index.css` are the app's declarative design
+// `src/styles/tokens.css`, `src/index.css` and `src/styles/public.css` are the app's declarative design
 // contract: the stylesheets are the consumer, and every `var(--x)` they
 // reference must resolve to a declared value. An undeclared custom property
 // makes the declaration invalid at computed-value time, so the element silently
 // falls back to an inherited or initial colour/size.
 // The sheets come in through Vite's `?raw` imports so this file stays inside the
 // app TypeScript project (DOM libs only, no Node types) like every other test.
-const stylesheets = [tokensCss, indexCss];
+const stylesheets = [tokensCss, indexCss, publicCss];
 
 const declaredProperties = new Map<string, string>();
 for (const css of stylesheets) {
@@ -60,5 +61,35 @@ describe("design tokens", () => {
     // The aliases exist so retinted surfaces keep the palette's own values
     // rather than the browser default (black text, transparent fill).
     expect(resolve("--text-caption")).toBe(resolve("--text-meta"));
+  });
+
+  it("declares the Botanical Glass contract in paper and in the dark set", () => {
+    const names = [
+      "--pub-canvas",
+      "--pub-canvas-deep",
+      "--pub-glass-surface",
+      "--pub-glass-surface-strong",
+      "--pub-glass-surface-subtle",
+      "--pub-glass-nav",
+      "--pub-glass-border",
+      "--pub-glass-border-strong",
+      "--pub-glass-highlight",
+      "--pub-glass-scrim",
+      "--pub-glass-scrim-border",
+      "--pub-ambient-a",
+      "--pub-ambient-b",
+      "--pub-ambient-c",
+      "--pub-shadow-glass-sm",
+      "--pub-shadow-glass-md",
+      "--pub-shadow-glass-lg",
+    ];
+    const darkBlock = tokensCss.slice(tokensCss.indexOf('[data-theme="dark"]'));
+    for (const name of names) {
+      expect(declaredProperties.has(name), `${name} is declared`).toBe(true);
+      expect(darkBlock, `${name} has a dark value`).toContain(`${name}:`);
+    }
+    expect(resolve("--pub-glass-blur")).toBe("18px");
+    expect(resolve("--pub-glass-blur-nav")).toBe("20px");
+    expect(resolve("--pub-glass-sat")).toBe("165%");
   });
 });

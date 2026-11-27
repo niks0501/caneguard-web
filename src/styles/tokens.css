@@ -187,6 +187,37 @@
   --shadow-raised: 0 8px 24px rgba(29, 39, 32, 0.08);
 
   --transition-fast: 150ms ease;
+
+  /* Botanical Glass (public pages only). Paper is the Sunlit Glasshouse:
+     warm daylight canvas, frosted leaf-white glass at 72%, soft botanical
+     ambient light behind it so the blur has something real to refract.
+     Every public.css colour, size and radius comes from here. */
+  --pub-canvas: #f4f1e6;
+  --pub-canvas-deep: #e4eddc;
+  --pub-glass-surface: rgba(255, 255, 255, 0.72);
+  --pub-glass-surface-strong: rgba(255, 255, 255, 0.88);
+  --pub-glass-surface-subtle: rgba(255, 255, 255, 0.46);
+  --pub-glass-nav: rgba(255, 255, 255, 0.78);
+  --pub-glass-border: rgba(45, 107, 64, 0.16);
+  --pub-glass-border-strong: rgba(45, 107, 64, 0.32);
+  --pub-glass-highlight: rgba(255, 255, 255, 0.85);
+  --pub-glass-scrim: rgba(7, 40, 22, 0.62);
+  --pub-glass-scrim-border: rgba(255, 255, 255, 0.28);
+  --pub-ambient-a: rgba(129, 169, 42, 0.30);
+  --pub-ambient-b: rgba(187, 148, 29, 0.20);
+  --pub-ambient-c: rgba(45, 107, 64, 0.22);
+  --pub-shadow-glass-sm: 0 2px 8px rgba(29, 39, 32, 0.06);
+  --pub-shadow-glass-md: 0 8px 24px rgba(29, 39, 32, 0.09);
+  --pub-shadow-glass-lg: 0 18px 48px rgba(29, 39, 32, 0.14);
+
+  --pub-glass-blur: 18px;
+  --pub-glass-blur-nav: 20px;
+  --pub-glass-sat: 165%;
+  --pub-radius-glass-md: 16px;
+  --pub-radius-glass-lg: 24px;
+  --pub-text-hero: clamp(30px, 4.2vw, 48px);
+  --pub-text-section: clamp(23px, 3vw, 34px);
+  --pub-text-dock-val: 22px;
 }
 
 /* Dark set (QF-11).
@@ -274,5 +305,25 @@
     --shadow-surface: 0 4px 16px rgba(0, 0, 0, 0.4);
     --shadow-floating: 0 12px 32px rgba(0, 0, 0, 0.55);
     --shadow-raised: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+    /* Botanical Glass, Dark Canopy: deep forest canvas, 62% smoked-green
+       glass, quieter ambient light and heavier shadows. */
+    --pub-canvas: #0f1611;
+    --pub-canvas-deep: #162119;
+    --pub-glass-surface: rgba(32, 40, 33, 0.62);
+    --pub-glass-surface-strong: rgba(32, 40, 33, 0.86);
+    --pub-glass-surface-subtle: rgba(32, 40, 33, 0.38);
+    --pub-glass-nav: rgba(23, 29, 24, 0.7);
+    --pub-glass-border: rgba(185, 220, 192, 0.16);
+    --pub-glass-border-strong: rgba(185, 220, 192, 0.34);
+    --pub-glass-highlight: rgba(255, 255, 255, 0.12);
+    --pub-glass-scrim: rgba(5, 12, 7, 0.68);
+    --pub-glass-scrim-border: rgba(255, 255, 255, 0.2);
+    --pub-ambient-a: rgba(129, 169, 42, 0.2);
+    --pub-ambient-b: rgba(226, 161, 95, 0.12);
+    --pub-ambient-c: rgba(62, 124, 48, 0.3);
+    --pub-shadow-glass-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+    --pub-shadow-glass-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+    --pub-shadow-glass-lg: 0 18px 48px rgba(0, 0, 0, 0.55);
   }
 }
