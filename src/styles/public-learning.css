@@ -1,0 +1,748 @@
+/* PR-3 Living Learning Blocks stylesheet.
+   Tokens only with zero literal hex colours, font sizes or radii.
+   Glass stays one layer deep without nested backdrop filters. */
+
+/* ---------------------------------------------------------------------------
+   Shared auto-tour status bar and hairline dwell progress rail
+   --------------------------------------------------------------------------- */
+.pub-tour-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.pub-tour-bar__group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.pub-tour-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 30px;
+  padding: 2px var(--space-3);
+  border: 1px solid var(--pub-glass-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--pub-glass-surface-strong);
+  box-shadow: inset 0 1px 0 var(--pub-glass-highlight), var(--pub-shadow-glass-sm);
+  color: var(--color-secondary-text);
+  font-size: var(--text-machine);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.pub-tour-pill--active {
+  color: var(--color-primary-text);
+  border-color: var(--pub-glass-border-strong);
+}
+
+.pub-tour-pill--paused {
+  background: var(--color-warning-soft);
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.pub-tour-pill__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.pub-tour-pill--active .pub-tour-pill__dot {
+  background: var(--brand-lime);
+  animation: pub-tour-pulse 2s ease-in-out infinite;
+}
+
+.pub-tour-pill--paused .pub-tour-pill__dot {
+  background: var(--color-warning);
+  animation: none;
+}
+
+.pub-tour-pill__dot--static {
+  background: var(--color-border-strong);
+  animation: none;
+}
+
+.pub-tour-resume {
+  min-height: 30px;
+  padding: 2px var(--space-3);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-tint);
+  color: var(--color-primary-text);
+  font: inherit;
+  font-size: var(--text-machine);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.pub-tour-resume:hover {
+  background: var(--color-action);
+  border-color: var(--color-action);
+  color: var(--color-inverse-text);
+}
+
+/* Hairline dwell progress bar anchored to the bottom edge of inspector cards */
+.pub-dwell {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--pub-glass-border);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.pub-dwell__fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--brand-lime), var(--color-primary));
+  transform: scaleX(1);
+}
+
+.pub-dwell__fill--running {
+  transform: scaleX(0);
+  animation: pub-dwell-sweep var(--pub-dwell-ms, 4200ms) linear forwards;
+}
+
+.pub-dwell__fill--paused {
+  background: var(--color-warning);
+  opacity: 0.65;
+  transform: scaleX(1);
+}
+
+.pub-dwell__fill--static {
+  background: var(--color-primary);
+  opacity: 0.45;
+  transform: scaleX(1);
+}
+
+@keyframes pub-tour-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes pub-dwell-sweep {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Animated Botanical Anatomy Explorer
+   --------------------------------------------------------------------------- */
+.pub-anatomy__plate {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  overflow: hidden;
+}
+
+.pub-anatomy__plate::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 24%, var(--pub-ambient-a), transparent 64%),
+    radial-gradient(circle at 50% 88%, var(--pub-ambient-b), transparent 58%);
+  opacity: 0.55;
+}
+
+.pub-anatomy__plate .pub-plant {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+  overflow: visible;
+}
+
+.pub-anatomy__caption {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--pub-glass-border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--pub-glass-surface-strong);
+  box-shadow: inset 0 1px 0 var(--pub-glass-highlight), var(--pub-shadow-glass-sm);
+  color: var(--color-secondary-text);
+  font-size: var(--text-machine);
+  font-weight: 500;
+}
+
+.pub-anatomy__caption strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.pub-anatomy__side {
+  display: flex;
+  flex-direction: column;
+}
+
+.pub-anatomy__inspector {
+  position: relative;
+  overflow: hidden;
+  padding-bottom: var(--space-5);
+}
+
+/* Lab plate botanical grid ticks and SVG zone focus state */
+.pub-plant__grid {
+  stroke: var(--pub-glass-border);
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+}
+
+.pub-plant__horizon {
+  stroke: var(--pub-glass-border-strong);
+  stroke-width: 1.5;
+}
+
+.pub-plant .pub-plant__hot {
+  cursor: pointer;
+  opacity: 0.44;
+  transition: opacity 280ms ease, filter 280ms ease;
+}
+
+.pub-plant .pub-plant__hot:hover {
+  opacity: 0.78;
+}
+
+.pub-plant .pub-plant__hot.pub-plant__hot--on {
+  opacity: 1;
+  filter: drop-shadow(0 0 7px var(--pub-ambient-a));
+}
+
+.pub-plant .pub-plant__hot--on .pub-plant__ring {
+  stroke: var(--color-warning);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+  opacity: 0.65;
+}
+
+/* Gliding optical focus reticle and beacon */
+.pub-plant__reticle {
+  pointer-events: none;
+  transition: transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pub-plant__reticle-ring {
+  fill: none;
+  stroke: var(--color-warning);
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pub-reticle-spin 16s linear infinite;
+}
+
+.pub-plant__beacon-pulse {
+  fill: var(--color-warning);
+  opacity: 0.28;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pub-beacon-ring 2.2s ease-out infinite;
+}
+
+.pub-plant__beacon-dot {
+  fill: var(--color-warning);
+  stroke: var(--color-surface);
+  stroke-width: 2;
+}
+
+@keyframes pub-reticle-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pub-beacon-ring {
+  0% {
+    transform: scale(0.75);
+    opacity: 0.45;
+  }
+  70% {
+    transform: scale(1.75);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.75);
+    opacity: 0;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Botanical 4-Stage Sugarcane Growth Cycle
+   --------------------------------------------------------------------------- */
+.pub-growth__rail {
+  position: relative;
+  height: 6px;
+  margin-bottom: var(--space-4);
+  border-radius: var(--radius-pill);
+  background: var(--pub-glass-surface-subtle);
+  border: 1px solid var(--pub-glass-border);
+  overflow: hidden;
+}
+
+.pub-growth__rail-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    90deg,
+    var(--kpi-band-1) 0%,
+    var(--brand-green) 42%,
+    var(--brand-lime) 72%,
+    var(--brand-gold) 100%
+  );
+  transition: width 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pub-growth__panel {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: stretch;
+  overflow: hidden;
+  padding-bottom: var(--space-5);
+}
+
+.pub-growth__dossier {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.pub-growth__dossier .pub-card__label:first-child {
+  margin-top: 0;
+}
+
+/* Frosted phenology stage canvas inside the strong glass panel (no nested blur) */
+.pub-phenology {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--pub-glass-border);
+  border-radius: var(--pub-radius-glass-md);
+  background: var(--pub-glass-surface-subtle);
+}
+
+.pub-phenology__svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.pub-phenology__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.pub-phenology__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--pub-glass-border);
+  border-radius: var(--radius-md);
+  background: var(--pub-glass-surface-strong);
+}
+
+.pub-phenology__metric dt {
+  margin: 0;
+  color: var(--color-secondary-text);
+  font-size: var(--text-machine);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pub-phenology__metric dd {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--text-body-sm);
+  font-weight: 600;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Phenology SVG palette classes (token-driven for Paper and Dark themes) */
+.pub-pheno__sky {
+  fill: var(--pub-ambient-a);
+  opacity: 0.22;
+}
+
+.pub-pheno__grid-line {
+  stroke: var(--pub-glass-border-strong);
+  stroke-width: 1;
+  stroke-dasharray: 4 5;
+}
+
+.pub-pheno__scale-label {
+  fill: var(--color-secondary-text);
+  font-family: var(--font-body);
+  font-size: var(--text-machine);
+  font-weight: 600;
+}
+
+.pub-pheno__topsoil {
+  fill: var(--color-accent-dark);
+  opacity: 0.32;
+}
+
+.pub-pheno__subsoil {
+  fill: var(--kpi-band-4);
+  opacity: 0.2;
+}
+
+.pub-pheno__furrow {
+  fill: none;
+  stroke: var(--color-accent-dark);
+  stroke-width: 2;
+}
+
+/* Animated phenology layers */
+.pub-pheno__layer {
+  opacity: 0;
+  transform: translateY(10px) scale(0.97);
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  transition: opacity 480ms ease, transform 520ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.pub-pheno__layer--active {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.pub-pheno__sway {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: pub-canopy-sway 5.5s ease-in-out infinite;
+}
+
+.pub-pheno__sway--slow {
+  animation-duration: 7s;
+}
+
+.pub-pheno__sett {
+  fill: var(--brand-gold);
+  stroke: var(--brand-structural-green);
+  stroke-width: 1.5;
+}
+
+.pub-pheno__sett-node {
+  stroke: var(--brand-dark-field);
+  stroke-width: 2.5;
+}
+
+.pub-pheno__bud {
+  fill: var(--brand-cream);
+  stroke: var(--brand-structural-green);
+  stroke-width: 1.2;
+}
+
+.pub-pheno__root-fine {
+  fill: none;
+  stroke: var(--brand-gold);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+.pub-pheno__root-thick {
+  fill: none;
+  stroke: var(--color-warning);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+.pub-pheno__root-deep {
+  fill: none;
+  stroke: var(--brand-gold);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+
+.pub-pheno__shoot {
+  fill: var(--brand-lime);
+}
+
+.pub-pheno__stalk {
+  fill: var(--brand-lime);
+  stroke: var(--brand-green);
+  stroke-width: 1;
+}
+
+.pub-pheno__stalk-mature {
+  fill: var(--brand-gold);
+  stroke: var(--brand-green);
+  stroke-width: 1.2;
+}
+
+.pub-pheno__sucrose {
+  fill: var(--brand-cream);
+  opacity: 0.42;
+  animation: pub-sucrose-rise 3.6s ease-in-out infinite;
+}
+
+.pub-pheno__node-ring {
+  fill: var(--brand-structural-green);
+}
+
+.pub-pheno__leaf-young {
+  fill: var(--brand-lime);
+}
+
+.pub-pheno__leaf {
+  fill: var(--brand-green);
+}
+
+.pub-pheno__leaf-deep {
+  fill: var(--brand-structural-green);
+  opacity: 0.88;
+}
+
+.pub-pheno__leaf-dry {
+  fill: var(--color-accent-dark);
+  opacity: 0.88;
+}
+
+.pub-pheno__stool {
+  fill: var(--kpi-band-3);
+  stroke: var(--brand-structural-green);
+  stroke-width: 1.5;
+}
+
+.pub-pheno__stool-glow {
+  fill: var(--color-warning);
+  opacity: 0.24;
+  animation: pub-tour-pulse 3s ease-in-out infinite;
+}
+
+.pub-pheno__tassel-stem {
+  fill: none;
+  stroke: var(--brand-gold);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.pub-pheno__tassel-plume {
+  fill: none;
+  stroke: var(--brand-cream);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  opacity: 0.92;
+}
+
+.pub-pheno__tassel-tip {
+  fill: var(--brand-cream);
+  stroke: var(--brand-gold);
+  stroke-width: 0.9;
+  opacity: 0.86;
+}
+
+@keyframes pub-canopy-sway {
+  0%, 100% {
+    transform: rotate(-1.2deg);
+  }
+  50% {
+    transform: rotate(1.4deg);
+  }
+}
+
+@keyframes pub-sucrose-rise {
+  0%, 100% {
+    opacity: 0.28;
+  }
+  50% {
+    opacity: 0.56;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Spoiler-Free Frosted Photo Quiz Bench
+   --------------------------------------------------------------------------- */
+.pub-quiz.pub-glass {
+  padding: var(--space-5);
+  border-radius: var(--pub-radius-glass-lg);
+}
+
+.pub-quiz__media {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--pub-radius-glass-md);
+  border: 1px solid var(--pub-glass-border-strong);
+  box-shadow: var(--pub-shadow-glass-md);
+  background: var(--brand-dark-field);
+}
+
+.pub-quiz__media img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 0px;
+  box-shadow: none;
+}
+
+.pub-quiz__badges {
+  position: absolute;
+  left: var(--space-3);
+  right: var(--space-3);
+  bottom: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+
+.pub-quiz__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--pub-glass-scrim-border);
+  border-radius: var(--radius-pill);
+  background: var(--pub-glass-scrim);
+  box-shadow: inset 0 1px 0 var(--pub-glass-highlight), var(--pub-shadow-glass-sm);
+  color: var(--color-inverse-text);
+  font-size: var(--text-machine);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.pub-quiz__badge--score {
+  color: var(--brand-cream);
+}
+
+.pub-quiz__body {
+  display: flex;
+  flex-direction: column;
+}
+
+.pub-quiz__prompt {
+  margin-bottom: var(--space-3);
+  color: var(--color-secondary-text);
+  font-weight: 500;
+}
+
+.pub-quiz__answer {
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.pub-quiz__answer:not(:disabled):hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+  color: var(--color-primary-text);
+}
+
+/* ---------------------------------------------------------------------------
+   Responsive
+   --------------------------------------------------------------------------- */
+@media (max-width: 860px) {
+  .pub-growth__panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pub-quiz.pub-glass {
+    padding: var(--space-4);
+  }
+}
+
+@media (max-width: 620px) {
+  .pub-phenology__metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pub-anatomy__plate {
+    padding: var(--space-3);
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Fallbacks and reduced motion
+   --------------------------------------------------------------------------- */
+@supports not (backdrop-filter: blur(1px)) {
+  .pub-quiz__badge {
+    background: var(--brand-dark-field);
+  }
+  .pub-phenology {
+    background: var(--color-surface-soft);
+  }
+  .pub-anatomy__caption,
+  .pub-tour-pill {
+    background: var(--color-surface);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .pub-quiz__badge {
+    background: var(--brand-dark-field);
+  }
+  .pub-phenology {
+    background: var(--color-surface-soft);
+  }
+  .pub-anatomy__caption,
+  .pub-tour-pill {
+    background: var(--color-surface);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pub-plant__reticle,
+  .pub-growth__rail-fill,
+  .pub-pheno__layer,
+  .pub-plant .pub-plant__hot {
+    transition: none;
+  }
+  .pub-plant__reticle-ring,
+  .pub-plant__beacon-pulse,
+  .pub-dwell__fill--running,
+  .pub-tour-pill--active .pub-tour-pill__dot,
+  .pub-pheno__sway,
+  .pub-pheno__sucrose,
+  .pub-pheno__stool-glow {
+    animation: none;
+  }
+}
