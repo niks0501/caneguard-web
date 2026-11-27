@@ -33,15 +33,6 @@ export interface DuplicateUnlinkInput {
   expectedVersion: number;
 }
 
-export interface HandoffNoteInput {
-  destination: string;
-  reference?: string | null;
-  sentDate: string;
-  note?: string | null;
-  adviceReceivedNote?: string | null;
-  expectedVersion: number;
-}
-
 export interface ReportReviewInput {
   // Kept for older Web clients while the independent lifecycle contract rolls
   // out. New callers should use the fields below.

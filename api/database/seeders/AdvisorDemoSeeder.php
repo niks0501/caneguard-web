@@ -113,7 +113,6 @@ class AdvisorDemoSeeder extends Seeder
         $reportIds = Report::query()
             ->whereIn('reference_code', self::REPORT_REFERENCES)
             ->whereDoesntHave('referrals')
-            ->whereDoesntHave('handoffNotes')
             ->pluck('id');
         $assignmentIds = FieldValidationAssignment::query()
             ->whereIn('report_id', $reportIds)

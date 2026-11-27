@@ -32,7 +32,6 @@ class ReferralSummaryController extends Controller
             'referral.consultReviewedBy',
             'symptoms',
             'reviewer',
-            'handoffNotes',
         ]);
 
         $summary = (new ReferralSummaryResource($report))->resolve($request);

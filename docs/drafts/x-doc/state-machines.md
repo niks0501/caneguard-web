@@ -123,7 +123,7 @@ Same vocabulary as SM-11, derived by `affectedFieldFormState`. `saving` wins, th
 | Decision form | live record while clean; follows own and sibling saves |
 | Affected fields | own `draftVersion`, updated on its own save or refresh |
 | Metadata correction | pinned when the pop-up opens; only the fields the reviewer changed are sent, and a field restored to the report's value drops out of the edit set; a report that changes underneath shows a stale panel with Save disabled until the reviewer takes the latest values; draft and reason clear on save, close or discard (**closed**, W-F3, W-G5) |
-| Duplicate link/unlink, handoff note | live version at click |
+| Duplicate link/unlink | live version at click |
 | Mobile field-validation completion | server side |
 
 Each page mutation has its own error surface; errors must not cross between the correction modal and the decision form.

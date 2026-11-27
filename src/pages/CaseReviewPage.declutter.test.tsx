@@ -9,7 +9,6 @@ import { useFieldReporters } from "../hooks/useFieldReporters";
 import { useFieldSurveys } from "../hooks/fieldSurveys";
 import {
   useAdvisories,
-  useRecordHandoffNote,
   useLinkDuplicateReport,
   usePossibleRecentMatches,
   useReports,
@@ -32,7 +31,6 @@ vi.mock("../hooks/useReports", () => ({
   useRemoveAerialAnalysis: vi.fn(() => ({ mutate: vi.fn(), isPending: false, isError: false })),
   useRestoreAerialAnalysis: vi.fn(() => ({ mutate: vi.fn(), isPending: false, isError: false })),
   useAerialMask: vi.fn(() => ({ data: undefined, isPending: false, isError: false })),
-  useRecordHandoffNote: vi.fn(),
   useLinkDuplicateReport: vi.fn(),
   usePossibleRecentMatches: vi.fn(),
   useReports: vi.fn(),
@@ -90,7 +88,6 @@ describe("Evidence declutter density rules (Phase 1 / A1-A8)", () => {
   beforeEach(() => {
     mockAffectedFieldHooks();
     vi.mocked(useAdvisories).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useAdvisories>);
-    vi.mocked(useRecordHandoffNote).mockReturnValue({ mutateAsync: vi.fn(), isPending: false, isError: false } as unknown as ReturnType<typeof useRecordHandoffNote>);
     vi.mocked(useFieldReporters).mockReturnValue({ data: [], isError: false } as unknown as ReturnType<typeof useFieldReporters>);
     vi.mocked(usePossibleRecentMatches).mockReturnValue({
       data: { matches: [], message: "", possibleMatch: false, canSubmit: true },

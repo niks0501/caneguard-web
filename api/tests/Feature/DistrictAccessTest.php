@@ -75,14 +75,12 @@ class DistrictAccessTest extends TestCase
                 }
                 $this->getJson($path)->assertForbidden();
             }
-            foreach (['/api/v1/mobile/reports', '/api/v2/mobile/reports', '/api/v1/district-reports',
-                "/api/v1/reports/{$report->uuid}/handoff-notes"] as $path) {
+            foreach (['/api/v1/mobile/reports', '/api/v2/mobile/reports', '/api/v1/district-reports'] as $path) {
                 $this->postJson($path, ['district_id' => $district->id, 'reporter_id' => $report->reporter_id])->assertForbidden();
             }
             $this->patchJson("/api/v1/reports/{$report->uuid}/review", [])->assertForbidden();
         }
         $this->assertDatabaseCount('reports', 1);
-        $this->assertDatabaseCount('report_handoff_notes', 0);
         $this->assertDatabaseCount('report_audits', 0);
         $this->assertDatabaseCount('district_report_transmissions', 0);
         $this->assertSame([], Storage::disk('local')->allFiles());
@@ -139,7 +137,6 @@ class DistrictAccessTest extends TestCase
         foreach ([$foreignReport, $unassigned] as $report) {
             $this->getJson("/api/v1/reports/{$report->uuid}")->assertOk();
             $this->getJson("/api/v1/reports/{$report->uuid}/possible-matches")->assertOk();
-            $this->postJson("/api/v1/reports/{$report->uuid}/handoff-notes", [])->assertUnprocessable();
         }
         $export = $this->get('/api/v1/reports/export')->assertOk()->streamedContent();
         $this->assertStringContainsString($pilot->reference_code, $export);

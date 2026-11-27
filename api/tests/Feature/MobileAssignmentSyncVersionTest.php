@@ -201,8 +201,8 @@ class MobileAssignmentSyncVersionTest extends TestCase
         $this->assertFalse($after['unchanged']);
     }
 
-    // Proves: a handoff note on an office case moves the version and reaches the phone.
-    public function test_a_handoff_note_on_an_office_case_changes_the_version(): void
+    // Proves: an office review note on an office case moves the version and reaches the phone.
+    public function test_an_office_review_note_on_an_office_case_changes_the_version(): void
     {
         $assignment = $this->assign(report: ['origin' => Report::ORIGIN_OFFICE]);
         $before = $this->sync();

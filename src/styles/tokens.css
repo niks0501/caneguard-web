@@ -181,6 +181,17 @@
   --radius-lg: 8px;
   --radius-xl: 8px;
   --radius-pill: 9999px;
+  --radius-case-card: 14px;
+  --radius-case-inner: 10px;
+  --radius-track: 2px;
+
+  /* Case Review case bar: brand structural green with cream ink. */
+  --case-bar-bg: var(--brand-structural-green);
+  --case-bar-border: transparent;
+  --case-bar-ink: #fbf7ea;
+  --case-bar-muted: #c9d8c8;
+  --case-bar-current: #e2b23a;
+  --case-bar-resolved: #cfe3c4;
 
   --shadow-surface: 0 4px 16px rgba(29, 39, 32, 0.05);
   --shadow-floating: 0 12px 32px rgba(29, 39, 32, 0.12);
@@ -239,6 +250,12 @@
 @media screen {
   :root[data-theme="dark"] {
     color-scheme: dark;
+    --case-bar-bg: #16301f;
+    --case-bar-border: #2e4a36;
+    --case-bar-ink: #fbf7ea;
+    --case-bar-muted: #c9d8c8;
+    --case-bar-current: #e2b23a;
+    --case-bar-resolved: #cfe3c4;
 
     --color-page: #171a16;
     --color-surface: #20241f;

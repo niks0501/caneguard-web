@@ -252,7 +252,7 @@ The command stamps only NULL district values, preserves existing district stamps
 The accounts are `field@caneguard.test`, `mao@caneguard.test`, and `admin@caneguard.test`.
 Use the local passwords you set in `CANEGUARD_FIELD_PASSWORD`, `CANEGUARD_REVIEWER_PASSWORD`, and `CANEGUARD_ADMIN_PASSWORD`.
 The Web accepts reviewer and admin roles; Mobile synchronization requires the field-reporter role and pilot-district membership. The full seed assigns office staff to the pilot district; admit the field account as described above.
-See [expert workflow retirement](docs/expert-workflow-retirement.md) for historical referrals, offline handoff notes and migration safety.
+See [expert workflow retirement](docs/expert-workflow-retirement.md) for historical referrals, the removed offline handoff notes and migration safety.
 
 After any update that adds API migrations, rerun `php api/artisan migrate` before logging in.
 

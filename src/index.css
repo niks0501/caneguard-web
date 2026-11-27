@@ -11913,3 +11913,19 @@ input[type="checkbox"] {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Narrow app header: the workspace title truncates instead of overflowing, and
+   the connectivity pill collapses to its coloured icon, so neither pushes past
+   the header edge. The full status stays in the pill's aria-label and title. */
+@media (max-width: 680px) {
+  .app-header { gap: var(--space-2); }
+  .app-header__context { flex: 1 1 auto; min-width: 0; }
+  .app-header__context > div { min-width: 0; }
+  .app-header__context span,
+  .app-header__context strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .app-header__actions { flex: 0 1 auto; min-width: 0; }
+  .server-status { flex: none; justify-content: center; width: 34px; min-height: 34px; padding: 0; }
+  .server-status svg { flex: none; }
+  .server-status__details,
+  .server-status__summary { display: none; }
+}

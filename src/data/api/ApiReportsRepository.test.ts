@@ -12,22 +12,6 @@ import { ApiReportsRepository } from "./ApiReportsRepository";
 const baseUrl = "https://api.caneguard.test";
 
 describe("ApiReportsRepository", () => {
-  it("records only a versioned plain handoff note and maps saved records", async () => {
-    const handoff = { id: 1, destination: "Offline validator", reference: null, sent_date: "2026-10-04", note: "Please advise", advice_received_note: null };
-    server.use(http.post(`${baseUrl}/api/v1/reports/${reportDetailDto.identity.uuid}/handoff-notes`, async ({ request }) => {
-      expect(await request.json()).toEqual({
-        destination: handoff.destination, reference: null, sent_date: handoff.sent_date,
-        note: handoff.note, advice_received_note: null, expected_version: reportDetailDto.version,
-      });
-      return HttpResponse.json({ data: { ...reportDetailDto, handoff_notes: [handoff], version: reportDetailDto.version + 1 } });
-    }));
-    const repository = new ApiReportsRepository(createAxiosClient({ apiBaseUrl: baseUrl }));
-    await expect(repository.recordHandoffNote(reportDetailDto.identity.uuid, {
-      destination: " Offline validator ", reference: " ", sentDate: handoff.sent_date,
-      note: " Please advise ", expectedVersion: reportDetailDto.version,
-    })).resolves.toMatchObject({ handoffNotes: [handoff], reviewVersion: reportDetailDto.version + 1 });
-  });
-
   it("maps filters and Laravel pagination", async () => {
     server.use(
       http.get(`${baseUrl}/api/v1/reports`, ({ request }) => {

@@ -351,17 +351,7 @@ export interface ReportCaseHistory {
   };
 }
 
-export interface HandoffNote {
-  id: number;
-  destination: string;
-  reference: string | null;
-  sent_date: string;
-  note: string | null;
-  advice_received_note: string | null;
-}
-
 export interface DiseaseReport {
-  handoffNotes?: HandoffNote[];
   uuid: string;
   referenceCode: string;
   barangay: string;
