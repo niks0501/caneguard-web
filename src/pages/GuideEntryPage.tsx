@@ -16,8 +16,10 @@ export function GuideEntryPage() {
 
   if (!entry) return <NotFoundPage />;
   return (
-    <div className="pub-section">
-      <GuideEntryView entry={entry} />
+    <div className="pub-ambient">
+      <div className="pub-section">
+        <GuideEntryView entry={entry} />
+      </div>
     </div>
   );
 }
