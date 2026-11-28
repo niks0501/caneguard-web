@@ -92,7 +92,8 @@ export function ReviewDecisionForm({ report, onRefresh, locked = false, onMarkDu
   const [advisoryUnavailable, setAdvisoryUnavailable] = useState<string | null>(null);
   const [inspectorUuid, setInspectorUuid] = useState(report.fieldValidationAssignment?.assignee.uuid ?? "");
   const [targetDate, setTargetDate] = useState(report.fieldValidationAssignment?.targetVisitDate ?? "");
-  const [notes, setNotes] = useState(report.reviewNotes ?? "");
+  // Always start a new review with blank notes so prior notes are never silently resubmitted.
+  const [notes, setNotes] = useState("");
   const [closedConfirmed, setClosedConfirmed] = useState(false);
   const [reopenConfirmed, setReopenConfirmed] = useState(false);
   const [failedMessages, setFailedMessages] = useState<string[]>([]);
@@ -221,7 +222,7 @@ export function ReviewDecisionForm({ report, onRefresh, locked = false, onMarkDu
     setAction(selection.action ? selection.action as NextAction : null);
     setSupport(selection.support);
     setAdvisoryUuid(selection.advisoryUuid);
-    setNotes(saved.notes);
+    setNotes("");
     setInspectorUuid(saved.inspector);
     setTargetDate(saved.targetDate);
     setClosedConfirmed(false);
@@ -389,7 +390,9 @@ export function ReviewDecisionForm({ report, onRefresh, locked = false, onMarkDu
 
   // Reconciliation never updates only the concurrency token: every field either
   // takes the latest saved value or keeps the reviewer's own draft value.
-  const applyConflictChoices = (choices: ConflictChoices) => {
+  // Discarding a draft starts a fresh review with blank notes while showing the
+  // latest saved note read-only above the input.
+  const applyConflictChoices = (choices: ConflictChoices, options?: { discardDraft?: boolean }) => {
     if (!conflictLatest) return;
     if ((effectiveReport.reviewVersion ?? -1) > (conflictLatest.reviewVersion ?? -1)) {
       setConflictChoices(choices);
@@ -408,7 +411,7 @@ export function ReviewDecisionForm({ report, onRefresh, locked = false, onMarkDu
     setAction(selection.action ? selection.action as NextAction : null);
     setSupport(selection.support);
     setAdvisoryUuid(selection.advisoryUuid);
-    setNotes(resolved.notes);
+    setNotes(options?.discardDraft ? "" : resolved.notes);
     setInspectorUuid(resolved.inspector);
     setTargetDate(resolved.targetDate);
     setExpectedVersion(conflictLatest.reviewVersion);
@@ -419,8 +422,10 @@ export function ReviewDecisionForm({ report, onRefresh, locked = false, onMarkDu
     setConflictLatest(null);
     setConflictError(null);
     mutation.reset();
-    setDirty((Object.keys(resolved) as (keyof typeof resolved)[])
-      .some((field) => resolved[field] !== saved[field]));
+    setDirty(options?.discardDraft
+      ? false
+      : (Object.keys(resolved) as (keyof typeof resolved)[])
+        .some((field) => resolved[field] !== saved[field]));
   };
 
   const reviewNext = async () => {
@@ -519,6 +524,15 @@ export function ReviewDecisionForm({ report, onRefresh, locked = false, onMarkDu
         {action === "close" ? <div className="review-subform">
           <p>Confirming this review will close the case.</p>
         </div> : null}
+        {effectiveReport.reviewNotes?.trim() ? (
+          <div className="review-previous-note" role="note" aria-label="Previous review note">
+            <p className="review-previous-note__label">Previous review note (read-only)</p>
+            <p className="review-previous-note__body">{effectiveReport.reviewNotes}</p>
+            <p className="review-previous-note__hint">
+              Not copied into this review. Leave Review notes blank to clear the current note, or write a new note below.
+            </p>
+          </div>
+        ) : null}
         <TextArea label={action === "support" && support === "technical" ? "Technical Assistance details / Review notes" : "Review notes"}
           hint="Record treatment, pesticide, medicine, technical assistance, or other action details when applicable."
           placeholder="Describe the intervention or other action used, if applicable..."
@@ -560,7 +574,7 @@ export function ReviewDecisionForm({ report, onRefresh, locked = false, onMarkDu
         </li>)}
         <li className="review-check-list__row">
           <span className="review-check-list__body">
-            {notes.length ? <><p className="review-notes-label">Review notes</p><blockquote className="review-consequence review-note-quote">{notes}</blockquote></> : <p className="review-notes-empty">Review notes: none</p>}
+            {notes.trim().length ? <><p className="review-notes-label">Review notes</p><blockquote className="review-consequence review-note-quote">{notes}</blockquote></> : <p className="review-notes-empty">{effectiveReport.reviewNotes?.trim() ? "Review notes: none (clears previous note)" : "Review notes: none"}</p>}
           </span>
           <button type="button" className="review-check-list__change" disabled={mutation.isPending || saved}
             aria-label="Change review notes" onClick={() => setStep("details")}>Change</button>
@@ -595,7 +609,7 @@ export function ReviewDecisionForm({ report, onRefresh, locked = false, onMarkDu
         onReloadAll={() => applyConflictChoices({
           classification: "latest", verification: "latest", action: "latest",
           notes: "latest", inspector: "latest", targetDate: "latest",
-        })}
+        }, { discardDraft: true })}
       /> : null}
       {apiError && !conflict ? <div role="alert" className="form-error">{apiError.status === 429 ? "Too many review attempts were received. Wait a moment before trying again." : apiError.status === 403 ? "Your account no longer has permission to review this report." : apiError.status === 423 ? "Another reviewer is reviewing this case. Your review was not saved." : apiError.status === 422 ? Object.values(apiError.errors ?? {}).flat().join(" ") || "The server rejected this review. Check the selected action and notes before trying again." : "The review service is unavailable. No review change was confirmed."}</div> : null}
       {mutation.error instanceof ZodError ? <p role="alert" className="form-error">The server returned an unexpected response. Refresh the report before trying again.</p> : mutation.isError && !apiError ? <p role="alert" className="form-error">The review service is unavailable. No review change was confirmed.</p> : null}

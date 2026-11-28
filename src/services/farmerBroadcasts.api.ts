@@ -20,12 +20,29 @@ export const broadcastSchema = z.object({
   live: z.boolean(), reach: z.number().int(),
 });
 export type FarmerBroadcast = z.infer<typeof broadcastSchema>;
+
+export const broadcastReachMetaSchema = z.object({
+  total_verified_farmers: z.number().int().nonnegative(),
+  barangay_counts: z.record(z.string(), z.number().int().nonnegative()),
+});
+export type BroadcastReachMeta = z.infer<typeof broadcastReachMetaSchema>;
+
+export interface FarmerBroadcastListResult {
+  items: FarmerBroadcast[];
+  meta: BroadcastReachMeta | null;
+}
+
 export type BroadcastCommand = {
   advisory_uuid: string; headline_tl: string; headline_en: string; body_tl: string; body_en: string;
   all_barangays: boolean; barangays: string[]; expires_in_days: number;
 };
-export async function listFarmerBroadcasts(signal?: AbortSignal) {
-  return z.object({ data: z.array(broadcastSchema) }).parse((await axiosClient.get("/api/v1/farmer-broadcasts", { signal })).data).data;
+
+export async function listFarmerBroadcasts(signal?: AbortSignal): Promise<FarmerBroadcastListResult> {
+  const parsed = z.object({
+    data: z.array(broadcastSchema),
+    meta: broadcastReachMetaSchema.optional(),
+  }).parse((await axiosClient.get("/api/v1/farmer-broadcasts", { signal })).data);
+  return { items: parsed.data, meta: parsed.meta ?? null };
 }
 export async function publishFarmerBroadcast(command: BroadcastCommand) {
   await initializeCsrf();

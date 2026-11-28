@@ -23,12 +23,55 @@ class FarmerBroadcastController extends Controller
         abort_unless($request->user()?->hasWebAccess(), 403);
     }
 
-    /** @return array<string, mixed> */
-    private function present(FarmerAdvisoryBroadcast $broadcast): array
+    /**
+     * @return array{total_verified_farmers: int, barangay_counts: array<string, int>}
+     */
+    private function farmerReachSummary(): array
     {
-        $farmers = User::query()->where('role', User::ROLE_FARMER)->where('is_active', true)->whereNotNull('email_verified_at');
-        if ($broadcast->barangays !== null) {
-            $farmers->whereIn('barangay', $broadcast->barangays);
+        $grouped = User::query()
+            ->where('role', User::ROLE_FARMER)
+            ->where('is_active', true)
+            ->whereNotNull('email_verified_at')
+            ->selectRaw('barangay, COUNT(*) as farmer_count')
+            ->groupBy('barangay')
+            ->get();
+
+        $total = 0;
+        $barangayCounts = [];
+        foreach ($grouped as $row) {
+            $count = (int) $row->farmer_count;
+            $total += $count;
+            if (is_string($row->barangay) && $row->barangay !== '') {
+                $barangayCounts[$row->barangay] = $count;
+            }
+        }
+        ksort($barangayCounts);
+
+        return [
+            'total_verified_farmers' => $total,
+            'barangay_counts' => $barangayCounts,
+        ];
+    }
+
+    /**
+     * @param  array{total_verified_farmers: int, barangay_counts: array<string, int>}|null  $reachSummary
+     * @return array<string, mixed>
+     */
+    private function present(FarmerAdvisoryBroadcast $broadcast, ?array $reachSummary = null): array
+    {
+        if ($reachSummary !== null) {
+            $reach = $broadcast->barangays === null
+                ? $reachSummary['total_verified_farmers']
+                : array_sum(array_map(
+                    fn (string $barangay): int => $reachSummary['barangay_counts'][$barangay] ?? 0,
+                    array_values(array_unique($broadcast->barangays)),
+                ));
+        } else {
+            $farmers = User::query()->where('role', User::ROLE_FARMER)->where('is_active', true)->whereNotNull('email_verified_at');
+            if ($broadcast->barangays !== null) {
+                $farmers->whereIn('barangay', $broadcast->barangays);
+            }
+            $reach = $farmers->count();
         }
 
         return [
@@ -43,16 +86,25 @@ class FarmerBroadcastController extends Controller
             'expires_at' => $broadcast->expires_at->toISOString(),
             'retired_at' => $broadcast->retired_at?->toISOString(),
             'live' => $broadcast->isLive(),
-            'reach' => $farmers->count(),
+            'reach' => $reach,
         ];
     }
 
     public function index(Request $request): JsonResponse
     {
         $this->authorizeOffice($request);
+        $reachSummary = $this->farmerReachSummary();
         $rows = FarmerAdvisoryBroadcast::query()->with('advisory')->orderByDesc('id')->limit(50)->get();
 
-        return response()->json(['data' => $rows->map(fn (FarmerAdvisoryBroadcast $row) => $this->present($row))->all()]);
+        return response()->json([
+            'data' => $rows->map(fn (FarmerAdvisoryBroadcast $row) => $this->present($row, $reachSummary))->all(),
+            'meta' => [
+                'total_verified_farmers' => $reachSummary['total_verified_farmers'],
+                'barangay_counts' => $reachSummary['barangay_counts'] === []
+                    ? new \stdClass
+                    : $reachSummary['barangay_counts'],
+            ],
+        ]);
     }
 
     public function store(Request $request): JsonResponse

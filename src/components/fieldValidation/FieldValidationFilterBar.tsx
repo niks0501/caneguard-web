@@ -38,20 +38,19 @@ export function FieldValidationFilterBar({
 
   return (
     <form className="field-validation-filter-bar" onSubmit={submit}>
-      <label className="select-filter">
-        <span>Barangay</span>
-        <input
-          type="text"
-          list="known-barangays"
-          value={draft.barangay ?? ""}
-          maxLength={120}
-          placeholder="All barangays"
-          onChange={(event) => update({ barangay: event.target.value || undefined })}
-        />
-        <datalist id="known-barangays">
-          {knownBarangays.map((barangay) => <option value={barangay} key={barangay} />)}
-        </datalist>
-      </label>
+      <SelectFilter
+        label="Barangay"
+        value={draft.barangay ?? ""}
+        onChange={(event) => update({ barangay: event.target.value || undefined })}
+      >
+        <option value="">All barangays</option>
+        {draft.barangay && !knownBarangays.includes(draft.barangay as (typeof knownBarangays)[number]) ? (
+          <option value={draft.barangay}>{draft.barangay}</option>
+        ) : null}
+        {knownBarangays.map((barangay) => (
+          <option value={barangay} key={barangay}>{barangay}</option>
+        ))}
+      </SelectFilter>
       <SelectFilter
         label="Case Status"
         value={draft.status ?? ""}

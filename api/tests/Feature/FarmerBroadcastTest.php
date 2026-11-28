@@ -7,6 +7,7 @@ use App\Models\FarmerAdvisoryBroadcast;
 use App\Models\Report;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -225,5 +226,129 @@ class FarmerBroadcastTest extends TestCase
         $this->postJson('/api/v1/farmer-broadcasts', $this->payload(Advisory::factory()->validated()->create()))->assertCreated();
 
         $this->assertSame(2, Report::query()->count());
+    }
+
+    public function test_a_farmer_still_receives_older_matching_broadcasts_when_more_than_fifty_live_broadcasts_exist(): void
+    {
+        $publisher = $this->office();
+        $advisory = Advisory::factory()->validated()->create();
+
+        FarmerAdvisoryBroadcast::query()->create([
+            'advisory_id' => $advisory->id,
+            'headline_tl' => 'Lumang paalala sa Aga',
+            'headline_en' => 'Older Aga alert',
+            'body_tl' => 'Tingnan ang mga punla sa Aga.',
+            'body_en' => 'Inspect shoots in Aga.',
+            'barangays' => ['Aga'],
+            'published_by_id' => $publisher->id,
+            'published_at' => now()->subHours(3),
+            'expires_at' => now()->addDays(14),
+        ]);
+
+        FarmerAdvisoryBroadcast::query()->create([
+            'advisory_id' => $advisory->id,
+            'headline_tl' => 'Para sa lahat',
+            'headline_en' => 'Older all-barangay alert',
+            'body_tl' => 'Abiso sa buong bayan.',
+            'body_en' => 'Town-wide notice.',
+            'barangays' => null,
+            'published_by_id' => $publisher->id,
+            'published_at' => now()->subHours(2),
+            'expires_at' => now()->addDays(14),
+        ]);
+
+        for ($index = 0; $index < 55; $index++) {
+            FarmerAdvisoryBroadcast::query()->create([
+                'advisory_id' => $advisory->id,
+                'headline_tl' => "Paalala sa Tumalim {$index}",
+                'headline_en' => "Tumalim alert {$index}",
+                'body_tl' => 'Abiso para sa Tumalim lamang.',
+                'body_en' => 'Notice for Tumalim only.',
+                'barangays' => ['Tumalim'],
+                'published_by_id' => $publisher->id,
+                'published_at' => now()->subMinutes(55 - $index),
+                'expires_at' => now()->addDays(14),
+            ]);
+        }
+
+        [, $agaToken] = $this->farmerToken('Aga');
+        $agaHeadlines = collect(
+            $this->asToken($agaToken)->getJson('/api/v1/mobile/farmer/advisories')->assertOk()->json('data'),
+        )->pluck('headline_en')->all();
+        $this->assertSame(['Older all-barangay alert', 'Older Aga alert'], $agaHeadlines);
+
+        [, $noneToken] = $this->farmerToken();
+        $noneHeadlines = collect(
+            $this->asToken($noneToken)->getJson('/api/v1/mobile/farmer/advisories')->assertOk()->json('data'),
+        )->pluck('headline_en')->all();
+        $this->assertSame(['Older all-barangay alert'], $noneHeadlines);
+
+        [, $tumalimToken] = $this->farmerToken('Tumalim');
+        $tumalimData = $this->asToken($tumalimToken)->getJson('/api/v1/mobile/farmer/advisories')->assertOk()->json('data');
+        $this->assertCount(50, $tumalimData);
+    }
+
+    public function test_pivot_migration_backfills_existing_json_barangays(): void
+    {
+        $publisher = $this->office();
+        $advisory = Advisory::factory()->validated()->create();
+
+        $broadcastId = DB::table('farmer_advisory_broadcasts')->insertGetId([
+            'uuid' => (string) Str::uuid(),
+            'advisory_id' => $advisory->id,
+            'headline_tl' => 'Backfill TL',
+            'headline_en' => 'Backfill EN',
+            'body_tl' => 'Nilalaman',
+            'body_en' => 'Content',
+            'barangays' => json_encode(['Aga', 'Banilad'], JSON_THROW_ON_ERROR),
+            'published_by_id' => $publisher->id,
+            'published_at' => now()->format('Y-m-d H:i:s.v'),
+            'expires_at' => now()->addDays(7)->format('Y-m-d H:i:s.v'),
+            'created_at' => now()->format('Y-m-d H:i:s.v'),
+            'updated_at' => now()->format('Y-m-d H:i:s.v'),
+        ]);
+
+        $this->assertDatabaseMissing('farmer_advisory_broadcast_barangays', ['broadcast_id' => $broadcastId]);
+
+        $migration = require database_path('migrations/2026_11_29_000300_create_farmer_advisory_broadcast_barangays_table.php');
+        $migration->up();
+
+        $this->assertDatabaseHas('farmer_advisory_broadcast_barangays', [
+            'broadcast_id' => $broadcastId,
+            'barangay' => 'Aga',
+        ]);
+        $this->assertDatabaseHas('farmer_advisory_broadcast_barangays', [
+            'broadcast_id' => $broadcastId,
+            'barangay' => 'Banilad',
+        ]);
+        $this->assertSame(
+            [$broadcastId],
+            FarmerAdvisoryBroadcast::query()->forBarangay('Aga')->pluck('id')->all(),
+        );
+    }
+
+    public function test_office_index_returns_verified_farmer_reach_summary_metadata(): void
+    {
+        $this->office();
+
+        $emptyResponse = $this->getJson('/api/v1/farmer-broadcasts')->assertOk();
+        $emptyResponse->assertJsonPath('meta.total_verified_farmers', 0);
+        $this->assertStringContainsString('"barangay_counts":{}', $emptyResponse->getContent());
+
+        User::factory()->farmer()->create(['barangay' => 'Aga']);
+        User::factory()->farmer()->create(['barangay' => 'Aga']);
+        User::factory()->farmer()->create(['barangay' => 'Banilad']);
+        User::factory()->farmer()->create(['barangay' => null]);
+        User::factory()->farmer()->create(['barangay' => 'Aga', 'is_active' => false]);
+        User::factory()->farmer()->unverified()->create(['barangay' => 'Aga']);
+        User::factory()->fieldReporter()->create(['barangay' => 'Aga']);
+
+        $this->getJson('/api/v1/farmer-broadcasts')
+            ->assertOk()
+            ->assertJsonPath('meta.total_verified_farmers', 4)
+            ->assertJsonPath('meta.barangay_counts', [
+                'Aga' => 2,
+                'Banilad' => 1,
+            ]);
     }
 }

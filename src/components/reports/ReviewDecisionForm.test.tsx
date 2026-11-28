@@ -266,9 +266,9 @@ describe("Progressive review resilience", () => {
 
     await user.click(screen.getByRole("button", { name: "Reload and discard my changes" }));
     rerender(<MemoryRouter><ReviewDecisionForm report={versionThree} onRefresh={onRefresh} /></MemoryRouter>);
-    await screen.findByText("Version three notes.");
     await user.click(screen.getByRole("button", { name: "Back" }));
-    expect(screen.getByRole("textbox")).toHaveValue("Version three notes.");
+    expect(within(screen.getByRole("note", { name: "Previous review note" })).getByText("Version three notes.")).toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toHaveValue("");
 
     await user.click(screen.getByRole("button", { name: "Back" }));
     await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
@@ -278,7 +278,7 @@ describe("Progressive review resilience", () => {
     await user.click(screen.getByRole("button", { name: "Confirm decision" }));
     expect(save.mock.calls[1][0]).toMatchObject({
       expectedVersion: versionThree.reviewVersion,
-      notes: "Version three notes.",
+      notes: "",
     });
   });
 
@@ -313,7 +313,8 @@ describe("Progressive review resilience", () => {
     expect(screen.queryByText(/The latest saved version could not be loaded/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Reload and discard my changes" }));
     await user.click(screen.getByRole("button", { name: "Back" }));
-    expect(screen.getByRole("textbox")).toHaveValue("Version three notes.");
+    expect(within(screen.getByRole("note", { name: "Previous review note" })).getByText("Version three notes.")).toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toHaveValue("");
   });
 
   it("reloads every field when the reviewer discards the draft after a conflict", async () => {
@@ -329,7 +330,8 @@ describe("Progressive review resilience", () => {
     await user.click(await screen.findByRole("button", { name: "Reload and discard my changes" }));
     await user.click(screen.getByRole("button", { name: "Back" }));
 
-    expect(screen.getByRole("textbox")).toHaveValue("Updated by the other reviewer.");
+    expect(within(screen.getByRole("note", { name: "Previous review note" })).getByText("Updated by the other reviewer.")).toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toHaveValue("");
     expect(screen.queryByRole("radio", { name: "Technical Assistance" })).not.toBeInTheDocument();
     expect(save).toHaveBeenCalledTimes(1);
   });
@@ -363,14 +365,66 @@ describe("Progressive review resilience", () => {
 
     expect(screen.getByRole("radio", { name: "Technical Assistance" })).toBeChecked();
     expect(screen.queryByRole("radiogroup", { name: "Advisory to send" })).not.toBeInTheDocument();
+    expect(within(screen.getByRole("note", { name: "Previous review note" })).getByText("Theirs")).toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toHaveValue("");
+
+    await user.type(screen.getByRole("textbox"), "Follow-up technical guidance.");
     await user.click(screen.getByRole("button", { name: "Next" }));
     await user.click(screen.getByRole("button", { name: "Confirm decision" }));
     expect(save.mock.calls[1][0]).toMatchObject({
       expectedVersion: latest.reviewVersion,
       actionTaken: "technical_assistance_provided",
-      notes: "Theirs",
+      notes: "Follow-up technical guidance.",
     });
     expect(save.mock.calls[1][0]).not.toHaveProperty("advisoryUuid");
+  });
+
+  it("starts a new review with blank notes while showing previous notes read-only and never auto-submitting them", async () => {
+    const user = userEvent.setup();
+    const previouslyReviewed = {
+      ...base,
+      reviewNotes: "Previous inspection note from last week.",
+    };
+    const { rerender } = renderForm(previouslyReviewed);
+
+    // Background clean sibling update must not copy the server note into the editable draft.
+    rerender(
+      <MemoryRouter>
+        <ReviewDecisionForm
+          report={{
+            ...previouslyReviewed,
+            reviewVersion: previouslyReviewed.reviewVersion! + 1,
+            reviewNotes: "Updated note from another reviewer.",
+          }}
+          onRefresh={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole("radio", { name: "Provide Advisory or Assistance" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+
+    const previousBox = screen.getByRole("note", { name: "Previous review note" });
+    expect(within(previousBox).getByText("Updated note from another reviewer.")).toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toHaveValue("");
+
+    // Switching to Technical Assistance must NOT pass validation using the old note.
+    await user.click(screen.getByRole("radio", { name: "Technical Assistance" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText("Review notes: none (clears previous note)")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Confirm decision" }));
+    expect(save).not.toHaveBeenCalled();
+    expect(screen.getByText("Meaningful Technical Assistance details are required.")).toBeInTheDocument();
+
+    // Switching back to Advisory Guidance and confirming with blank notes clears the prior note.
+    await user.click(screen.getByRole("radio", { name: "Advisory Guidance" }));
+    await pickAdvisory(user);
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Confirm decision" }));
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({
+      actionTaken: "advisory_provided",
+      notes: "",
+    }));
   });
 
   // Which side keeps each field must survive a trip back to the draft.
