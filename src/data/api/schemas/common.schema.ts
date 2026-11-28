@@ -21,3 +21,5 @@ export const paginationLinksSchema = z.object({
   prev: z.string().nullable(),
   next: z.string().nullable(),
 });
+
+export const measurementProvenanceSchema = z.enum(["measured", "not_measured"]);

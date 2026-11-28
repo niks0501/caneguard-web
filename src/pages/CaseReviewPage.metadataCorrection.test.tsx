@@ -156,4 +156,33 @@ describe("Metadata correction lost-update guard", () => {
       discard.mockRestore();
     }
   });
+
+  it("displays and syncs plot area, affected ground area, and affected portion measurement states", async () => {
+    const user = userEvent.setup();
+    await openModal(user);
+
+    expect(screen.getByLabelText("Total plot area status")).toHaveValue("not_measured");
+    expect(screen.getByLabelText("Affected ground area status")).toHaveValue("measured");
+    expect(screen.getByLabelText("Affected portion status")).toHaveValue("measured");
+
+    await user.type(screen.getByLabelText("Total plot area (ha)"), "1.2");
+    expect(screen.getByLabelText("Total plot area status")).toHaveValue("measured");
+
+    const affectedArea = screen.getByLabelText("Affected ground area (ha)");
+    await user.clear(affectedArea);
+    await user.type(affectedArea, "0");
+    expect(screen.getByLabelText("Affected ground area status")).toHaveValue("measured");
+
+    await user.selectOptions(screen.getByLabelText("Affected portion status"), "not_measured");
+    expect(screen.getByLabelText("Affected portion (%)")).toHaveValue(null);
+
+    await user.type(screen.getByRole("textbox", { name: /Correction reason/ }), "Confirmed plot area and zero affected ground.");
+    await user.click(screen.getByRole("button", { name: "Save correction" }));
+
+    await waitFor(() => expect(payloads).toHaveLength(1));
+    const sent = payloads[0].metadata_corrections as Payload;
+    expect(sent.plot_area_hectares).toBe(1.2);
+    expect(sent.affected_area_hectares).toBe(0);
+    expect(sent.affected_portion_percent).toBeNull();
+  });
 });

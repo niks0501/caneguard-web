@@ -5,6 +5,9 @@ import {
   formatClockTimeWithSeconds,
   formatDateTime,
   formatAffectedArea,
+  formatAreaHectares,
+  formatMeasuredArea,
+  formatMeasuredPercent,
 } from "./formatters";
 
 /**
@@ -14,18 +17,55 @@ import {
  */
 const TWENTY_FOUR_HOUR = /\b(?:[01]?\d|2[0-3]):[0-5]\d(?::[0-5]\d)?(?!:)\b(?!\s*[AP]\.?M)/i;
 
-describe("affected-area formatting", () => {
-  it("preserves the established two-decimal hectare output for ordinary values", () => {
+describe("area and measurement formatting", () => {
+  it("formats generic areas with two decimals for ordinary values and preserves small-patch precision", () => {
+    expect(formatAreaHectares(1.2)).toBe("1.2 ha");
+    expect(formatAreaHectares(0.3)).toBe("0.3 ha");
+    expect(formatAreaHectares(0.6075123)).toBe("0.61 ha");
+    expect(formatAreaHectares(1)).toBe("1 ha");
+    expect(formatAreaHectares(2.4)).toBe("2.4 ha");
+    expect(formatAreaHectares(0.015)).toBe("0.02 ha");
+    expect(formatAreaHectares(0)).toBe("0 ha");
+    expect(formatAreaHectares(40 / 10_000)).toBe("0.004 ha");
+    expect(formatAreaHectares(49 / 10_000)).toBe("0.0049 ha");
+    expect(formatAreaHectares(50 / 10_000)).toBe("0.005 ha");
+    expect(formatAreaHectares(95 / 10_000)).toBe("0.0095 ha");
+    expect(formatAreaHectares(0.4 / 10_000)).toBe("0.00004 ha");
+    expect(formatAreaHectares(Number.MIN_VALUE)).not.toBe("0 ha");
+    expect(formatAreaHectares(null)).toBe("—");
+    expect(formatAreaHectares(undefined)).toBe("—");
+  });
+
+  it("distinguishes unmeasured from confirmed zero and positive areas in formatMeasuredArea", () => {
+    expect(formatMeasuredArea(null, "not_measured")).toBe("Not measured");
+    expect(formatMeasuredArea(0, "not_measured")).toBe("Not measured");
+    expect(formatMeasuredArea(1.2, "not_measured")).toBe("Not measured");
+    expect(formatMeasuredArea(null, "measured")).toBe("Not measured");
+    expect(formatMeasuredArea(0, "measured")).toBe("0 ha");
+    expect(formatMeasuredArea(0.004, "measured")).toBe("0.004 ha");
+    expect(formatMeasuredArea(0.3, "measured")).toBe("0.3 ha");
+    expect(formatMeasuredArea(null, "not_measured", { unmeasuredLabel: "—" })).toBe("—");
+  });
+
+  it("distinguishes unmeasured from confirmed zero in formatMeasuredPercent", () => {
+    expect(formatMeasuredPercent(null, "not_measured")).toBe("Not measured");
+    expect(formatMeasuredPercent(0, "not_measured")).toBe("Not measured");
+    expect(formatMeasuredPercent(25, "not_measured")).toBe("Not measured");
+    expect(formatMeasuredPercent(0, "measured")).toBe("0%");
+    expect(formatMeasuredPercent(25, "measured")).toBe("25%");
+    expect(formatMeasuredPercent(42.75, "measured")).toBe("42.75%");
+  });
+
+  it("keeps formatAffectedArea compact for table cells without rounding tiny patches to zero", () => {
     expect(formatAffectedArea(0.6075123)).toBe("0.61 ha");
     expect(formatAffectedArea(1)).toBe("1 ha");
     expect(formatAffectedArea(2.4)).toBe("2.4 ha");
     expect(formatAffectedArea(0.015)).toBe("0.02 ha");
-  });
-
-  it("keeps positive small hectare values distinguishable from zero", () => {
     expect(formatAffectedArea(49 / 10_000)).toBe("0.0049 ha");
     expect(formatAffectedArea(0.4 / 10_000)).toBe("0.00004 ha");
     expect(formatAffectedArea(Number.MIN_VALUE)).not.toBe("0 ha");
+    expect(formatAffectedArea(0, "measured")).toBe("0 ha");
+    expect(formatAffectedArea(0, "not_measured")).toBe("—");
   });
 });
 

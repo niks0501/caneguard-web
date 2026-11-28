@@ -36,8 +36,12 @@ function mapQueueItem(dto: FieldValidationQueueItemDto): FieldValidationQueueIte
     locationUnavailable: dto.location_unavailable,
     locationUnavailableReason: dto.location_unavailable_reason ?? null,
     gpsAccuracy: dto.gps_accuracy,
+    plotAreaHectares: dto.plot_area_hectares ?? null,
+    plotAreaMeasurement: dto.plot_area_measurement ?? null,
     affectedAreaHectares: dto.affected_area_hectares,
+    affectedAreaMeasurement: dto.affected_area_measurement ?? null,
     affectedPortionPercent: dto.affected_portion_percent,
+    affectedPortionMeasurement: dto.affected_portion_measurement ?? null,
   };
 }
 
@@ -75,9 +79,12 @@ export function mapFieldValidationMap(dto: MapResponseDto): FieldValidationMapDa
       locationSource: feature.properties.location_source,
       locationUnavailable: feature.properties.location_unavailable ?? false,
       gpsAccuracy: feature.properties.gps_accuracy,
+      plotAreaHectares: feature.properties.plot_area_hectares ?? null,
+      plotAreaMeasurement: feature.properties.plot_area_measurement ?? null,
       affectedAreaHectares: feature.properties.affected_area_hectares,
       affectedAreaMeasurement: feature.properties.affected_area_measurement ?? null,
       affectedPortionPercent: feature.properties.affected_portion_percent,
+      affectedPortionMeasurement: feature.properties.affected_portion_measurement ?? null,
     },
   }));
 

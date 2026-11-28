@@ -180,9 +180,11 @@ export function mapReportListItem(dto: ReportListItemDto): DiseaseReport {
       : null,
     locationUnavailable: dto.location_unavailable ?? false,
     locationUnavailableReason: dto.location_unavailable_reason ?? null,
+    plotAreaHectares: dto.plot_area_hectares ?? undefined,
+    plotAreaMeasurement: dto.plot_area_measurement ?? undefined,
     affectedAreaHectares: dto.affected_area_hectares ?? undefined,
-    affectedAreaMeasurement: dto.affected_area_measurement,
-    affectedPortionMeasurement: dto.affected_portion_measurement,
+    affectedAreaMeasurement: dto.affected_area_measurement ?? undefined,
+    affectedPortionMeasurement: dto.affected_portion_measurement ?? undefined,
     followUp: dto.follow_up
       ? { dueOn: dto.follow_up.due_on, overdue: dto.follow_up.overdue }
       : undefined,
@@ -215,6 +217,9 @@ export function mapReportAffectedField(
     areaSource: dto.area_source,
     inspector: dto.inspector,
     affectedAreaSqm: dto.affected_area_sqm,
+    ...(dto.affected_area_measurement !== undefined
+      ? { affectedAreaMeasurement: dto.affected_area_measurement }
+      : {}),
     affectedPercent: dto.affected_percent,
     lossRatePercent: dto.loss_rate_percent,
   };
@@ -257,6 +262,9 @@ function mapInspectorAttachment(
           areaSource: dto.field_survey.area_source,
           inspector: dto.field_survey.inspector,
           affectedAreaSqm: dto.field_survey.affected_area_sqm,
+          ...(dto.field_survey.affected_area_measurement !== undefined
+            ? { affectedAreaMeasurement: dto.field_survey.affected_area_measurement }
+            : {}),
           affectedPercent: dto.field_survey.affected_percent,
         }
       : null,
@@ -313,10 +321,12 @@ export function mapReportDetail(
     sugarcaneVariety: dto.observations.sugarcane_variety ?? undefined,
     cropAge: dto.observations.crop_age ?? undefined,
     caneClass: dto.observations.cane_class ?? undefined,
+    plotAreaHectares: dto.observations.plot_area_hectares ?? undefined,
+    plotAreaMeasurement: dto.observations.plot_area_measurement ?? undefined,
     affectedAreaHectares: dto.observations.affected_area_hectares ?? undefined,
-    affectedAreaMeasurement: dto.observations.affected_area_measurement,
+    affectedAreaMeasurement: dto.observations.affected_area_measurement ?? undefined,
     affectedPortionPercent: dto.observations.affected_portion_percent ?? undefined,
-    affectedPortionMeasurement: dto.observations.affected_portion_measurement,
+    affectedPortionMeasurement: dto.observations.affected_portion_measurement ?? undefined,
     fieldNotes: dto.observations.field_notes ?? undefined,
     mismatchReported: dto.reporter_observation.mismatch_reported,
     reporterSuspectedCondition:

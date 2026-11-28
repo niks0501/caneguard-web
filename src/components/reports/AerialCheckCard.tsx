@@ -9,7 +9,8 @@ import {
   useRestoreAerialAnalysis,
 } from "../../hooks/useReports";
 import { useOnlineStatus } from "../../hooks/useOnlineStatus";
-import { formatDateTime } from "../../lib/formatters";
+import { formatAreaHectares, formatDateTime, formatMeasuredArea } from "../../lib/formatters";
+import { isAffectedAreaMeasured, percentAffected } from "../boundaries/fieldMapStatus";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 
@@ -352,12 +353,25 @@ function GroundVersusPhoto({ report, analysis }: { report: DiseaseReport; analys
         <p className="aerial-check__badge">Phone GPS · office</p>
         {boundaries.length > 0 ? (
           <ul>
-            {boundaries.map((field) => (
-              <li key={field.fieldSurveyId}>
-                Boundary {field.fieldSurveyId}: {(field.areaSqm / 10000).toFixed(2)} ha
-                {field.affectedPercent === null ? "" : ` · ${field.affectedPercent}% affected`}
-              </li>
-            ))}
+            {boundaries.map((field) => {
+              const plotLabel = formatAreaHectares(field.areaSqm / 10_000);
+              const measured = isAffectedAreaMeasured(field.affectedAreaSqm, field.affectedAreaMeasurement);
+              const pct = measured
+                ? (field.affectedPercent ?? percentAffected(field.areaSqm, field.affectedAreaSqm, field.affectedAreaMeasurement))
+                : null;
+              const groundDetail = measured
+                ? `${formatMeasuredArea(field.affectedAreaSqm! / 10_000, "measured")} affected${pct === null ? "" : ` · ${pct}% affected`}`
+                : field.affectedAreaMeasurement === "not_measured"
+                  ? "Not measured"
+                  : field.affectedPercent !== null && field.affectedPercent > 0
+                    ? `${field.affectedPercent}% affected`
+                    : "Not measured";
+              return (
+                <li key={field.fieldSurveyId}>
+                  Boundary {field.fieldSurveyId}: {plotLabel} · {groundDetail}
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <p>No linked boundary</p>

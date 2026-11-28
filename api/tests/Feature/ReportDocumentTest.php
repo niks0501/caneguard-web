@@ -267,4 +267,25 @@ class ReportDocumentTest extends TestCase
             ->assertHeader('X-Frame-Options', 'DENY')
             ->assertHeaderContains('Content-Security-Policy', "frame-ancestors 'none'");
     }
+
+    public function test_document_preserves_small_patch_precision_for_estimated_affected_area(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'reference_code' => 'CG-DOC-TINY',
+            'submitted_at' => CarbonImmutable::parse('2026-09-20T15:30:00Z'),
+            'affected_area_hectares' => 0.004,
+            'affected_area_measurement' => Report::MEASUREMENT_MEASURED,
+        ]);
+
+        Sanctum::actingAs($reviewer);
+        $response = $this->get('/api/v1/reports/documents/report?'.http_build_query([
+            'period_type' => 'weekly',
+            'week' => '2026-W38',
+        ]));
+
+        $response->assertOk()
+            ->assertSee('0.004')
+            ->assertDontSee('<span class="metric-value">0.00</span>', false);
+    }
 }

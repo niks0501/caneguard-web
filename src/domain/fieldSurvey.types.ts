@@ -1,3 +1,5 @@
+import type { MeasurementProvenance } from "./report.types";
+
 export const FIELD_SURVEYS_DEFAULT_LIMIT = 100;
 export const FIELD_SURVEYS_MAX_LIMIT = 250;
 
@@ -39,6 +41,7 @@ export interface FieldSurveyBoundaryFeature {
     /** Damage areas the inspector drew inside the plot. */
     affectedAreas: FieldSurveyPolygon[];
     affectedAreaSqm: number | null;
+    affectedAreaMeasurement?: MeasurementProvenance | null;
     cases: FieldSurveyCaseLink[];
     inspector: {
       uuid: string;
@@ -75,7 +78,9 @@ export interface ReportAffectedField {
   };
   /** Damage the inspector drew inside the plot, in square metres; null when none was drawn. */
   affectedAreaSqm: number | null;
-  /** The phone's measured share of the plot that is affected; null when none was drawn. */
+  /** Whether the affected area was measured (`measured`) or left unmeasured (`not_measured`). */
+  affectedAreaMeasurement?: MeasurementProvenance | null;
+  /** The phone's measured share of the plot that is affected; null when not measured. */
   affectedPercent: number | null;
   /** Retired office input, kept as history. Never edited here. */
   lossRatePercent: number | null;

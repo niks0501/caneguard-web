@@ -12,6 +12,7 @@ export interface OperationalMetadataCorrections {
   farmerOrFarmOwnerName?: string | null;
   province?: string | null;
   municipality?: string | null;
+  plotAreaHectares?: number | null;
   affectedAreaHectares?: number | null;
   affectedPortionPercent?: number | null;
   finalLatitude?: number | null;

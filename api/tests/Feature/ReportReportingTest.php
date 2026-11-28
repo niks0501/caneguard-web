@@ -147,6 +147,8 @@ class ReportReportingTest extends TestCase
             'referral_destination',
             'referral_reference',
             'referral_date',
+            'plot_area_hectares',
+            'plot_area_measurement',
         ], $rows[0]);
         $this->assertSame([
             'CG-EXPORT-MATCH',
@@ -154,7 +156,7 @@ class ReportReportingTest extends TestCase
             'Mabini',
             'Juan Dela Cruz',
             'Possible rust',
-            '12.5000',
+            '12.5',
             'Measured',
             '42.75',
             'Measured',
@@ -173,6 +175,8 @@ class ReportReportingTest extends TestCase
             'Regional crop protection office',
             'SRA-2026-0042',
             '2026-09-05',
+            '',
+            'Not measured',
         ], $rows[1]);
     }
 

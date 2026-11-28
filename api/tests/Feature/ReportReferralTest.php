@@ -103,6 +103,47 @@ class ReportReferralTest extends TestCase
             ->assertJsonPath('data.affected.affected_area_measurement', 'not_measured')
             ->assertJsonPath('data.affected.portion_percent', null)
             ->assertJsonPath('data.affected.affected_portion_measurement', 'not_measured');
+
+        $this->get("/api/v1/reports/{$report->uuid}/referral/summary")
+            ->assertOk()
+            ->assertSee('Total plot area')
+            ->assertSee('<dd>1.2 ha</dd>', false)
+            ->assertSee('Affected ground area')
+            ->assertSee('Affected portion')
+            ->assertSee('<dd>Not measured</dd>', false)
+            ->assertDontSee('<dd>0 ha</dd>', false)
+            ->assertDontSee('<dd>0%</dd>', false);
+
+        $separated = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'plot_area_hectares' => 1.2, 'plot_area_measurement' => 'measured',
+            'affected_area_hectares' => 0.3, 'affected_area_measurement' => 'measured',
+            'affected_portion_percent' => 25, 'affected_portion_measurement' => 'measured',
+        ]);
+        $this->get("/api/v1/reports/{$separated->uuid}/referral/summary")
+            ->assertOk()
+            ->assertSee('1.2 ha')
+            ->assertSee('0.3 ha')
+            ->assertSee('25%');
+
+        $zero = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'plot_area_hectares' => 1.2, 'plot_area_measurement' => 'measured',
+            'affected_area_hectares' => 0, 'affected_area_measurement' => 'measured',
+            'affected_portion_percent' => 0, 'affected_portion_measurement' => 'measured',
+        ]);
+        $this->get("/api/v1/reports/{$zero->uuid}/referral/summary")
+            ->assertOk()
+            ->assertSee('0 ha')
+            ->assertSee('0%');
+
+        $tiny = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'plot_area_hectares' => 1.2, 'plot_area_measurement' => 'measured',
+            'affected_area_hectares' => 0.004, 'affected_area_measurement' => 'measured',
+            'affected_portion_percent' => 0.3, 'affected_portion_measurement' => 'measured',
+        ]);
+        $this->get("/api/v1/reports/{$tiny->uuid}/referral/summary")
+            ->assertOk()
+            ->assertSee('0.004 ha')
+            ->assertDontSee('0.00 ha');
     }
 
     public function test_retirement_does_not_skip_consults_when_the_active_query_shrinks_between_batches(): void

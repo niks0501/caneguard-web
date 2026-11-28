@@ -284,6 +284,7 @@ export class ApiReportsRepository implements ReportsRepository {
           input.metadataCorrections.farmerOrFarmOwnerName,
         province: input.metadataCorrections.province,
         municipality: input.metadataCorrections.municipality,
+        plot_area_hectares: input.metadataCorrections.plotAreaHectares,
         affected_area_hectares:
           input.metadataCorrections.affectedAreaHectares,
         affected_portion_percent:

@@ -9,8 +9,13 @@ import {
   type InspectorBoundaryAttachment,
   type ReportAffectedField,
 } from "../../domain/fieldSurvey.types";
-import type { DiseaseReport } from "../../domain/report.types";
-import { formatAffectedArea, formatDateTime } from "../../lib/formatters";
+import type { DiseaseReport, MeasurementProvenance } from "../../domain/report.types";
+import {
+  formatAreaHectares,
+  formatDateTime,
+  formatMeasuredArea,
+  formatMeasuredPercent,
+} from "../../lib/formatters";
 import { serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../../lib/serviceMessages";
 import { useFieldSurveys } from "../../hooks/fieldSurveys";
 import { useOnlineStatus } from "../../hooks/useOnlineStatus";
@@ -21,7 +26,7 @@ import { Pagination } from "../ui/Pagination";
 import { Skeleton } from "../ui/States";
 import { useUnsavedWorkGuard } from "../ui/unsavedWorkContext";
 import { affectedFieldFormState } from "./affectedFieldFormState";
-import { percentAffected } from "../boundaries/fieldMapStatus";
+import { isAffectedAreaMeasured, percentAffected } from "../boundaries/fieldMapStatus";
 import { latestPlotId, sortPlotsNewestFirst, summarizeCaseFieldMaps, supersedingPlotIds } from "../boundaries/fieldMapFreshness";
 import { createReturnContext, withReturnContext } from "../navigation/mapNavigationContext";
 import { boundaryCentroid, boundaryOutline, distanceMeters, pointInBoundary } from "./boundaryShape";
@@ -34,6 +39,7 @@ type FieldMap = {
   capturedAt: string;
   areaSqm: number;
   affectedAreaSqm: number | null;
+  affectedAreaMeasurement?: MeasurementProvenance | null;
   affectedPercent: number | null;
   inspectorName: string;
   geometry?: FieldSurveyPolygon;
@@ -54,13 +60,19 @@ function fromFeature(feature: FieldSurveyBoundaryFeature): FieldMap {
     capturedAt: properties.capturedAt,
     areaSqm: properties.areaSqm,
     affectedAreaSqm: properties.affectedAreaSqm,
-    affectedPercent: percentAffected(properties.areaSqm, properties.affectedAreaSqm),
+    affectedAreaMeasurement: properties.affectedAreaMeasurement ?? null,
+    affectedPercent: percentAffected(
+      properties.areaSqm,
+      properties.affectedAreaSqm,
+      properties.affectedAreaMeasurement,
+    ),
     inspectorName: properties.inspector.name,
     geometry: feature.geometry,
   };
 }
 
 function fromField(field: Omit<ReportAffectedField, "lossRatePercent">): FieldMap {
+  const measured = isAffectedAreaMeasured(field.affectedAreaSqm, field.affectedAreaMeasurement);
   return {
     id: field.fieldSurveyId,
     label: field.label ?? null,
@@ -68,7 +80,8 @@ function fromField(field: Omit<ReportAffectedField, "lossRatePercent">): FieldMa
     capturedAt: field.capturedAt,
     areaSqm: field.areaSqm,
     affectedAreaSqm: field.affectedAreaSqm,
-    affectedPercent: field.affectedPercent,
+    affectedAreaMeasurement: field.affectedAreaMeasurement ?? null,
+    affectedPercent: measured ? field.affectedPercent : null,
     inspectorName: field.inspector.name,
     geometry: field.geometry,
   };
@@ -127,6 +140,8 @@ function FieldMapSummary({
   actions?: ReactNode;
 }) {
   const inside = caseLocation && map.geometry ? pointInBoundary(map.geometry, caseLocation) : null;
+  const affectedMeasured = isAffectedAreaMeasured(map.affectedAreaSqm, map.affectedAreaMeasurement);
+  const measurementState: MeasurementProvenance = affectedMeasured ? "measured" : "not_measured";
   return (
     <article className="field-map" aria-label={`Field map ${map.id}`}>
       <Outline map={map} label={`Shape of field map ${map.id}`} />
@@ -150,9 +165,9 @@ function FieldMapSummary({
           </p>
         ) : null}
         <dl className="field-map__numbers">
-          <div><dt>Plot</dt><dd>{formatAffectedArea(map.areaSqm / 10_000)}</dd></div>
-          <div><dt>Affected area</dt><dd>{map.affectedAreaSqm === null ? "Not drawn" : formatAffectedArea(map.affectedAreaSqm / 10_000)}</dd></div>
-          <div><dt>% affected</dt><dd>{map.affectedPercent === null ? "Not drawn" : `${map.affectedPercent}%`}</dd></div>
+          <div><dt>Plot</dt><dd>{formatAreaHectares(map.areaSqm / 10_000)}</dd></div>
+          <div><dt>Affected area</dt><dd>{formatMeasuredArea(map.affectedAreaSqm === null ? null : map.affectedAreaSqm / 10_000, measurementState)}</dd></div>
+          <div><dt>% affected</dt><dd>{formatMeasuredPercent(map.affectedPercent, measurementState)}</dd></div>
         </dl>
         {actions ? <div className="field-map__actions">{actions}</div> : null}
       </div>
@@ -457,7 +472,7 @@ export function AffectedFieldLinkage({
                         {choice.inspectorName} · <time dateTime={choice.capturedAt}>{formatDateTime(choice.capturedAt)}</time>
                       </span>
                       <span>
-                        {formatAffectedArea(choice.areaSqm / 10_000)}
+                        {formatAreaHectares(choice.areaSqm / 10_000)}
                         {choice.affectedPercent === null ? "" : ` · ${choice.affectedPercent}% affected`}
                         {meters === null ? "" : ` · ${formatDistance(meters)} from case`}
                       </span>

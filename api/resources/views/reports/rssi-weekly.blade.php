@@ -48,7 +48,7 @@ tr { page-break-inside: avoid; }
 <thead><tr><th>Case</th><th>Received</th><th>Barangay</th><th>Staff classification</th><th>Verification</th><th class="num">Area (ha)</th></tr></thead>
 <tbody>
 @forelse ($report['sections']['validated']['rows'] as $row)
-<tr><td>{{ $row['case_reference'] }}</td><td>{{ $row['submitted_date'] }}</td><td>{{ $row['barangay'] }}</td><td>{{ $row['staff_classification'] }}</td><td>{{ $row['verification_outcome'] }}</td><td class="num">{{ $row['area_hectares'] === null ? $row['area_measurement'] : number_format((float) $row['area_hectares'], 2) }}</td></tr>
+<tr><td>{{ $row['case_reference'] }}</td><td>{{ $row['submitted_date'] }}</td><td>{{ $row['barangay'] }}</td><td>{{ $row['staff_classification'] }}</td><td>{{ $row['verification_outcome'] }}</td><td class="num">{{ \App\Support\AreaFormatter::formatMeasuredHectares($row['area_hectares'] ?? null, $row['area_measurement'] ?? null) }}</td></tr>
 @empty
 <tr><td colspan="6" class="empty">No case was reviewed and validated as RSSI in this period.</td></tr>
 @endforelse
@@ -61,7 +61,7 @@ tr { page-break-inside: avoid; }
 <thead><tr><th>Case</th><th>Received</th><th>Barangay</th><th>Staff classification</th><th>Verification</th><th class="num">Area (ha)</th></tr></thead>
 <tbody>
 @forelse ($report['sections']['suspected']['rows'] as $row)
-<tr><td>{{ $row['case_reference'] }}</td><td>{{ $row['submitted_date'] }}</td><td>{{ $row['barangay'] }}</td><td>{{ $row['staff_classification'] }}</td><td>{{ $row['verification_outcome'] }}</td><td class="num">{{ $row['area_hectares'] === null ? $row['area_measurement'] : number_format((float) $row['area_hectares'], 2) }}</td></tr>
+<tr><td>{{ $row['case_reference'] }}</td><td>{{ $row['submitted_date'] }}</td><td>{{ $row['barangay'] }}</td><td>{{ $row['staff_classification'] }}</td><td>{{ $row['verification_outcome'] }}</td><td class="num">{{ \App\Support\AreaFormatter::formatMeasuredHectares($row['area_hectares'] ?? null, $row['area_measurement'] ?? null) }}</td></tr>
 @empty
 <tr><td colspan="6" class="empty">No suspected RSSI case was received in this period.</td></tr>
 @endforelse

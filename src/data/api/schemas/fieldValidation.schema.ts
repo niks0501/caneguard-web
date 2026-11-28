@@ -32,7 +32,10 @@ const sharedItemFields = {
   action_taken: actionTakenSchema.nullable().optional(),
   mismatch_reported: z.boolean().nullable().optional(),
   scheduled_revisit: z.boolean().optional(),
-  affected_area_measurement: measurementProvenanceSchema.optional(),
+  plot_area_hectares: z.number().nonnegative().nullable().optional(),
+  plot_area_measurement: measurementProvenanceSchema.nullable().optional(),
+  affected_area_measurement: measurementProvenanceSchema.nullable().optional(),
+  affected_portion_measurement: measurementProvenanceSchema.nullable().optional(),
   target_visit_date: z.iso.date().nullable().optional(),
   assignee: z
     .object({
@@ -76,9 +79,12 @@ export const mapFeaturePropertiesSchema = z.object({
   location_source: nullableLocationSourceSchema,
   location_unavailable: z.boolean().optional(),
   gps_accuracy: z.number().nonnegative().nullable(),
+  plot_area_hectares: z.number().nonnegative().nullable().optional(),
+  plot_area_measurement: measurementProvenanceSchema.nullable().optional(),
   affected_area_hectares: z.number().nonnegative().nullable(),
-  affected_area_measurement: measurementProvenanceSchema.optional(),
+  affected_area_measurement: measurementProvenanceSchema.nullable().optional(),
   affected_portion_percent: z.number().min(0).max(100).nullable(),
+  affected_portion_measurement: measurementProvenanceSchema.nullable().optional(),
 });
 
 export const mapFeatureSchema = z.object({

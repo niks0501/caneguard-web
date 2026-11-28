@@ -97,7 +97,7 @@
     <section aria-labelledby="key-figures"><div class="section-band" id="key-figures">Operational summary</div>
         <table class="metrics"><tbody>
             <tr><td class="metric"><span class="metric-label">Submitted reports</span><span class="metric-value">{{ number_format($metrics['reported_cases']) }}</span><span class="metric-unit">submitted case records</span></td>
-                <td class="metric"><span class="metric-label">Estimated affected area</span><span class="metric-value">{{ number_format($metrics['estimated_affected_hectares'], 2) }}</span><span class="metric-unit">hectares</span></td>
+                <td class="metric"><span class="metric-label">Estimated affected area</span><span class="metric-value">{{ \App\Support\AreaFormatter::formatHectaresNumber($metrics['estimated_affected_hectares'], '0') }}</span><span class="metric-unit">hectares</span></td>
                 <td class="metric"><span class="metric-label">Reports with farmer/farm information</span><span class="metric-value">{{ number_format($metrics['reports_containing_farmer_farm_information']) }}</span><span class="metric-unit">submitted case records</span></td></tr>
             <tr><td class="metric"><span class="metric-label">Reports requiring field validation</span><span class="metric-value">{{ number_format($operational_queues['needs_visit']) }}</span><span class="metric-unit">open visits, including unassigned legacy work</span></td>
                 <td class="metric"><span class="metric-label">Open submitted reports</span><span class="metric-value">{{ number_format($metrics['reported_cases'] - $metrics['closed_cases']) }}</span><span class="metric-unit">in this period</span></td>

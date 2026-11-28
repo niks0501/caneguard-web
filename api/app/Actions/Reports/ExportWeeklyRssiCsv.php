@@ -2,6 +2,8 @@
 
 namespace App\Actions\Reports;
 
+use App\Support\AreaFormatter;
+
 /**
  * Renders the weekly RSSI export as a CSV an office staff member can open,
  * check, and attach to an email to the SRA by hand.
@@ -48,7 +50,10 @@ final class ExportWeeklyRssiCsv
                     $row['barangay'],
                     $row['staff_classification'],
                     $row['verification_outcome'],
-                    $row['area_hectares'] ?? '',
+                    AreaFormatter::formatCsvHectares(
+                        $row['area_hectares'] ?? null,
+                        $row['area_measurement'] ?? null,
+                    ),
                     $row['area_measurement'],
                 ]));
             }

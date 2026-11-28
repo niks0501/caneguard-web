@@ -200,6 +200,7 @@ describe("BoundariesMap", () => {
       coordinates: [[[122.9502, 10.7002], [122.9504, 10.7002], [122.9504, 10.7004], [122.9502, 10.7002]]],
     }];
     data.features[0].properties.affectedAreaSqm = 412.5;
+    data.features[0].properties.affectedAreaMeasurement = "measured";
     data.features[0].properties.cases = [{ uuid: "case-1", referenceCode: "CG-1", link: "attached" }];
     render(<MemoryRouter><BoundariesMap data={data} selectedBoundaryId="123" /></MemoryRouter>);
 
@@ -207,6 +208,43 @@ describe("BoundariesMap", () => {
     expect(screen.getByText("6.8%")).toBeInTheDocument();
     expect(screen.getByText("0.04 ha")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "CG-1" })).toHaveAttribute("href", "/reports/case-1");
+  });
+
+  it("distinguishes unmeasured plot-only maps from confirmed zero and preserves 40 m² precision", () => {
+    const plotOnly = boundaryData();
+    plotOnly.features[0].properties.areaSqm = 12_000;
+    plotOnly.features[0].properties.affectedAreaSqm = 0;
+    plotOnly.features[0].properties.affectedAreaMeasurement = "not_measured";
+    const { rerender } = render(<MemoryRouter><BoundariesMap data={plotOnly} selectedBoundaryId="123" /></MemoryRouter>);
+
+    const dialog = screen.getByRole("dialog", { name: "Map 123" });
+    expect(within(dialog).getByText("1.2 ha")).toBeInTheDocument();
+    expect(within(dialog).getByText("Not measured")).toBeInTheDocument();
+    expect(within(dialog).queryByText("0%")).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("0 ha")).not.toBeInTheDocument();
+
+    const confirmedZero = boundaryData();
+    confirmedZero.features[0].properties.areaSqm = 12_000;
+    confirmedZero.features[0].properties.affectedAreaSqm = 0;
+    confirmedZero.features[0].properties.affectedAreaMeasurement = "measured";
+    rerender(<MemoryRouter><BoundariesMap data={confirmedZero} selectedBoundaryId="123" /></MemoryRouter>);
+    expect(within(screen.getByRole("dialog", { name: "Map 123" })).getByText("0 ha (none found) · 0%")).toBeInTheDocument();
+
+    const smallPatch = boundaryData();
+    smallPatch.features[0].properties.areaSqm = 12_000;
+    smallPatch.features[0].properties.affectedAreaSqm = 40;
+    smallPatch.features[0].properties.affectedAreaMeasurement = "measured";
+    rerender(<MemoryRouter><BoundariesMap data={smallPatch} selectedBoundaryId="123" /></MemoryRouter>);
+    expect(within(screen.getByRole("dialog", { name: "Map 123" })).getByText("0.004 ha")).toBeInTheDocument();
+
+    const separated = boundaryData();
+    separated.features[0].properties.areaSqm = 12_000;
+    separated.features[0].properties.affectedAreaSqm = 3_000;
+    separated.features[0].properties.affectedAreaMeasurement = "measured";
+    rerender(<MemoryRouter><BoundariesMap data={separated} selectedBoundaryId="123" /></MemoryRouter>);
+    expect(within(screen.getByRole("dialog", { name: "Map 123" })).getByText("1.2 ha")).toBeInTheDocument();
+    expect(within(screen.getByRole("dialog", { name: "Map 123" })).getByText("0.3 ha")).toBeInTheDocument();
+    expect(within(screen.getByRole("dialog", { name: "Map 123" })).getByText("25%")).toBeInTheDocument();
   });
 
   it("adds the selected boundary outline and a labelled detail popup", () => {

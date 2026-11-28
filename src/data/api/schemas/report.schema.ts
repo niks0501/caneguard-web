@@ -1,9 +1,11 @@
 import { z } from "zod";
 import {
+  measurementProvenanceSchema,
   paginationLinksSchema,
   paginationMetaSchema,
   userSchema,
 } from "./common.schema";
+export { measurementProvenanceSchema };
 import { fieldSurveyPolygonSchema } from "./fieldSurvey.schema";
 import { workflowStatusValues } from "../../../domain/workflowStatus";
 
@@ -25,7 +27,6 @@ export const reviewStatusSchema = z.enum([
   "unable_to_verify",
   "resolved",
 ]);
-export const measurementProvenanceSchema = z.enum(["measured", "not_measured"]);
 export const locationUnavailableReasonSchema = z.enum([
   "permission_denied",
   "services_unavailable",
@@ -88,6 +89,7 @@ export const reportAffectedFieldSchema = z.object({
   area_source: z.literal("device_reported"),
   inspector: userSchema.pick({ uuid: true, name: true }),
   affected_area_sqm: z.number().nonnegative().nullable(),
+  affected_area_measurement: measurementProvenanceSchema.nullable().optional(),
   affected_percent: z.number().min(0).max(100).nullable(),
   loss_rate_percent: z.number().min(0).max(100).nullable(),
 });
@@ -416,9 +418,11 @@ export const reportListItemSchema = z.object({
   }).nullable().optional(),
   location_unavailable: z.boolean().optional(),
   location_unavailable_reason: locationUnavailableReasonSchema.nullable().optional(),
-  affected_area_hectares: z.number().nullable().optional(),
-  affected_area_measurement: measurementProvenanceSchema.optional(),
-  affected_portion_measurement: measurementProvenanceSchema.optional(),
+  plot_area_hectares: z.number().nonnegative().nullable().optional(),
+  plot_area_measurement: measurementProvenanceSchema.nullable().optional(),
+  affected_area_hectares: z.number().nonnegative().nullable().optional(),
+  affected_area_measurement: measurementProvenanceSchema.nullable().optional(),
+  affected_portion_measurement: measurementProvenanceSchema.nullable().optional(),
   follow_up: z.object({
     due_on: z.string().nullable(),
     overdue: z.boolean(),
@@ -486,10 +490,12 @@ export const reportDetailSchema = z.object({
     sugarcane_variety: z.string().nullable(),
     crop_age: z.string().nullable(),
     cane_class: z.string().nullable(),
+    plot_area_hectares: z.number().nonnegative().nullable().optional(),
+    plot_area_measurement: measurementProvenanceSchema.nullable().optional(),
     affected_area_hectares: z.number().nonnegative().nullable(),
-    affected_area_measurement: measurementProvenanceSchema,
+    affected_area_measurement: measurementProvenanceSchema.nullable().optional(),
     affected_portion_percent: z.number().min(0).max(100).nullable(),
-    affected_portion_measurement: measurementProvenanceSchema,
+    affected_portion_measurement: measurementProvenanceSchema.nullable().optional(),
     field_notes: z.string().nullable(),
     farmer_or_farm_owner_name: z.string().nullable().optional(),
     province: z.string().nullable().optional(),

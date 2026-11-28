@@ -52,12 +52,15 @@ export interface FieldValidationMapProperties {
   actionTaken?: ActionTaken | null;
   mismatchReported?: boolean | null;
   scheduledRevisit?: boolean;
-  affectedAreaMeasurement?: MeasurementProvenance | null;
   locationSource: LocationSource | null;
   locationUnavailable?: boolean;
   gpsAccuracy: number | null;
+  plotAreaHectares?: number | null;
+  plotAreaMeasurement?: MeasurementProvenance | null;
   affectedAreaHectares: number | null;
+  affectedAreaMeasurement?: MeasurementProvenance | null;
   affectedPortionPercent: number | null;
+  affectedPortionMeasurement?: MeasurementProvenance | null;
 }
 
 export interface FieldValidationMapFeature {
@@ -108,8 +111,12 @@ export interface FieldValidationQueueItem {
   locationUnavailable?: boolean;
   locationUnavailableReason?: LocationUnavailableReason | null;
   gpsAccuracy: number | null;
+  plotAreaHectares?: number | null;
+  plotAreaMeasurement?: MeasurementProvenance | null;
   affectedAreaHectares: number | null;
+  affectedAreaMeasurement?: MeasurementProvenance | null;
   affectedPortionPercent: number | null;
+  affectedPortionMeasurement?: MeasurementProvenance | null;
 }
 
 export interface FieldValidationQueueData {

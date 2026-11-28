@@ -73,15 +73,24 @@ class TableQueueRegressionTest extends TestCase
             'referral_date',
         ];
 
-        $this->assertSame($expected, ExportReports::HEADERS);
+        $this->assertSame($expected, array_slice(ExportReports::HEADERS, 0, count($expected)));
+        $this->assertSame(
+            ['plot_area_hectares', 'plot_area_measurement'],
+            array_slice(ExportReports::HEADERS, count($expected)),
+        );
 
         Sanctum::actingAs($this->reviewer());
         $this->report();
 
         $csv = $this->get('/api/v1/reports/export')->assertOk()->streamedContent();
         $firstLine = strtok($csv, "\n");
+        $actualHeaders = str_getcsv($firstLine);
 
-        $this->assertSame($expected, str_getcsv($firstLine));
+        $this->assertSame($expected, array_slice($actualHeaders, 0, count($expected)));
+        $this->assertSame(
+            ['plot_area_hectares', 'plot_area_measurement'],
+            array_slice($actualHeaders, count($expected)),
+        );
     }
 
     public function test_register_excludes_linked_duplicates(): void

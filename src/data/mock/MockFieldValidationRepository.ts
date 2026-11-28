@@ -54,8 +54,12 @@ function toQueueItem(report: DiseaseReport): FieldValidationQueueItem {
     finalLongitude: report.finalLongitude ?? null,
     locationSource: report.locationSource ?? null,
     gpsAccuracy: report.gpsAccuracy ?? null,
+    plotAreaHectares: report.plotAreaHectares ?? null,
+    plotAreaMeasurement: report.plotAreaMeasurement ?? null,
     affectedAreaHectares: report.affectedAreaHectares ?? null,
+    affectedAreaMeasurement: report.affectedAreaMeasurement ?? null,
     affectedPortionPercent: report.affectedPortionPercent ?? null,
+    affectedPortionMeasurement: report.affectedPortionMeasurement ?? null,
   };
 }
 
@@ -104,8 +108,12 @@ export class MockFieldValidationRepository implements FieldValidationRepository 
           mismatchReported: report.mismatchReported ?? null,
           locationSource: report.locationSource ?? null,
           gpsAccuracy: report.gpsAccuracy ?? null,
+          plotAreaHectares: report.plotAreaHectares ?? null,
+          plotAreaMeasurement: report.plotAreaMeasurement ?? null,
           affectedAreaHectares: report.affectedAreaHectares ?? null,
+          affectedAreaMeasurement: report.affectedAreaMeasurement ?? null,
           affectedPortionPercent: report.affectedPortionPercent ?? null,
+          affectedPortionMeasurement: report.affectedPortionMeasurement ?? null,
         },
       })),
       metadata: {

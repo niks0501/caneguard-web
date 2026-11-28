@@ -18,7 +18,7 @@ import {
   type WorkflowStatus,
   type WorkflowStatusInput,
 } from "../../domain/workflowStatus";
-import { formatAffectedArea } from "../../lib/formatters";
+import { formatMeasuredArea } from "../../lib/formatters";
 import { DiseaseBadge } from "./ReportBadges";
 
 /**
@@ -123,7 +123,9 @@ export function QueueConditionCell({ row }: { row: QueueRowView }) {
 export function QueueAffectedAreaCell({ row }: { row: QueueRowView }) {
   return (
     <span className="table-primary">
-      {formatAffectedArea(row.affectedAreaHectares, row.affectedAreaMeasurement)}
+      {formatMeasuredArea(row.affectedAreaHectares, row.affectedAreaMeasurement, {
+        unmeasuredLabel: "—",
+      })}
     </span>
   );
 }
