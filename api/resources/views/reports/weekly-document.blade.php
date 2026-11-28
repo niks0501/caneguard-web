@@ -85,7 +85,7 @@ Prepared by {{ $version->prepared_name }} · {{ $version->created_at?->timezone(
 <table><thead><tr><th>Class</th><th class="num">Farm-group estimate (ha)</th><th class="num">Sum, may overlap (ha)</th></tr></thead><tbody>
 @foreach ($content['hectares']['by_disease'] as $row)
 @if (!$disease || $disease === $row['key'])
-<tr><td>{{ \App\Actions\Reports\BuildWeeklyReportContent::DISEASES[$row['key']] }}</td><td class="num">{{ number_format($row['overlap_controlled_estimate'], 2) }}</td><td class="num">{{ number_format($row['sum_of_reported_areas_may_overlap'], 2) }}</td></tr>
+<tr><td>{{ \App\Actions\Reports\BuildWeeklyReportContent::DISEASES[$row['key']] }}</td><td class="num">{{ \App\Support\AreaFormatter::formatHectaresNumber($row['overlap_controlled_estimate'], '0') }}</td><td class="num">{{ \App\Support\AreaFormatter::formatHectaresNumber($row['sum_of_reported_areas_may_overlap'], '0') }}</td></tr>
 @endif
 @endforeach
 </tbody></table>

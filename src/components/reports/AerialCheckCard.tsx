@@ -9,7 +9,7 @@ import {
   useRestoreAerialAnalysis,
 } from "../../hooks/useReports";
 import { useOnlineStatus } from "../../hooks/useOnlineStatus";
-import { formatAreaHectares, formatDateTime, formatMeasuredArea } from "../../lib/formatters";
+import { formatAreaHectares, formatDateTime, formatMeasuredArea, formatMeasuredPercent } from "../../lib/formatters";
 import { isAffectedAreaMeasured, percentAffected } from "../boundaries/fieldMapStatus";
 import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
@@ -359,12 +359,13 @@ function GroundVersusPhoto({ report, analysis }: { report: DiseaseReport; analys
               const pct = measured
                 ? (field.affectedPercent ?? percentAffected(field.areaSqm, field.affectedAreaSqm, field.affectedAreaMeasurement))
                 : null;
+              const positiveArea = (field.affectedAreaSqm ?? 0) > 0;
               const groundDetail = measured
-                ? `${formatMeasuredArea(field.affectedAreaSqm! / 10_000, "measured")} affected${pct === null ? "" : ` · ${pct}% affected`}`
+                ? `${formatMeasuredArea(field.affectedAreaSqm! / 10_000, "measured")} affected${pct === null ? "" : ` · ${formatMeasuredPercent(pct, "measured", { positiveArea })} affected`}`
                 : field.affectedAreaMeasurement === "not_measured"
                   ? "Not measured"
                   : field.affectedPercent !== null && field.affectedPercent > 0
-                    ? `${field.affectedPercent}% affected`
+                    ? `${formatMeasuredPercent(field.affectedPercent, "measured", { positiveArea })} affected`
                     : "Not measured";
               return (
                 <li key={field.fieldSurveyId}>

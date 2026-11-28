@@ -37,8 +37,12 @@ class AreaFormatterTest extends TestCase
         $this->assertSame('Not measured', AreaFormatter::formatMeasuredPercent(null, 'not_measured'));
         $this->assertSame('Not measured', AreaFormatter::formatMeasuredPercent(0, 'not_measured'));
         $this->assertSame('0%', AreaFormatter::formatMeasuredPercent(0, 'measured'));
+        $this->assertSame('<0.01%', AreaFormatter::formatMeasuredPercent(0, 'measured', positiveArea: true));
+        $this->assertSame('<0.01%', AreaFormatter::formatMeasuredPercent(0.004, 'measured'));
+        $this->assertSame('0.04%', AreaFormatter::formatMeasuredPercent(0.04, 'measured'));
         $this->assertSame('25%', AreaFormatter::formatMeasuredPercent(25, 'measured'));
         $this->assertSame('42.75%', AreaFormatter::formatMeasuredPercent(42.75, 'measured'));
+        $this->assertSame('100%', AreaFormatter::formatMeasuredPercent(100, 'measured'));
     }
 
     public function test_formats_csv_numeric_cells_without_rounding_tiny_patches_or_leaking_unmeasured(): void

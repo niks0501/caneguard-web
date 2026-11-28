@@ -98,12 +98,13 @@ final class AreaFormatter
 
     /**
      * Tri-state percentage formatter distinguishing unmeasured ("Not measured"),
-     * confirmed zero ("0%"), and measured percentages.
+     * confirmed zero ("0%"), sub-0.01% positive patches ("<0.01%"), and measured percentages.
      */
     public static function formatMeasuredPercent(
         float|int|string|null $percent,
         ?string $measurement = null,
         string $unmeasuredLabel = self::UNMEASURED_LABEL,
+        bool $positiveArea = false,
     ): string {
         if (self::isNotMeasured($measurement) || $percent === null || $percent === '') {
             return $unmeasuredLabel;
@@ -115,7 +116,11 @@ final class AreaFormatter
         }
 
         if ($value === 0.0) {
-            return '0%';
+            return $positiveArea ? '<0.01%' : '0%';
+        }
+
+        if ($value > 0.0 && $value < 0.01) {
+            return '<0.01%';
         }
 
         $formatted = rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');

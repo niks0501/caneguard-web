@@ -46,6 +46,28 @@ class ReportAffectedFieldResource extends JsonResource
             return null;
         }
 
-        return round(min(100.0, (float) $survey->affected_area_sqm / (float) $survey->area_sqm * 100), 1);
+        return self::percentFromAreas((float) $survey->affected_area_sqm, (float) $survey->area_sqm);
+    }
+
+    /**
+     * Compute affected share of a plot keeping two decimals (matching reports.affected_portion_percent)
+     * and never collapsing a positive patch (e.g. 1 m² on 10 ha) to 0.
+     */
+    public static function percentFromAreas(float $affectedSqm, float $plotSqm): ?float
+    {
+        if ($plotSqm <= 0) {
+            return null;
+        }
+
+        if ($affectedSqm <= 0.0) {
+            return 0.0;
+        }
+
+        $raw = min(100.0, ($affectedSqm / $plotSqm) * 100);
+        if ($raw < 0.01) {
+            return max(0.0001, round($raw, 4));
+        }
+
+        return round($raw, 2);
     }
 }

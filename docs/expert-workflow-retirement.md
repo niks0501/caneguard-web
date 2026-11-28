@@ -6,7 +6,7 @@ The experimental in-system consult workflow is retired. Offline expert validatio
 
 - AI Possible Condition, staff classification/verification, review notes, field validation and the validated advisory library/per-case selection remain available.
 - Cases with old referrals show **Expert referral (historical)**, without assignment, finding, accept/override or invitation controls. All retained referral rows and normalized symptom findings remain readable.
-- **Offline handoff notes** were removed on 2026-11-28 by product decision. Case Review no longer records them, the API no longer serves or accepts them, and `2026_11_28_000000_drop_report_handoff_notes_table.php` drops their table.
+- **Offline handoff notes** were removed on 2026-11-28 by product decision. Case Review no longer records them and the API no longer serves or accepts them. The `report_handoff_notes` table is intentionally retained in the database through the deploy and rollback window so the previous API release can still read cases without errors; dropping the table is deferred to a later migration once rollback is closed.
 - Office users can print/download a case summary with or without a historical referral. Downloads still embed permitted private evidence. Summaries include current office context and all historical referral snapshots. Print and download live in the Case Review case actions.
 
 ## API and contract
@@ -28,7 +28,7 @@ The experimental in-system consult workflow is retired. Offline expert validatio
 
 The audit retains the original handoff author because its actor foreign key is required; its reason explicitly identifies automatic retirement. Completed findings, response content, office snapshots and historical rows remain intact.
 
-`2026_10_04_000001_create_report_handoff_notes_table.php` created separate plain handoff records; `2026_11_28_000000_drop_report_handoff_notes_table.php` later drops that table and its rows, and its rollback restores only the empty schema. The retirement migration itself deletes no historical rows and drops no table or column. Both have intentionally non-destructive rollback behavior: rollback does **not** reopen consults, restore invitations or re-enable experts. Re-running it preserves retained records.
+`2026_10_04_000001_create_report_handoff_notes_table.php` created separate plain handoff records; that table stays in place through the rollback window so previous API binaries do not fail on Case Review reads during deploy or rollback. The retirement migration itself deletes no historical rows and drops no table or column. It has intentionally non-destructive rollback behavior: rollback does **not** reopen consults, restore invitations or re-enable experts. Re-running it preserves retained records.
 
 This change prepares migrations but does not deploy or mutate live data. Before an approved deployment, operations must coordinate any ongoing consults and stop old application workers/schedulers so the previous version cannot continue writing the retired workflow. Re-enabling it or dropping retained historical storage requires a separate approved change.
 

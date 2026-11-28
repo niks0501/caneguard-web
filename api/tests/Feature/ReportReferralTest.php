@@ -217,7 +217,8 @@ class ReportReferralTest extends TestCase
         ])->assertNotFound();
         $this->getJson("/api/v1/reports/{$report->uuid}")->assertOk()->assertJsonMissingPath('data.handoff_notes');
         $this->get("/api/v1/reports/{$report->uuid}/referral/summary")->assertOk()->assertDontSee('Offline handoff note');
-        $this->assertFalse(Schema::hasTable('report_handoff_notes'));
+        // Keep the table intact through the deploy/rollback window so the previous API can still read cases safely.
+        $this->assertTrue(Schema::hasTable('report_handoff_notes'));
         $this->assertSame(0, $report->fresh()->lock_version);
     }
 

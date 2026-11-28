@@ -258,7 +258,7 @@ class AuditSurveyMeasurementsCommandTest extends TestCase
 
         $row = $report->fresh();
         $this->assertSame('1.1900', $row->affected_area_hectares);
-        $this->assertSame('99.20', $row->affected_portion_percent);
+        $this->assertSame('99.17', $row->affected_portion_percent);
         $this->assertSame(0, $this->audit()['buckets']['B']['count'], 'the fixed report no longer reads as plot-as-affected');
     }
 
@@ -482,6 +482,132 @@ class AuditSurveyMeasurementsCommandTest extends TestCase
         $this->assertSame('0.0000', $row->affected_area_sqm, 'the survey change rolled back with its audit');
         $this->assertNull($row->affected_area_measurement);
         $this->assertSame(0, FieldSurveyAudit::query()->count());
+    }
+
+    public function test_bucket_b_never_overwrites_an_audited_office_correction(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->district)->reviewer()->create();
+        $plotOnly = $this->survey(10000, ['affected_area_polygons' => [], 'affected_area_sqm' => 0]);
+        $report = $this->report('2026-09-29 10:00:00', [
+            'affected_area_hectares' => 0.995,
+            'affected_area_measurement' => 'measured',
+            'affected_portion_percent' => 99.5,
+            'affected_portion_measurement' => 'measured',
+            'field_survey_client_uuid' => $plotOnly->client_uuid,
+        ]);
+        ReportAudit::query()->create([
+            'report_id' => $report->id,
+            'actor_id' => $reviewer->id,
+            'field' => 'affected_area_hectares',
+            'original_value' => 1.0,
+            'corrected_value' => 0.995,
+            'reason' => 'Verified with farmer measurement.',
+            'created_at' => now(),
+        ]);
+
+        $audit = $this->audit(['--buckets' => 'B']);
+        $this->assertSame(0, $audit['buckets']['B']['count']);
+
+        $result = $this->apply(['--buckets' => 'B']);
+        $this->assertSame(0, $result['exit']);
+        $fresh = $report->fresh();
+        $this->assertSame('0.9950', $fresh->affected_area_hectares);
+        $this->assertSame('99.50', $fresh->affected_portion_percent);
+        $this->assertSame('measured', $fresh->affected_area_measurement);
+    }
+
+    public function test_bucket_d_preserves_confirmed_zero_when_another_office_map_is_linked(): void
+    {
+        $polygon = ['type' => 'Polygon', 'coordinates' => [[[122.95, 10.7], [122.9502, 10.7], [122.95, 10.7002], [122.95, 10.7]]]];
+        $confirmedZeroSurvey = $this->survey(10000, ['affected_area_polygons' => [], 'affected_area_sqm' => 0, 'affected_area_measurement' => 'measured']);
+        $otherOfficeMap = $this->survey(10000, ['affected_area_polygons' => [$polygon], 'affected_area_sqm' => 40, 'affected_area_measurement' => 'measured']);
+
+        // Case 1: report's own phone-attached survey is a confirmed zero, plus an office-linked 40 m² map.
+        $reportWithUuid = $this->report('2026-09-29 10:00:00', [
+            'affected_area_hectares' => 0,
+            'affected_area_measurement' => 'measured',
+            'affected_portion_percent' => 0,
+            'affected_portion_measurement' => 'measured',
+            'field_survey_client_uuid' => $confirmedZeroSurvey->client_uuid,
+        ]);
+        $reportWithUuid->affectedFieldSurveys()->attach($otherOfficeMap->id, ['loss_rate_percent' => null]);
+
+        // Case 2: report has no phone uuid, explicitly confirmed 0 ha + 0%, with an office-linked 40 m² map.
+        $reportOfficeLinkZero = $this->report('2026-09-29 10:00:00', [
+            'affected_area_hectares' => 0,
+            'affected_area_measurement' => 'measured',
+            'affected_portion_percent' => 0,
+            'affected_portion_measurement' => 'measured',
+        ]);
+        $reportOfficeLinkZero->affectedFieldSurveys()->attach($otherOfficeMap->id, ['loss_rate_percent' => null]);
+
+        // Case 3: new separated-schema report already recording plot_area_hectares with confirmed 0 ha.
+        $reportSeparatedSchema = $this->report('2026-09-29 10:00:00', [
+            'plot_area_hectares' => 1.0,
+            'plot_area_measurement' => 'measured',
+            'affected_area_hectares' => 0,
+            'affected_area_measurement' => 'measured',
+            'affected_portion_percent' => 0,
+            'affected_portion_measurement' => 'measured',
+            'field_survey_client_uuid' => $otherOfficeMap->client_uuid,
+        ]);
+
+        $audit = $this->audit(['--buckets' => 'D']);
+        $this->assertSame(0, $audit['buckets']['D']['count']);
+
+        $result = $this->apply(['--buckets' => 'D']);
+        $this->assertSame(0, $result['exit']);
+        foreach ([$reportWithUuid, $reportOfficeLinkZero, $reportSeparatedSchema] as $report) {
+            $fresh = $report->fresh();
+            $this->assertSame('0.0000', $fresh->affected_area_hectares);
+            $this->assertSame('0.00', $fresh->affected_portion_percent);
+            $this->assertSame('measured', $fresh->affected_area_measurement);
+        }
+    }
+
+    public function test_multiple_office_linked_maps_route_to_manual_review_without_writing(): void
+    {
+        $polygon = ['type' => 'Polygon', 'coordinates' => [[[122.95, 10.7], [122.9502, 10.7], [122.95, 10.7002], [122.95, 10.7]]]];
+        $mapA = $this->survey(12000, ['affected_area_polygons' => [], 'affected_area_sqm' => 0]);
+        $mapB = $this->survey(12000, ['affected_area_polygons' => [$polygon], 'affected_area_sqm' => 3000, 'affected_area_measurement' => 'measured']);
+
+        $report = $this->report('2026-09-29 10:00:00', [
+            'affected_area_hectares' => 1.2,
+            'affected_area_measurement' => 'measured',
+        ]);
+        $report->affectedFieldSurveys()->attach([$mapA->id, $mapB->id]);
+        $before = $this->checksums();
+
+        $dry = $this->audit(['--buckets' => 'B']);
+        $planned = collect($dry['planned_changes']['B'])->firstWhere('report_id', $report->id);
+        $this->assertStringContainsString('multiple linked field surveys', $planned['needs_manual_review']);
+        $this->assertSame([], $planned['changes']);
+
+        $result = $this->apply(['--buckets' => 'B']);
+        $this->assertSame(1, $result['exit']);
+        $this->assertSame($before, $this->checksums());
+        $this->assertSame('B', $result['json']['applied']['skipped'][0]['bucket']);
+        $this->assertStringContainsString('multiple linked field surveys', $result['json']['applied']['skipped'][0]['reason']);
+    }
+
+    public function test_bucket_d_updates_stale_zero_percent_when_restoring_a_tiny_patch(): void
+    {
+        $polygon = ['type' => 'Polygon', 'coordinates' => [[[122.95, 10.7], [122.9502, 10.7], [122.95, 10.7002], [122.95, 10.7]]]];
+        $patch = $this->survey(100000, ['affected_area_polygons' => [$polygon], 'affected_area_sqm' => 40, 'affected_area_measurement' => 'measured']);
+        $report = $this->report('2026-09-29 10:00:00', [
+            'affected_area_hectares' => 0,
+            'affected_area_measurement' => 'measured',
+            'affected_portion_percent' => 0,
+            'affected_portion_measurement' => 'measured',
+            'field_survey_client_uuid' => $patch->client_uuid,
+        ]);
+
+        $result = $this->apply(['--buckets' => 'D']);
+
+        $this->assertSame(0, $result['exit']);
+        $fresh = $report->fresh();
+        $this->assertSame('0.0040', $fresh->affected_area_hectares);
+        $this->assertSame('0.04', $fresh->affected_portion_percent);
     }
 
     /**

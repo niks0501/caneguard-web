@@ -57,7 +57,11 @@ describe("field map status", () => {
   it("computes % affected only when measured and distinguishes confirmed zero from unmeasured", () => {
     expect(percentAffected(12_000, 3_000, "measured")).toBe(25);
     expect(percentAffected(10_000, 2_600, "measured")).toBe(26);
-    expect(percentAffected(10_000, 33.33, "measured")).toBe(0.3);
+    expect(percentAffected(10_000, 33.33, "measured")).toBe(0.33);
+    // 40 m² in a 10 ha plot is 0.04%, never rounded down to 0%.
+    expect(percentAffected(100_000, 40, "measured")).toBe(0.04);
+    // 1 m² in a 10 ha plot is 0.001% — kept strictly positive so formatters show "<0.01%".
+    expect(percentAffected(100_000, 1, "measured")).toBe(0.001);
     expect(percentAffected(10_000, 99_999, "measured")).toBe(100);
     expect(percentAffected(10_000, 0, "measured")).toBe(0);
     expect(percentAffected(10_000, 0, "not_measured")).toBeNull();
