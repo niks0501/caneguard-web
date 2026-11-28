@@ -214,7 +214,7 @@ class ReviewReportController extends Controller
                 'action_taken' => $reviewUpdate['action_taken'] ?? $locked->action_taken,
                 'authority_classified_condition' => $reviewUpdate['authority_classified_condition'] ?? $locked->authority_classified_condition,
                 'verification_outcome' => $reviewUpdate['verification_outcome'] ?? $locked->verification_outcome,
-                'notes' => $reviewUpdate['review_notes'] ?? $locked->review_notes,
+                'notes' => $reviewUpdate['review_notes'] ?? null,
                 'case_state' => $reviewUpdate['case_state'] ?? $locked->case_state,
                 'created_at' => $reviewUpdate['reviewed_at'],
             ]);

@@ -845,4 +845,67 @@ class ReviewReportTest extends TestCase
         $this->assertSame('Second review note: case resolved.', $report->review_notes);
         $this->assertSame(Report::ACTION_NO_FURTHER_ACTION_REQUIRED, $report->action_taken);
     }
+
+    public function test_follow_up_review_does_not_copy_prior_notes_into_new_review_event_and_blank_notes_clear_current_note(): void
+    {
+        $reviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $secondReviewer = User::factory()->inDistrict($this->pilotDistrict())->reviewer()->create();
+        $reporter = User::factory()->inDistrict($this->pilotDistrict())->fieldReporter()->create();
+        $report = Report::factory()->inDistrict($this->pilotDistrict())->create([
+            'reporter_id' => $reporter,
+            'barangay' => 'Mabini',
+        ]);
+
+        Sanctum::actingAs($reviewer);
+
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'authority_classified_condition' => Report::AUTHORITY_CONDITION_SMUT,
+            'verification_outcome' => Report::VERIFICATION_OUTCOME_VERIFIED,
+            'notes' => 'Initial verification note.',
+            'expected_version' => 0,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.review.notes', 'Initial verification note.')
+            ->assertJsonPath('data.review_events.0.notes', 'Initial verification note.');
+
+        // A follow-up metadata correction that omits `notes` must not duplicate
+        // the prior note onto the new review event.
+        Sanctum::actingAs($secondReviewer);
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'metadata_corrections' => ['barangay' => 'Poblacion'],
+            'correction_reason' => 'Corrected barangay spelling.',
+            'expected_version' => 1,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.review.notes', 'Initial verification note.')
+            ->assertJsonCount(2, 'data.review_events')
+            ->assertJsonPath('data.review_events.0.notes', null)
+            ->assertJsonPath('data.review_events.1.notes', 'Initial verification note.');
+
+        // Submitting a follow-up review with blank notes clears the current
+        // report note (including the mobile status feed) while keeping audit history intact.
+        $this->patchJson("/api/v1/reports/{$report->uuid}/review", [
+            'case_state' => Report::CASE_STATE_CLOSED,
+            'action_taken' => Report::ACTION_NO_FURTHER_ACTION_REQUIRED,
+            'notes' => '',
+            'expected_version' => 2,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.review.notes', null)
+            ->assertJsonCount(3, 'data.review_events')
+            ->assertJsonPath('data.review_events.0.notes', null)
+            ->assertJsonPath('data.review_events.2.notes', 'Initial verification note.');
+
+        $updated = $report->fresh();
+        $this->assertNull($updated->review_notes);
+
+        $statusToken = $reporter->createToken('cleared-note-status-test', ['report:status'])->plainTextToken;
+        Auth::forgetGuards();
+        Auth::shouldUse('web');
+        $this->flushHeaders();
+        $this->withToken($statusToken)
+            ->getJson('/api/v1/mobile/reports/statuses?sync_before='.urlencode($updated->updated_at->addSecond()->toISOString()))
+            ->assertOk()
+            ->assertJsonPath('data.0.review_notes', null);
+    }
 }

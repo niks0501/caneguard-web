@@ -519,7 +519,7 @@ export class MockReportsRepository implements ReportsRepository {
       verificationOutcome: nextLifecycle.verificationOutcome ?? null,
       notes:
         input.notes === undefined
-          ? current.reviewNotes ?? null
+          ? null
           : input.notes?.trim() || null,
       caseState: nextLifecycle.caseState ?? null,
       createdAt: now,

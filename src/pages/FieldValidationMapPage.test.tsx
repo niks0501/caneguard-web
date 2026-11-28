@@ -225,18 +225,21 @@ describe("FieldValidationMapPage structure and summary", () => {
     expect(within(alert).getByText("Technical details")).toBeInTheDocument();
   });
 
-  it("applies a reduced primary filter set with a known Barangay choice and recalculates the scope", async () => {
+  it("applies a reduced primary filter set with a known Barangay choice and lets staff switch barangays directly", async () => {
     const user = userEvent.setup();
     renderPage();
-    expect(screen.getByLabelText("Barangay")).toBeInTheDocument();
+    const barangaySelect = screen.getByLabelText("Barangay") as HTMLSelectElement;
+    expect(barangaySelect.tagName).toBe("SELECT");
     expect(screen.getByLabelText("Case Status")).toBeInTheDocument();
     expect(screen.getByLabelText("Date Observed from")).toBeInTheDocument();
     expect(screen.getByLabelText("Date Observed to")).toBeInTheDocument();
 
-    const datalist = document.getElementById("known-barangays") as HTMLDataListElement;
-    expect([...datalist.options].map((option) => option.value)).toContain("Balaytigui");
+    const options = [...barangaySelect.options].map((option) => option.value);
+    expect(options).toContain("");
+    expect(options).toContain("Balaytigui");
+    expect(options).toContain("Aga");
 
-    await user.type(screen.getByLabelText("Barangay"), "Balaytigui");
+    await user.selectOptions(barangaySelect, "Balaytigui");
     await user.selectOptions(screen.getByLabelText("Case Status"), "for_field_validation");
     await user.click(screen.getByRole("button", { name: "Apply filters" }));
 
@@ -246,6 +249,29 @@ describe("FieldValidationMapPage structure and summary", () => {
     );
     expect(screen.getByTestId("location")).toHaveTextContent("barangay=Balaytigui");
     expect(screen.getByTestId("location")).toHaveTextContent("status=for_field_validation");
+
+    // Staff can immediately switch to another barangay without clearing the previous one first.
+    await user.selectOptions(screen.getByLabelText("Barangay"), "Aga");
+    await user.click(screen.getByRole("button", { name: "Apply filters" }));
+
+    expect(useFieldValidationMap).toHaveBeenLastCalledWith(
+      expect.objectContaining({ barangay: "Aga", status: "for_field_validation" }),
+      { enabled: true },
+    );
+    expect(screen.getByTestId("location")).toHaveTextContent("barangay=Aga");
+  });
+
+  it("preserves a legacy non-standard barangay query parameter until changed", async () => {
+    const user = userEvent.setup();
+    renderPage("/monitoring?view=map&barangay=Bucay");
+
+    const barangaySelect = screen.getByLabelText("Barangay") as HTMLSelectElement;
+    expect(barangaySelect).toHaveValue("Bucay");
+    expect([...barangaySelect.options].map((option) => option.value)).toContain("Bucay");
+
+    await user.selectOptions(barangaySelect, "Balaytigui");
+    await user.click(screen.getByRole("button", { name: "Apply filters" }));
+    expect(screen.getByTestId("location")).toHaveTextContent("barangay=Balaytigui");
   });
 
   it("narrows to Need Visit and Overdue without silently clearing unrelated manual filters", async () => {

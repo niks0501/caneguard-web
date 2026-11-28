@@ -23,8 +23,13 @@ class MobileFarmerAdvisoryController extends Controller
     public function index(Request $request): JsonResponse
     {
         $farmer = $this->farmer($request);
-        $rows = FarmerAdvisoryBroadcast::query()->live()->orderByDesc('published_at')->limit(50)->get()
-            ->filter(fn (FarmerAdvisoryBroadcast $row) => $row->reaches($farmer->barangay));
+        $rows = FarmerAdvisoryBroadcast::query()
+            ->live()
+            ->forBarangay($farmer->barangay)
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->limit(50)
+            ->get();
 
         return response()->json([
             'data' => $rows->values()->map(fn (FarmerAdvisoryBroadcast $row) => [
