@@ -122,7 +122,6 @@ function QuickInspect({ entry }: { entry: FieldGuideEntry }) {
       </figure>
 
       <div className="pub-inspect__content">
-        <span className="pub-inspect__route">{routes.guideEntry(entry.id)}</span>
         <h3 id={`${baseId}-title`}>{entry.displayName}</h3>
         {entry.scientificName ? (
           <p className="pub-inspect__sci">

@@ -29,7 +29,6 @@ describe("GuideGallery on /", () => {
   it("opens the rust quick-inspect drawer by default", () => {
     renderAt("/");
     expect(screen.getByRole("heading", { level: 3, name: "Sugarcane rust" })).toBeInTheDocument();
-    expect(screen.getByText("/guide/rust")).toBeInTheDocument();
     expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
       "Symptoms",
       "Prevention",
@@ -50,6 +49,6 @@ describe("GuideGallery on /", () => {
     expect(within(screen.getByRole("tabpanel")).getAllByRole("listitem").length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole("button", { name: "Pest" }));
-    expect(screen.getByText("/guide/rssi")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open the full guide" })).toHaveAttribute("href", "/guide/rssi");
   });
 });
