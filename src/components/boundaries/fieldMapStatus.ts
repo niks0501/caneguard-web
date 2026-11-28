@@ -1,4 +1,5 @@
 import type { FieldSurveyBoundaryFeature, FieldSurveyCaseLink } from "../../domain/fieldSurvey.types";
+import type { MeasurementProvenance } from "../../domain/report.types";
 
 /**
  * Where a field map stands with the office:
@@ -43,8 +44,33 @@ export function primaryCase(feature: FieldSurveyBoundaryFeature): FieldSurveyCas
   return cases.find((link) => link.link === "confirmed") ?? cases[0] ?? null;
 }
 
-/** Same rule as the API: the share of the plot the inspector drew as affected. */
-export function percentAffected(areaSqm: number, affectedAreaSqm: number | null): number | null {
+/**
+ * Whether a field map's affected ground area was actually measured.
+ * Explicit `affectedAreaMeasurement` wins; legacy payloads omitting it treat
+ * `null` or `0` as unmeasured (matching FieldSurvey::affectedAreaMeasurement).
+ */
+export function isAffectedAreaMeasured(
+  affectedAreaSqm: number | null | undefined,
+  affectedAreaMeasurement?: MeasurementProvenance | null,
+): boolean {
+  if (affectedAreaMeasurement === "not_measured") return false;
+  if (typeof affectedAreaSqm !== "number" || !Number.isFinite(affectedAreaSqm)) return false;
+  if (affectedAreaMeasurement === "measured") return true;
+  return affectedAreaSqm > 0;
+}
+
+/**
+ * Same rule as the API: the share of the plot that was measured as affected, or
+ * null unless `affectedAreaMeasurement === 'measured'` (with legacy fallback
+ * treating positive-only payloads without provenance as measured and 0 as
+ * unmeasured).
+ */
+export function percentAffected(
+  areaSqm: number,
+  affectedAreaSqm: number | null,
+  affectedAreaMeasurement?: MeasurementProvenance | null,
+): number | null {
+  if (!isAffectedAreaMeasured(affectedAreaSqm, affectedAreaMeasurement)) return null;
   if (affectedAreaSqm === null || areaSqm <= 0) return null;
   return Math.round(Math.min(100, (affectedAreaSqm / areaSqm) * 100) * 10) / 10;
 }

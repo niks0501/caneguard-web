@@ -17,6 +17,9 @@ export function mapFieldSurveyBoundaries(
       areaSource: feature.properties.area_source,
       affectedAreas: feature.properties.affected_areas,
       affectedAreaSqm: feature.properties.affected_area_sqm,
+      ...(feature.properties.affected_area_measurement !== undefined
+        ? { affectedAreaMeasurement: feature.properties.affected_area_measurement }
+        : {}),
       cases: feature.properties.cases.map((link) => ({
         uuid: link.uuid,
         referenceCode: link.reference_code,

@@ -771,6 +771,78 @@ describe("CaseReviewPage", () => {
     expect(screen.getAllByText("Not measured")).toHaveLength(2);
   });
 
+  it("shows total plot area, affected ground area, and affected portion separately with tri-state precision", () => {
+    const separated = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          observations: {
+            ...reportDetailDto.observations,
+            plot_area_hectares: 1.2,
+            plot_area_measurement: "measured",
+            affected_area_hectares: 0.3,
+            affected_area_measurement: "measured",
+            affected_portion_percent: 25,
+            affected_portion_measurement: "measured",
+          },
+        },
+      }).data,
+    );
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: separated }));
+
+    const { unmount } = renderPage();
+    expect(screen.getByText("Total plot area")).toBeInTheDocument();
+    expect(screen.getByText("1.2 ha")).toBeInTheDocument();
+    expect(screen.getByText("Affected ground area")).toBeInTheDocument();
+    expect(screen.getByText("0.3 ha")).toBeInTheDocument();
+    expect(screen.getByText("Affected portion")).toBeInTheDocument();
+    expect(screen.getByText("25%")).toBeInTheDocument();
+    unmount();
+
+    const confirmedZero = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          observations: {
+            ...reportDetailDto.observations,
+            plot_area_hectares: 1.2,
+            plot_area_measurement: "measured",
+            affected_area_hectares: 0,
+            affected_area_measurement: "measured",
+            affected_portion_percent: 0,
+            affected_portion_measurement: "measured",
+          },
+        },
+      }).data,
+    );
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: confirmedZero }));
+    const { unmount: unmountZero } = renderPage();
+    expect(screen.getByText("0 ha")).toBeInTheDocument();
+    expect(screen.getByText("0%")).toBeInTheDocument();
+    unmountZero();
+
+    const tinyPatch = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          observations: {
+            ...reportDetailDto.observations,
+            plot_area_hectares: 1.2,
+            plot_area_measurement: "measured",
+            affected_area_hectares: 0.004,
+            affected_area_measurement: "measured",
+            affected_portion_percent: 0.3,
+            affected_portion_measurement: "measured",
+          },
+        },
+      }).data,
+    );
+    vi.mocked(useReport).mockReturnValue(queryResult({ data: tinyPatch }));
+    renderPage();
+    expect(screen.getByText("0.004 ha")).toBeInTheDocument();
+    expect(screen.queryByText("0.00 ha")).not.toBeInTheDocument();
+  });
+
   it("summarises a single caution on one quiet line", () => {
     // Base review data already reports an observation mismatch, so one caution is active.
     renderPage();

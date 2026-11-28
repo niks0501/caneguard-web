@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { FIELD_SURVEYS_MAX_LIMIT } from "../../../domain/fieldSurvey.types";
+import { measurementProvenanceSchema } from "./common.schema";
 
 const positionSchema = z.tuple([
   z.number().min(-180).max(180),
@@ -35,6 +36,7 @@ export const fieldSurveyFeatureSchema = z.object({
     area_source: z.literal("device_reported"),
     affected_areas: z.array(fieldSurveyPolygonSchema),
     affected_area_sqm: z.number().nonnegative().nullable(),
+    affected_area_measurement: measurementProvenanceSchema.nullable().optional(),
     cases: z.array(z.object({
       uuid: z.string().min(1),
       reference_code: z.string().min(1),

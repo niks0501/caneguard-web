@@ -1,4 +1,4 @@
-import { formatCalendarDate } from "../../lib/formatters";
+import { formatCalendarDate, formatMeasuredArea, formatMeasuredPercent } from "../../lib/formatters";
 import { useContext, useState } from "react";
 import { ClipboardCheck, MapPinOff } from "lucide-react";
 import { Link } from "react-router";
@@ -38,12 +38,12 @@ function locationWarning(item: FieldValidationQueueItem) {
 }
 
 function queueItemMeta(item: FieldValidationQueueItem) {
-  const affectedArea = item.affectedAreaHectares === null
-    ? "Area not provided"
-    : `${item.affectedAreaHectares} ha affected`;
-  const affectedPortion = item.affectedPortionPercent === null
-    ? "Portion not provided"
-    : `${item.affectedPortionPercent}% of portion`;
+  const affectedArea = item.affectedAreaMeasurement === "not_measured" || item.affectedAreaHectares === null
+    ? "Affected area not measured"
+    : `${formatMeasuredArea(item.affectedAreaHectares, item.affectedAreaMeasurement)} affected`;
+  const affectedPortion = item.affectedPortionMeasurement === "not_measured" || item.affectedPortionPercent === null
+    ? "Portion not measured"
+    : `${formatMeasuredPercent(item.affectedPortionPercent, item.affectedPortionMeasurement)} of plot`;
   const targetDate = item.targetVisitDate
     ? `Visit by ${formatCalendarDate(item.targetVisitDate)}`
     : "No visit date";

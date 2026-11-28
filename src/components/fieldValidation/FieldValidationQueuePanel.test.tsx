@@ -143,4 +143,36 @@ describe("FieldValidationQueuePanel", () => {
     expect(screen.getByText("CG-2026-0015")).toBeInTheDocument();
     expect(screen.queryByText("CG-2026-0001")).not.toBeInTheDocument();
   });
+
+  it("respects measurement status, preserves small-patch precision, and uses '% of plot' wording", () => {
+    const measured = createItem(1, {
+      affectedAreaHectares: 0.004,
+      affectedAreaMeasurement: "measured",
+      affectedPortionPercent: 25,
+      affectedPortionMeasurement: "measured",
+    });
+    const zero = createItem(2, {
+      affectedAreaHectares: 0,
+      affectedAreaMeasurement: "measured",
+      affectedPortionPercent: 0,
+      affectedPortionMeasurement: "measured",
+    });
+    const unmeasured = createItem(3, {
+      affectedAreaHectares: 0,
+      affectedAreaMeasurement: "not_measured",
+      affectedPortionPercent: 0,
+      affectedPortionMeasurement: "not_measured",
+    });
+
+    renderPanel({
+      queue: "needs_visit",
+      count: 3,
+      oldest: measured,
+      items: [measured, zero, unmeasured],
+    });
+
+    expect(screen.getByText(/0\.004 ha affected · 25% of plot/)).toBeInTheDocument();
+    expect(screen.getByText(/0 ha affected · 0% of plot/)).toBeInTheDocument();
+    expect(screen.getByText(/Affected area not measured · Portion not measured/)).toBeInTheDocument();
+  });
 });

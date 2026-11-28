@@ -489,4 +489,60 @@ describe("report mappers", () => {
       total: 1,
     });
   });
+
+  it("maps plot area and measurement provenance while still parsing older payloads without them", () => {
+    const withNewFields = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: {
+          ...reportDetailDto,
+          observations: {
+            ...reportDetailDto.observations,
+            plot_area_hectares: 1.2,
+            plot_area_measurement: "measured",
+            affected_area_hectares: 0.3,
+            affected_area_measurement: "measured",
+            affected_portion_percent: 25,
+            affected_portion_measurement: "measured",
+          },
+          affected_fields: [{
+            field_survey_id: 99,
+            geometry: {
+              type: "Polygon",
+              coordinates: [[[122.95, 10.7], [122.951, 10.7], [122.95, 10.701], [122.95, 10.7]]],
+            },
+            captured_at: "2026-10-04T02:30:12.123456Z",
+            area_sqm: 12_000,
+            area_source: "device_reported",
+            inspector: { uuid: "inspector-1", name: "Field Inspector" },
+            affected_area_sqm: 3_000,
+            affected_area_measurement: "measured",
+            affected_percent: 25,
+            loss_rate_percent: null,
+          }],
+        },
+      }).data,
+    );
+
+    expect(withNewFields.plotAreaHectares).toBe(1.2);
+    expect(withNewFields.plotAreaMeasurement).toBe("measured");
+    expect(withNewFields.affectedAreaHectares).toBe(0.3);
+    expect(withNewFields.affectedAreaMeasurement).toBe("measured");
+    expect(withNewFields.affectedPortionPercent).toBe(25);
+    expect(withNewFields.affectedPortionMeasurement).toBe("measured");
+    expect(withNewFields.affectedFields?.[0]?.affectedAreaMeasurement).toBe("measured");
+
+    const legacyObservations = Object.fromEntries(
+      Object.entries(reportDetailDto.observations).filter(
+        ([key]) => key !== "affected_area_measurement" && key !== "affected_portion_measurement",
+      ),
+    );
+    const legacyParsed = mapReportDetail(
+      reportDetailResponseSchema.parse({
+        data: { ...reportDetailDto, observations: legacyObservations },
+      }).data,
+    );
+    expect(legacyParsed.plotAreaHectares).toBeUndefined();
+    expect(legacyParsed.plotAreaMeasurement).toBeUndefined();
+    expect(legacyParsed.affectedAreaHectares).toBe(12.5);
+  });
 });

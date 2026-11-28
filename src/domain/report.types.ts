@@ -400,6 +400,8 @@ export interface DiseaseReport {
   sugarcaneVariety?: string;
   cropAge?: string;
   caneClass?: string;
+  plotAreaHectares?: number;
+  plotAreaMeasurement?: MeasurementProvenance;
   affectedAreaHectares?: number;
   affectedAreaMeasurement?: MeasurementProvenance;
   affectedPortionPercent?: number;

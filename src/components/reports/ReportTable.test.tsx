@@ -211,6 +211,16 @@ describe("ReportTable - affected area", () => {
 
     expect(within(rowFor("CG-2026-0001")).getByText("—")).toBeInTheDocument();
   });
+
+  it("distinguishes confirmed zero and preserves 40 m² precision in queue rows", () => {
+    renderTable([
+      report({ uuid: "u-zero", referenceCode: "CG-2026-ZERO", affectedAreaHectares: 0, affectedAreaMeasurement: "measured" }),
+      report({ uuid: "u-tiny", referenceCode: "CG-2026-TINY", affectedAreaHectares: 0.004, affectedAreaMeasurement: "measured" }),
+    ]);
+
+    expect(within(rowFor("CG-2026-ZERO")).getByText("0 ha")).toBeInTheDocument();
+    expect(within(rowFor("CG-2026-TINY")).getByText("0.004 ha")).toBeInTheDocument();
+  });
 });
 
 describe("ReportTable - one workflow status", () => {

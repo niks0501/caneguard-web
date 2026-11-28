@@ -63,6 +63,7 @@ import {
   REPORTER_OBSERVED_CONCERN_RSSI,
   type CaseHistoryEntryType,
   type DiseaseReport,
+  type MeasurementProvenance,
 } from "../domain/report.types";
 import type {
   OperationalMetadataCorrections,
@@ -74,7 +75,14 @@ import {
   useReport,
   useUpdateReportReview,
 } from "../hooks/useReports";
-import { formatCalendarDate, formatClockTime, formatDate, formatDateTime } from "../lib/formatters";
+import {
+  formatCalendarDate,
+  formatClockTime,
+  formatDate,
+  formatDateTime,
+  formatMeasuredArea,
+  formatMeasuredPercent,
+} from "../lib/formatters";
 import { env } from "../config/env";
 import { AuthContext } from "../auth/auth.context";
 import { useReviewClaim } from "../hooks/useReviewClaim";
@@ -84,8 +92,12 @@ type MetadataDraft = {
   farmerOrFarmOwnerName: string;
   province: string;
   municipality: string;
+  plotAreaHectares: string;
+  plotAreaMeasurement: MeasurementProvenance;
   affectedAreaHectares: string;
+  affectedAreaMeasurement: MeasurementProvenance;
   affectedPortionPercent: string;
+  affectedPortionMeasurement: MeasurementProvenance;
 };
 
 function formatShortDate(isoString: string): string { return formatDate(isoString); }
@@ -321,19 +333,54 @@ function rawCaseHistory(report: DiseaseReport): CaseHistoryEntry[] {
   });
 }
 
+function baselineMeasurement(
+  value: number | undefined,
+  measurement: MeasurementProvenance | undefined,
+): MeasurementProvenance {
+  if (measurement) return measurement;
+  return value !== undefined ? "measured" : "not_measured";
+}
+
 function metadataDraftFor(report: DiseaseReport): MetadataDraft {
+  const plotAreaMeasurement = baselineMeasurement(
+    report.plotAreaHectares,
+    report.plotAreaMeasurement,
+  );
+  const affectedAreaMeasurement = baselineMeasurement(
+    report.affectedAreaHectares,
+    report.affectedAreaMeasurement,
+  );
+  const affectedPortionMeasurement = baselineMeasurement(
+    report.affectedPortionPercent,
+    report.affectedPortionMeasurement,
+  );
   return {
     barangay: report.barangay,
     farmerOrFarmOwnerName: report.farmerOrFarmOwnerName ?? "",
     province: report.province ?? "",
     municipality: report.municipality ?? "",
-    affectedAreaHectares: report.affectedAreaHectares?.toString() ?? "",
-    affectedPortionPercent: report.affectedPortionPercent?.toString() ?? "",
+    plotAreaHectares:
+      plotAreaMeasurement === "not_measured"
+        ? ""
+        : (report.plotAreaHectares?.toString() ?? ""),
+    plotAreaMeasurement,
+    affectedAreaHectares:
+      affectedAreaMeasurement === "not_measured"
+        ? ""
+        : (report.affectedAreaHectares?.toString() ?? ""),
+    affectedAreaMeasurement,
+    affectedPortionPercent:
+      affectedPortionMeasurement === "not_measured"
+        ? ""
+        : (report.affectedPortionPercent?.toString() ?? ""),
+    affectedPortionMeasurement,
   };
 }
 
 function numberOrNull(value: string): number | null {
-  return value.trim() === "" ? null : Number(value);
+  if (value.trim() === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function metadataCorrectionsFor(
@@ -352,20 +399,74 @@ function metadataCorrectionsFor(
   if (draft.municipality !== (report.municipality ?? "")) {
     corrections.municipality = draft.municipality || null;
   }
+  const nextPlotArea =
+    draft.plotAreaMeasurement === "not_measured"
+      ? null
+      : numberOrNull(draft.plotAreaHectares);
+  const basePlotMeasurement = baselineMeasurement(
+    report.plotAreaHectares,
+    report.plotAreaMeasurement,
+  );
   if (
-    numberOrNull(draft.affectedAreaHectares) !==
-    (report.affectedAreaHectares ?? null)
+    nextPlotArea !== (report.plotAreaHectares ?? null) ||
+    draft.plotAreaMeasurement !== basePlotMeasurement
   ) {
-    corrections.affectedAreaHectares = numberOrNull(draft.affectedAreaHectares);
+    corrections.plotAreaHectares = nextPlotArea;
   }
+
+  const nextAffectedArea =
+    draft.affectedAreaMeasurement === "not_measured"
+      ? null
+      : numberOrNull(draft.affectedAreaHectares);
+  const baseAffectedAreaMeasurement = baselineMeasurement(
+    report.affectedAreaHectares,
+    report.affectedAreaMeasurement,
+  );
   if (
-    numberOrNull(draft.affectedPortionPercent) !==
-    (report.affectedPortionPercent ?? null)
+    nextAffectedArea !== (report.affectedAreaHectares ?? null) ||
+    draft.affectedAreaMeasurement !== baseAffectedAreaMeasurement
   ) {
-    corrections.affectedPortionPercent = numberOrNull(draft.affectedPortionPercent);
+    corrections.affectedAreaHectares = nextAffectedArea;
+  }
+
+  const nextAffectedPortion =
+    draft.affectedPortionMeasurement === "not_measured"
+      ? null
+      : numberOrNull(draft.affectedPortionPercent);
+  const baseAffectedPortionMeasurement = baselineMeasurement(
+    report.affectedPortionPercent,
+    report.affectedPortionMeasurement,
+  );
+  if (
+    nextAffectedPortion !== (report.affectedPortionPercent ?? null) ||
+    draft.affectedPortionMeasurement !== baseAffectedPortionMeasurement
+  ) {
+    corrections.affectedPortionPercent = nextAffectedPortion;
   }
 
   return Object.keys(corrections).length ? corrections : undefined;
+}
+
+function metadataMeasurementValidationError(draft: MetadataDraft): string | null {
+  if (draft.plotAreaMeasurement === "measured") {
+    const plot = numberOrNull(draft.plotAreaHectares);
+    if (plot === null || plot <= 0) {
+      return "Enter a total plot area greater than 0 ha, or mark it Not measured.";
+    }
+  }
+  if (draft.affectedAreaMeasurement === "measured") {
+    const area = numberOrNull(draft.affectedAreaHectares);
+    if (area === null || area < 0) {
+      return "Enter an affected ground area (0 or more ha), or mark it Not measured.";
+    }
+  }
+  if (draft.affectedPortionMeasurement === "measured") {
+    const portion = numberOrNull(draft.affectedPortionPercent);
+    if (portion === null || portion < 0 || portion > 100) {
+      return "Enter an affected portion between 0% and 100%, or mark it Not measured.";
+    }
+  }
+  return null;
 }
 
 function metadataValuesMatch(
@@ -373,7 +474,11 @@ function metadataValuesMatch(
   left: string,
   right: string,
 ): boolean {
-  if (field === "affectedAreaHectares" || field === "affectedPortionPercent") {
+  if (
+    field === "plotAreaHectares" ||
+    field === "affectedAreaHectares" ||
+    field === "affectedPortionPercent"
+  ) {
     return numberOrNull(left) === numberOrNull(right);
   }
   return left === right;
@@ -544,12 +649,18 @@ function CaseReviewContent() {
     report && metadataDraft
       ? metadataCorrectionsFor(report, metadataDraft)
       : undefined;
+  const metadataMeasurementError = metadataDraft
+    ? metadataMeasurementValidationError(metadataDraft)
+    : null;
   const correctionError =
-    metadataCorrections && !correctionReason.trim()
+    metadataMeasurementError ??
+    (metadataCorrections && !correctionReason.trim()
       ? "Add a reason for the case information correction."
-      : null;
+      : null);
   const metadataCorrectionDirty = Boolean(
-    metadataCorrections !== undefined || correctionReason.trim(),
+    Object.keys(metadataEdits).length > 0 ||
+    metadataCorrections !== undefined ||
+    correctionReason.trim(),
   );
   useUnsavedWorkGuard(metadataCorrectionModalOpen && metadataCorrectionDirty);
   // A correction draft belongs to the pop-up session that pinned its version.
@@ -570,9 +681,21 @@ function CaseReviewContent() {
 
   const updateMetadataDraft = (field: keyof MetadataDraft, value: string) => {
     if (!report) return;
-    setMetadataEdits(
-      metadataEditsAgainst(report, { ...metadataEdits, [field]: value }),
-    );
+    const nextPatch: Partial<MetadataDraft> = { ...metadataEdits, [field]: value };
+    if (field === "plotAreaHectares") {
+      nextPatch.plotAreaMeasurement = value.trim() === "" ? "not_measured" : "measured";
+    } else if (field === "affectedAreaHectares") {
+      nextPatch.affectedAreaMeasurement = value.trim() === "" ? "not_measured" : "measured";
+    } else if (field === "affectedPortionPercent") {
+      nextPatch.affectedPortionMeasurement = value.trim() === "" ? "not_measured" : "measured";
+    } else if (field === "plotAreaMeasurement" && value === "not_measured") {
+      nextPatch.plotAreaHectares = "";
+    } else if (field === "affectedAreaMeasurement" && value === "not_measured") {
+      nextPatch.affectedAreaHectares = "";
+    } else if (field === "affectedPortionMeasurement" && value === "not_measured") {
+      nextPatch.affectedPortionPercent = "";
+    }
+    setMetadataEdits(metadataEditsAgainst(report, nextPatch));
     setCorrectionSubmitted(false);
     reviewMutation.reset();
   };
@@ -618,6 +741,7 @@ function CaseReviewContent() {
   const saveMetadataCorrection = async () => {
     if (metadataStale) return;
     setCorrectionSubmitted(true);
+    if (metadataMeasurementError) return;
     if (!metadataCorrections) {
       setMetadataCorrectionModalOpen(false);
       clearMetadataCorrection();
@@ -655,8 +779,36 @@ function CaseReviewContent() {
       ? "View Field Map (waiting confirmation)"
       : "View Field Map";
   const contextFields: { label: string; short: string; value: string | null }[] = [
-    { label: "Affected area", short: "affected area", value: report.affectedAreaMeasurement === "not_measured" ? "Not measured" : report.affectedAreaHectares !== undefined ? `${report.affectedAreaHectares} ha` : null },
-    { label: "Affected portion", short: "affected portion", value: report.affectedPortionMeasurement === "not_measured" ? "Not measured" : report.affectedPortionPercent !== undefined ? `${report.affectedPortionPercent}%` : null },
+    ...(report.plotAreaMeasurement !== undefined || report.plotAreaHectares !== undefined
+      ? [{
+          label: "Total plot area",
+          short: "plot area",
+          value:
+            report.plotAreaMeasurement === "not_measured"
+              ? "Not measured"
+              : formatMeasuredArea(report.plotAreaHectares, report.plotAreaMeasurement),
+        }]
+      : []),
+    {
+      label: "Affected ground area",
+      short: "affected area",
+      value:
+        report.affectedAreaMeasurement === "not_measured"
+          ? "Not measured"
+          : report.affectedAreaHectares !== undefined
+            ? formatMeasuredArea(report.affectedAreaHectares, report.affectedAreaMeasurement)
+            : null,
+    },
+    {
+      label: "Affected portion",
+      short: "affected portion",
+      value:
+        report.affectedPortionMeasurement === "not_measured"
+          ? "Not measured"
+          : report.affectedPortionPercent !== undefined
+            ? formatMeasuredPercent(report.affectedPortionPercent, report.affectedPortionMeasurement)
+            : null,
+    },
     { label: "Crop age", short: "crop age", value: report.cropAge ?? null },
     { label: "Sugarcane variety", short: "variety", value: report.sugarcaneVariety ?? null },
     { label: "Cane class", short: "cane class", value: report.caneClass ?? null },
@@ -1249,16 +1401,62 @@ function CaseReviewContent() {
                 onChange={(event) => updateMetadataDraft("municipality", event.target.value)}
               />
             </label>
+            <label className="select-filter" htmlFor="correction-plot-area-status">
+              <span>Total plot area status</span>
+              <select
+                id="correction-plot-area-status"
+                value={metadataDraft?.plotAreaMeasurement ?? "not_measured"}
+                onChange={(event) => updateMetadataDraft("plotAreaMeasurement", event.target.value)}
+              >
+                <option value="measured">Measured</option>
+                <option value="not_measured">Not measured</option>
+              </select>
+            </label>
+            <label className="select-filter" htmlFor="correction-plot-area">
+              <span>Total plot area (ha)</span>
+              <input
+                id="correction-plot-area"
+                type="number"
+                min="0.0001"
+                step="0.0001"
+                placeholder="Not measured"
+                value={metadataDraft?.plotAreaHectares ?? ""}
+                onChange={(event) => updateMetadataDraft("plotAreaHectares", event.target.value)}
+              />
+            </label>
+            <label className="select-filter" htmlFor="correction-area-status">
+              <span>Affected ground area status</span>
+              <select
+                id="correction-area-status"
+                value={metadataDraft?.affectedAreaMeasurement ?? "not_measured"}
+                onChange={(event) => updateMetadataDraft("affectedAreaMeasurement", event.target.value)}
+              >
+                <option value="measured">Measured</option>
+                <option value="not_measured">Not measured</option>
+              </select>
+            </label>
             <label className="select-filter" htmlFor="correction-area">
-              <span>Affected area (ha)</span>
+              <span>Affected ground area (ha)</span>
               <input
                 id="correction-area"
                 type="number"
                 min="0"
-                step="0.01"
+                step="0.0001"
+                placeholder="Not measured (0 = none found)"
                 value={metadataDraft?.affectedAreaHectares ?? ""}
                 onChange={(event) => updateMetadataDraft("affectedAreaHectares", event.target.value)}
               />
+            </label>
+            <label className="select-filter" htmlFor="correction-portion-status">
+              <span>Affected portion status</span>
+              <select
+                id="correction-portion-status"
+                value={metadataDraft?.affectedPortionMeasurement ?? "not_measured"}
+                onChange={(event) => updateMetadataDraft("affectedPortionMeasurement", event.target.value)}
+              >
+                <option value="measured">Measured</option>
+                <option value="not_measured">Not measured</option>
+              </select>
             </label>
             <label className="select-filter" htmlFor="correction-portion">
               <span>Affected portion (%)</span>
@@ -1268,6 +1466,7 @@ function CaseReviewContent() {
                 min="0"
                 max="100"
                 step="0.01"
+                placeholder="Not measured (0 = none found)"
                 value={metadataDraft?.affectedPortionPercent ?? ""}
                 onChange={(event) => updateMetadataDraft("affectedPortionPercent", event.target.value)}
               />

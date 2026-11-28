@@ -247,12 +247,59 @@ describe("AffectedFieldLinkage", () => {
     expect(within(card).getByText("Plot outline reused from Map 41")).toBeInTheDocument();
   });
 
-  it("says plainly when no damage was drawn instead of showing 0%", () => {
-    renderLinkage(report({ affectedFields: [linkedField(123, nearPlot, null)] }));
+  it("says plainly when no damage was measured instead of showing 0%", () => {
+    renderLinkage(report({
+      affectedFields: [{
+        ...linkedField(123, nearPlot, null),
+        affectedAreaSqm: 0,
+        affectedAreaMeasurement: "not_measured",
+      }],
+    }));
 
     const card = screen.getByRole("article", { name: "Field map 123" });
-    expect(within(card).getAllByText("Not drawn")).toHaveLength(2);
+    expect(within(card).getAllByText("Not measured")).toHaveLength(2);
     expect(within(card).queryByText("0%")).not.toBeInTheDocument();
+    expect(within(card).queryByText("0 ha")).not.toBeInTheDocument();
+  });
+
+  it("shows plot area, affected ground area, percentage, confirmed zero, and 40 m² precision", () => {
+    renderLinkage(report({
+      affectedFields: [
+        {
+          ...linkedField(101, nearPlot, 25),
+          areaSqm: 12_000,
+          affectedAreaSqm: 3_000,
+          affectedAreaMeasurement: "measured",
+          capturedAt: "2026-10-04T03:00:00.000Z",
+        },
+        {
+          ...linkedField(102, nearPlot, 0),
+          areaSqm: 12_000,
+          affectedAreaSqm: 0,
+          affectedAreaMeasurement: "measured",
+          capturedAt: "2026-10-04T02:00:00.000Z",
+        },
+        {
+          ...linkedField(103, nearPlot, 0.3),
+          areaSqm: 12_000,
+          affectedAreaSqm: 40,
+          affectedAreaMeasurement: "measured",
+          capturedAt: "2026-10-04T01:00:00.000Z",
+        },
+      ],
+    }));
+
+    const separated = screen.getByRole("article", { name: "Field map 101" });
+    expect(within(separated).getByText("1.2 ha")).toBeInTheDocument();
+    expect(within(separated).getByText("0.3 ha")).toBeInTheDocument();
+    expect(within(separated).getByText("25%")).toBeInTheDocument();
+
+    const zero = screen.getByRole("article", { name: "Field map 102" });
+    expect(within(zero).getByText("0 ha")).toBeInTheDocument();
+    expect(within(zero).getByText("0%")).toBeInTheDocument();
+
+    const tiny = screen.getByRole("article", { name: "Field map 103" });
+    expect(within(tiny).getByText("0.004 ha")).toBeInTheDocument();
   });
 
   it("explains a map that has not reached the office yet and offers no confirm", () => {

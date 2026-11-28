@@ -4,6 +4,7 @@ namespace App\Actions\Reports;
 
 use App\Models\FieldValidationAssignment;
 use App\Models\Report;
+use App\Support\AreaFormatter;
 use Illuminate\Database\Eloquent\Builder;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -41,6 +42,8 @@ final class ExportReports
         'referral_destination',
         'referral_reference',
         'referral_date',
+        'plot_area_hectares',
+        'plot_area_measurement',
     ];
 
     public function __construct(
@@ -127,6 +130,7 @@ final class ExportReports
         $lifecycle = $report->lifecycleSnapshot();
         $assignment = $report->fieldValidationAssignment;
         $referral = $report->referral;
+        $plotMeasurement = $report->plotAreaMeasurement();
         $areaMeasurement = $report->affectedAreaMeasurement();
         $portionMeasurement = $report->affectedPortionMeasurement();
 
@@ -140,14 +144,10 @@ final class ExportReports
                 $report->predicted_label === null
                     ? Report::NO_AI_SCAN_LABEL
                     : 'Possible '.$report->predicted_label,
-                $report->affected_area_hectares ?? '',
-                $areaMeasurement === Report::MEASUREMENT_NOT_MEASURED
-                    ? 'Not measured'
-                    : 'Measured',
-                $report->affected_portion_percent ?? '',
-                $portionMeasurement === Report::MEASUREMENT_NOT_MEASURED
-                    ? 'Not measured'
-                    : 'Measured',
+                AreaFormatter::formatCsvHectares($report->affected_area_hectares, $areaMeasurement),
+                AreaFormatter::measurementLabel($areaMeasurement),
+                AreaFormatter::formatCsvPercent($report->affected_portion_percent, $portionMeasurement),
+                AreaFormatter::measurementLabel($portionMeasurement),
                 $report->review_status,
                 $lifecycle['verification_outcome'],
                 $lifecycle['case_state'],
@@ -165,6 +165,8 @@ final class ExportReports
                 $referral?->destination ?? '',
                 $referral?->reference ?? '',
                 $referral?->referral_date?->format('Y-m-d') ?? '',
+                AreaFormatter::formatCsvHectares($report->plot_area_hectares, $plotMeasurement),
+                AreaFormatter::measurementLabel($plotMeasurement),
             ],
         );
     }

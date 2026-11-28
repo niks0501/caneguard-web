@@ -39,7 +39,14 @@ const analysis = (overrides: Partial<AerialAnalysis> = {}): AerialAnalysis => ({
 const report = (aerialAnalyses: AerialAnalysis[], extra: Partial<DiseaseReport> = {}) =>
   ({
     uuid: "r1",
-    affectedFields: [{ fieldSurveyId: 7, areaSqm: 6075, affectedPercent: 26, lossRatePercent: null }],
+    affectedFields: [{
+      fieldSurveyId: 7,
+      areaSqm: 6075,
+      affectedAreaSqm: 1580,
+      affectedAreaMeasurement: "measured",
+      affectedPercent: 26,
+      lossRatePercent: null,
+    }],
     aerialAnalyses,
     ...extra,
   }) as unknown as DiseaseReport;
@@ -181,13 +188,33 @@ describe("AerialCheckCard", () => {
     render(<AerialCheckCard report={report([analysis()])} />);
 
     expect(screen.getByRole("heading", { name: "Measured on the ground" }).parentElement).toHaveTextContent(
-      "Boundary 7: 0.61 ha · 26% affected",
+      "Boundary 7: 0.61 ha · 0.16 ha affected · 26% affected",
     );
     expect(screen.getByRole("heading", { name: "Seen in this photo" }).parentElement).toHaveTextContent(
       "18% of visible cane",
     );
     expect(screen.getByText("Phone GPS · office")).toBeInTheDocument();
     expect(screen.getByText("Aerial image estimate · experimental")).toBeInTheDocument();
+  });
+
+  it("distinguishes unmeasured ground boundaries, confirmed zero, and 40 m² patches", () => {
+    setup();
+    render(
+      <AerialCheckCard
+        report={report([analysis()], {
+          affectedFields: [
+            { fieldSurveyId: 11, areaSqm: 12_000, affectedAreaSqm: 0, affectedAreaMeasurement: "not_measured", affectedPercent: null, lossRatePercent: null } as never,
+            { fieldSurveyId: 12, areaSqm: 12_000, affectedAreaSqm: 0, affectedAreaMeasurement: "measured", affectedPercent: 0, lossRatePercent: null } as never,
+            { fieldSurveyId: 13, areaSqm: 12_000, affectedAreaSqm: 40, affectedAreaMeasurement: "measured", affectedPercent: 0.3, lossRatePercent: null } as never,
+          ],
+        })}
+      />,
+    );
+
+    const ground = screen.getByRole("heading", { name: "Measured on the ground" }).parentElement!;
+    expect(ground).toHaveTextContent("Boundary 11: 1.2 ha · Not measured");
+    expect(ground).toHaveTextContent("Boundary 12: 1.2 ha · 0 ha affected · 0% affected");
+    expect(ground).toHaveTextContent("Boundary 13: 1.2 ha · 0.004 ha affected · 0.3% affected");
   });
 
   // Intent: removal is confirmed in-app first; earlier checks collapse under one summary.

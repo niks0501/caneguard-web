@@ -4,7 +4,7 @@ import "../../lib/mapLibreWorker";
 import { Link } from "react-router";
 import { X } from "lucide-react";
 import type { FieldSurveyBoundariesData, FieldSurveyBoundaryFeature, FieldSurveyPosition } from "../../domain/fieldSurvey.types";
-import { formatAffectedArea, formatDateTime } from "../../lib/formatters";
+import { formatAreaHectares, formatDateTime, formatMeasuredArea } from "../../lib/formatters";
 import { env } from "../../config/env";
 import { routes } from "../../app/routes";
 import { useMapPaint } from "../../theme/mapTheme";
@@ -13,7 +13,7 @@ import { resolveBasemapStyle } from "../fieldValidation/localBasemap";
 import { createReturnContext, withReturnContext, type MapReturnContext } from "../navigation/mapNavigationContext";
 import { boundaryCentroid } from "../reports/boundaryShape";
 import { sortPlotsNewestFirst, supersedingPlotIds } from "./fieldMapFreshness";
-import { FIELD_MAP_STATUS_LABEL, fieldMapName, fieldMapStatus, percentAffected, type FieldMapStatus } from "./fieldMapStatus";
+import { FIELD_MAP_STATUS_LABEL, fieldMapName, fieldMapStatus, isAffectedAreaMeasured, percentAffected, type FieldMapStatus } from "./fieldMapStatus";
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -90,7 +90,7 @@ function MapProviderStatus({
 
 function boundaryLabel(feature: FieldSurveyBoundaryFeature) {
   const { areaSqm, cases } = feature.properties;
-  const size = formatAffectedArea(areaSqm / 10_000);
+  const size = formatAreaHectares(areaSqm / 10_000);
   return {
     size,
     cases: cases.length,
@@ -456,6 +456,16 @@ export function BoundariesMap({
               {selectedFeature && popupPosition ? (() => {
                 const reusedFromId = selectedFeature.properties.outlineFromSurveyId;
                 const newerSurveyIds = supersedingByPlotId.get(selectedFeature.properties.id) ?? [];
+                const affectedMeasured = isAffectedAreaMeasured(
+                  selectedFeature.properties.affectedAreaSqm,
+                  selectedFeature.properties.affectedAreaMeasurement,
+                );
+                const affectedPct = percentAffected(
+                  selectedFeature.properties.areaSqm,
+                  selectedFeature.properties.affectedAreaSqm,
+                  selectedFeature.properties.affectedAreaMeasurement,
+                );
+                const confirmedZero = affectedMeasured && selectedFeature.properties.affectedAreaSqm === 0;
                 return (
                 <Popup
                   longitude={popupPosition[0]}
@@ -509,21 +519,23 @@ export function BoundariesMap({
                     <dl>
                       <div><dt>Status</dt><dd>{FIELD_MAP_STATUS_LABEL[fieldMapStatus(selectedFeature)]}</dd></div>
                       <div><dt>Captured</dt><dd>{formatDateTime(selectedFeature.properties.capturedAt)}</dd></div>
-                      <div><dt>Area · device-reported</dt><dd>{formatAffectedArea(selectedFeature.properties.areaSqm / 10_000)}</dd></div>
-                      {selectedFeature.properties.affectedAreas.length > 0 ? (
-                        <div>
-                          <dt>Damage · device-reported</dt>
-                          <dd>
-                            {selectedFeature.properties.affectedAreaSqm === null
-                              ? `${selectedFeature.properties.affectedAreas.length} drawn`
-                              : formatAffectedArea(selectedFeature.properties.affectedAreaSqm / 10_000)}
-                          </dd>
-                        </div>
-                      ) : null}
-                      {percentAffected(selectedFeature.properties.areaSqm, selectedFeature.properties.affectedAreaSqm) !== null ? (
+                      <div><dt>Area · device-reported</dt><dd>{formatAreaHectares(selectedFeature.properties.areaSqm / 10_000)}</dd></div>
+                      <div>
+                        <dt>Damage · device-reported</dt>
+                        <dd>
+                          {confirmedZero
+                            ? "0 ha (none found) · 0%"
+                            : affectedMeasured
+                              ? formatMeasuredArea(selectedFeature.properties.affectedAreaSqm! / 10_000, "measured")
+                              : selectedFeature.properties.affectedAreas.length > 0
+                                ? `${selectedFeature.properties.affectedAreas.length} drawn`
+                                : "Not measured"}
+                        </dd>
+                      </div>
+                      {!confirmedZero && affectedPct !== null ? (
                         <div>
                           <dt>% affected</dt>
-                          <dd>{percentAffected(selectedFeature.properties.areaSqm, selectedFeature.properties.affectedAreaSqm)}%</dd>
+                          <dd>{affectedPct}%</dd>
                         </div>
                       ) : null}
                       <div><dt>Inspector</dt><dd>{selectedFeature.properties.inspector.name}</dd></div>

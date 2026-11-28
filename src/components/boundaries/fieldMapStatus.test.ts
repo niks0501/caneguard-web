@@ -5,6 +5,7 @@ import {
   fieldMapName,
   fieldMapStatus,
   filterFieldMaps,
+  isAffectedAreaMeasured,
   NO_FIELD_MAP_FILTERS,
   percentAffected,
   primaryCase,
@@ -53,12 +54,24 @@ describe("field map status", () => {
     expect(fieldMapName(named)).toBe("North lot");
   });
 
-  it("computes % affected like the API and refuses to invent one", () => {
+  it("computes % affected only when measured and distinguishes confirmed zero from unmeasured", () => {
+    expect(percentAffected(12_000, 3_000, "measured")).toBe(25);
+    expect(percentAffected(10_000, 2_600, "measured")).toBe(26);
+    expect(percentAffected(10_000, 33.33, "measured")).toBe(0.3);
+    expect(percentAffected(10_000, 99_999, "measured")).toBe(100);
+    expect(percentAffected(10_000, 0, "measured")).toBe(0);
+    expect(percentAffected(10_000, 0, "not_measured")).toBeNull();
+    expect(percentAffected(10_000, 2_600, "not_measured")).toBeNull();
+    expect(percentAffected(10_000, null, "measured")).toBeNull();
+    expect(percentAffected(10_000, null, "not_measured")).toBeNull();
+    expect(percentAffected(0, 100, "measured")).toBeNull();
+    // Legacy payloads without affectedAreaMeasurement treat 0 as unmeasured and >0 as measured.
+    expect(percentAffected(10_000, 0)).toBeNull();
     expect(percentAffected(10_000, 2_600)).toBe(26);
-    expect(percentAffected(10_000, 33.33)).toBe(0.3);
-    expect(percentAffected(10_000, 99_999)).toBe(100);
-    expect(percentAffected(10_000, null)).toBeNull();
-    expect(percentAffected(0, 100)).toBeNull();
+    expect(isAffectedAreaMeasured(0, "measured")).toBe(true);
+    expect(isAffectedAreaMeasured(0, "not_measured")).toBe(false);
+    expect(isAffectedAreaMeasured(0)).toBe(false);
+    expect(isAffectedAreaMeasured(40, "measured")).toBe(true);
   });
 
   it("filters by inspector, status and period together", () => {

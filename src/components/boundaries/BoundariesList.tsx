@@ -3,9 +3,9 @@ import { Link } from "react-router";
 import { routes } from "../../app/routes";
 import type { FieldSurveyBoundariesData, FieldSurveyBoundaryFeature } from "../../domain/fieldSurvey.types";
 import { Button } from "../ui/Button";
-import { formatAffectedArea, formatDateTime } from "../../lib/formatters";
+import { formatAreaHectares, formatDateTime, formatMeasuredArea } from "../../lib/formatters";
 import { createReturnContext, withReturnContext, type MapReturnContext } from "../navigation/mapNavigationContext";
-import { FIELD_MAP_STATUS_LABEL, fieldMapName, fieldMapStatus, percentAffected, primaryCase } from "./fieldMapStatus";
+import { FIELD_MAP_STATUS_LABEL, fieldMapName, fieldMapStatus, isAffectedAreaMeasured, percentAffected, primaryCase } from "./fieldMapStatus";
 
 function boundaryLabel(feature: FieldSurveyBoundaryFeature) {
   return `boundary ${feature.properties.id} captured ${formatDateTime(feature.properties.capturedAt)} by ${feature.properties.inspector.name}`;
@@ -92,7 +92,18 @@ export function BoundariesList({
                 const selected = selectedBoundaryId === id;
                 const status = fieldMapStatus(feature);
                 const linkedCase = primaryCase(feature);
-                const affected = percentAffected(feature.properties.areaSqm, feature.properties.affectedAreaSqm);
+                const affectedMeasured = isAffectedAreaMeasured(
+                  feature.properties.affectedAreaSqm,
+                  feature.properties.affectedAreaMeasurement,
+                );
+                const affected = percentAffected(
+                  feature.properties.areaSqm,
+                  feature.properties.affectedAreaSqm,
+                  feature.properties.affectedAreaMeasurement,
+                );
+                const affectedAreaLabel = affectedMeasured
+                  ? formatMeasuredArea(feature.properties.affectedAreaSqm! / 10_000, "measured")
+                  : null;
                 return (
                   <tr key={id} className={selected ? "is-selected" : undefined}>
                     <td>
@@ -119,8 +130,14 @@ export function BoundariesList({
                         </Link>
                       ) : null}
                     </td>
-                    <td>{formatAffectedArea(feature.properties.areaSqm / 10_000)}</td>
-                    <td>{affected === null ? "Not drawn" : `${affected}%`}</td>
+                    <td>{formatAreaHectares(feature.properties.areaSqm / 10_000)}</td>
+                    <td>
+                      {affected === null
+                        ? "Not measured"
+                        : affectedAreaLabel
+                          ? `${affectedAreaLabel} · ${affected}%`
+                          : `${affected}%`}
+                    </td>
                     <td>{feature.properties.inspector.name}</td>
                     <td className="field-validation-table__action-cell">
                       <button

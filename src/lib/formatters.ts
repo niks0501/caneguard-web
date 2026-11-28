@@ -110,23 +110,71 @@ export function formatDueState(
 }
 
 /**
- * Area label shared by the validation queue and the boundary viewer: the
- * hectares when a measurement exists, otherwise an em dash so an unmeasured
- * case never reads as zero. Ordinary values keep two decimals; a small
- * positive area keeps enough to avoid printing a false `0 ha`.
+ * Generic area formatter (e.g. total plot area or any confirmed hectare figure).
+ * Ordinary values keep up to two decimals; small positive areas (0 < v < 0.01 ha)
+ * keep 3–4+ decimals so a 40 m² patch renders as `0.004 ha`, never `0.00 ha`.
+ * Confirmed zero renders as `0 ha`.
  */
-export function formatAffectedArea(
+export function formatAreaHectares(
   hectares: number | null | undefined,
-  measurement?: "measured" | "not_measured" | null,
+  fallback = "—",
 ): string {
-  if (measurement === "not_measured") return "—";
-  if (typeof hectares !== "number" || !Number.isFinite(hectares)) return "—";
+  if (typeof hectares !== "number" || !Number.isFinite(hectares)) return fallback;
+  if (hectares === 0) return "0 ha";
 
-  const fractionDigits = hectares > 0 && hectares < 0.005 ? Math.ceil(-Math.log10(hectares)) + 1 : 2;
+  const abs = Math.abs(hectares);
+  const fractionDigits = abs > 0 && abs < 0.01 ? Math.max(4, Math.ceil(-Math.log10(abs)) + 1) : 2;
   const options: Intl.NumberFormatOptions = fractionDigits <= 20
     ? { maximumFractionDigits: Math.max(2, fractionDigits) }
     : { notation: "scientific", maximumSignificantDigits: 3 };
   const formatted = new Intl.NumberFormat("en-PH", options).format(hectares);
 
   return `${formatted} ha`;
+}
+
+/**
+ * Tri-state measured-area formatter distinguishing unmeasured ("Not measured"),
+ * confirmed zero ("0 ha"), and measured positive values (preserving precision
+ * for 0 < v < 0.01 ha).
+ */
+export function formatMeasuredArea(
+  hectares: number | null | undefined,
+  measurement?: "measured" | "not_measured" | null,
+  options?: { unmeasuredLabel?: string; zeroLabel?: string },
+): string {
+  const unmeasuredLabel = options?.unmeasuredLabel ?? "Not measured";
+  if (measurement === "not_measured") return unmeasuredLabel;
+  if (typeof hectares !== "number" || !Number.isFinite(hectares)) return unmeasuredLabel;
+  if (hectares === 0) return options?.zeroLabel ?? "0 ha";
+
+  return formatAreaHectares(hectares, unmeasuredLabel);
+}
+
+/**
+ * Tri-state percentage formatter distinguishing unmeasured ("Not measured"),
+ * confirmed zero ("0%"), and measured positive percentages.
+ */
+export function formatMeasuredPercent(
+  percent: number | null | undefined,
+  measurement?: "measured" | "not_measured" | null,
+  options?: { unmeasuredLabel?: string },
+): string {
+  const unmeasuredLabel = options?.unmeasuredLabel ?? "Not measured";
+  if (measurement === "not_measured") return unmeasuredLabel;
+  if (typeof percent !== "number" || !Number.isFinite(percent)) return unmeasuredLabel;
+  if (percent === 0) return "0%";
+
+  const formatted = new Intl.NumberFormat("en-PH", { maximumFractionDigits: 2 }).format(percent);
+  return `${formatted}%`;
+}
+
+/**
+ * Compact affected-area label for dense table cells, using an em dash when
+ * unmeasured so an unmeasured case never reads as zero.
+ */
+export function formatAffectedArea(
+  hectares: number | null | undefined,
+  measurement?: "measured" | "not_measured" | null,
+): string {
+  return formatMeasuredArea(hectares, measurement, { unmeasuredLabel: "—" });
 }

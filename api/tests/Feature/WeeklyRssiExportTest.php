@@ -324,6 +324,27 @@ class WeeklyRssiExportTest extends TestCase
         $this->assertSame('Measured', $rows['CG-ZERO']['area_measurement']);
         $this->assertNull($rows['CG-UNMEASURED']['area_hectares']);
         $this->assertSame('Not measured', $rows['CG-UNMEASURED']['area_measurement']);
+
+        $report = app(BuildWeeklyRssiReport::class)->handle(['period_type' => 'weekly', 'week' => '2026-W40'], $reviewer);
+        $csv = app(ExportWeeklyRssiCsv::class)->handle($report);
+        $csvRows = collect(array_map('str_getcsv', array_values(array_filter(
+            explode("\n", $csv),
+            static fn (string $line): bool => trim($line) !== '',
+        ))))->filter(static fn (array $row): bool => ($row[0] ?? '') === 'validated')
+            ->keyBy(static fn (array $row): string => $row[1]);
+
+        $this->assertSame('0.004', $csvRows['CG-TINY'][6]);
+        $this->assertSame('Measured', $csvRows['CG-TINY'][7]);
+        $this->assertSame('0', $csvRows['CG-ZERO'][6]);
+        $this->assertSame('Measured', $csvRows['CG-ZERO'][7]);
+        $this->assertSame('', $csvRows['CG-UNMEASURED'][6]);
+        $this->assertSame('Not measured', $csvRows['CG-UNMEASURED'][7]);
+
+        $html = view('reports.rssi-weekly', ['report' => $report])->render();
+        $this->assertStringContainsString('0.004 ha', $html);
+        $this->assertStringContainsString('0 ha', $html);
+        $this->assertStringContainsString('Not measured', $html);
+        $this->assertStringNotContainsString('>0.00<', $html);
     }
 
     /**
