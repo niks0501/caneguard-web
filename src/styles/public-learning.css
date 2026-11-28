@@ -11,6 +11,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
+  min-height: 32px;
   margin-bottom: var(--space-3);
 }
 
@@ -157,8 +158,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-4);
+  justify-content: space-between;
+  gap: var(--space-4);
+  height: 100%;
+  padding: var(--space-5);
+  border-radius: var(--pub-radius-glass-lg);
   overflow: hidden;
 }
 
@@ -178,8 +182,9 @@
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 340px;
+  max-width: 330px;
   height: auto;
+  margin: auto 0;
   overflow: visible;
 }
 
@@ -188,7 +193,9 @@
   z-index: 1;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-2);
+  min-height: 34px;
   margin: 0;
   padding: var(--space-1) var(--space-3);
   border: 1px solid var(--pub-glass-border-strong);
@@ -198,6 +205,7 @@
   color: var(--color-secondary-text);
   font-size: var(--text-machine);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .pub-anatomy__caption strong {
@@ -208,12 +216,85 @@
 .pub-anatomy__side {
   display: flex;
   flex-direction: column;
+  gap: var(--space-4);
+  height: 100%;
+  min-width: 0;
+}
+
+.pub-anatomy__side .pub-tour-bar {
+  margin-bottom: 0;
+}
+
+.pub-anatomy__parts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.pub-anatomy__parts > li:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+.pub-anatomy__parts .pub-chip--button {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  justify-content: flex-start;
+  gap: var(--space-2);
+  text-align: left;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.pub-anatomy__parts .pub-chip--button::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border-strong);
+  flex-shrink: 0;
+  transition: background-color 150ms ease;
+}
+
+.pub-anatomy__parts .pub-chip--button[aria-pressed="true"]::before {
+  background: var(--color-primary);
 }
 
 .pub-anatomy__inspector {
   position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   overflow: hidden;
-  padding-bottom: var(--space-5);
+  padding: var(--space-5);
+  padding-bottom: var(--space-6);
+  border-radius: var(--pub-radius-glass-lg);
+}
+
+.pub-anatomy__inspector h3 {
+  margin: 0;
+  min-height: 1.3em;
+}
+
+.pub-anatomy__desc {
+  margin: 0;
+  min-height: 4.8em;
+}
+
+.pub-anatomy__watch {
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--pub-glass-border);
+}
+
+.pub-anatomy__watch .pub-card__label {
+  margin: 0 0 var(--space-2);
+}
+
+.pub-anatomy__watch .pub-chips {
+  margin: 0;
+  min-height: 36px;
 }
 
 /* Lab plate botanical grid ticks and SVG zone focus state */
@@ -337,17 +418,56 @@
   gap: var(--space-5);
   align-items: stretch;
   overflow: hidden;
-  padding-bottom: var(--space-5);
+  padding: var(--space-5);
+  padding-bottom: var(--space-6);
+  border-radius: var(--pub-radius-glass-lg);
 }
 
 .pub-growth__dossier {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-1) 0;
 }
 
 .pub-growth__dossier .pub-card__label:first-child {
-  margin-top: 0;
+  margin: 0;
+  min-height: 1.4em;
+}
+
+.pub-growth__title {
+  margin: 0;
+  min-height: 1.25em;
+}
+
+.pub-growth__text {
+  margin: 0;
+  min-height: 9.6em;
+}
+
+.pub-growth__actions {
+  margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--pub-glass-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.pub-growth__do {
+  margin: 0;
+  min-height: 3.2em;
+}
+
+.pub-growth__actions .pub-card__label {
+  margin: var(--space-1) 0 0;
+}
+
+.pub-growth__actions .pub-chips {
+  margin: 0;
+  min-height: 36px;
 }
 
 /* Frosted phenology stage canvas inside the strong glass panel (no nested blur) */
@@ -398,6 +518,7 @@
 
 .pub-phenology__metric dd {
   margin: 0;
+  min-height: 2.6em;
   color: var(--color-text);
   font-size: var(--text-body-sm);
   font-weight: 600;
@@ -682,9 +803,29 @@
 /* ---------------------------------------------------------------------------
    Responsive
    --------------------------------------------------------------------------- */
+@media (max-width: 1080px) {
+  .pub-growth__text {
+    min-height: 11.2em;
+  }
+}
+
+@media (max-width: 980px) {
+  .pub-phenology__metric dd {
+    min-height: 3.9em;
+  }
+}
+
 @media (max-width: 860px) {
   .pub-growth__panel {
     grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-4);
+    padding-bottom: var(--space-5);
+  }
+  .pub-anatomy__desc {
+    min-height: 5.2em;
+  }
+  .pub-growth__text {
+    min-height: 8em;
   }
   .pub-quiz.pub-glass {
     padding: var(--space-4);
@@ -695,8 +836,53 @@
   .pub-phenology__metrics {
     grid-template-columns: minmax(0, 1fr);
   }
+  .pub-phenology__metric dd {
+    min-height: 2.6em;
+  }
   .pub-anatomy__plate {
-    padding: var(--space-3);
+    padding: var(--space-4);
+  }
+  .pub-anatomy__inspector {
+    padding: var(--space-4);
+    padding-bottom: var(--space-5);
+  }
+  .pub-anatomy__desc {
+    min-height: 6.4em;
+  }
+  .pub-growth__text {
+    min-height: 13.5em;
+  }
+  .pub-growth__do {
+    min-height: 4.8em;
+  }
+}
+
+@media (max-width: 520px) {
+  .pub-anatomy__parts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pub-anatomy__parts > li:last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+  .pub-growth__title {
+    min-height: 2.5em;
+  }
+}
+
+@media (max-width: 440px) {
+  .pub-anatomy__caption {
+    white-space: normal;
+    text-align: center;
+    min-height: 3.2em;
+  }
+  .pub-anatomy__inspector h3 {
+    min-height: 2.5em;
+  }
+  .pub-growth__dossier .pub-card__label:first-child {
+    min-height: 2.8em;
+  }
+  .pub-growth__text {
+    min-height: 15.2em;
   }
 }
 
@@ -733,7 +919,9 @@
   .pub-plant__reticle,
   .pub-growth__rail-fill,
   .pub-pheno__layer,
-  .pub-plant .pub-plant__hot {
+  .pub-plant .pub-plant__hot,
+  .pub-anatomy__parts .pub-chip--button,
+  .pub-anatomy__parts .pub-chip--button::before {
     transition: none;
   }
   .pub-plant__reticle-ring,

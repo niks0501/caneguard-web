@@ -51,6 +51,9 @@ describe("PR-3 living learning blocks", () => {
       expect(
         screen.getByRole("button", { name: "Lower leaves (underside)" }),
       ).toHaveAttribute("aria-pressed", "true");
+      expect(container.querySelector(".pub-anatomy__parts")).not.toBeNull();
+      expect(container.querySelector(".pub-anatomy__desc")).not.toBeNull();
+      expect(container.querySelector(".pub-anatomy__watch")).not.toBeNull();
       expect(
         container.querySelector('[data-focus-zone="lower"]'),
       ).not.toBeNull();
@@ -174,6 +177,11 @@ describe("PR-3 living learning blocks", () => {
 
       // Stage 1: Germination
       expect(screen.getByText("Auto-cycling stages")).toBeInTheDocument();
+      expect(container.querySelector(".pub-growth__title")).toHaveTextContent(
+        "Germination",
+      );
+      expect(container.querySelector(".pub-growth__text")).not.toBeNull();
+      expect(container.querySelector(".pub-growth__actions")).not.toBeNull();
       expect(svg).toHaveAttribute("data-active-stage", "germination");
       expect(railFill.style.width).toBe("25%");
       expect(screen.getByText("0.15 – 0.35 m")).toBeInTheDocument();
