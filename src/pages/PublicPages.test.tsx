@@ -84,6 +84,9 @@ describe("Botanical Glass landing structure", () => {
     expect(container.querySelectorAll(".pub-specimen")).toHaveLength(3);
     expect(container.querySelectorAll(".pub-stats .pub-stat")).toHaveLength(4);
     expect(container.querySelectorAll(".pub-flow__badge")).toHaveLength(4);
+    expect(container.querySelectorAll(".pub-legacy .pub-path")).toHaveLength(4);
+    expect(screen.getByText("Education · RA 10659")).toBeInTheDocument();
+    expect(screen.getByText("CHED–SRA grant support")).toBeInTheDocument();
   });
 });
 

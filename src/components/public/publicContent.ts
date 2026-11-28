@@ -180,31 +180,41 @@ export const historyEvents: readonly TimelineEvent[] = [
 ];
 
 export interface LegacyPath {
-  id: string;
+  id: "scholarship" | "block-farm" | "scout" | "career";
+  tag: string;
   title: string;
   text: string;
+  cue: string;
 }
 
 export const legacyPaths: readonly LegacyPath[] = [
   {
     id: "scholarship",
+    tag: "Education · RA 10659",
     title: "Study on a SIDA scholarship",
     text: "Under RA 10659, children and dependents of certified small sugarcane farmers and industry workers can apply for CHED–SRA grants. Check the latest SRA circular for current requirements.",
+    cue: "CHED–SRA grant support",
   },
   {
     id: "block-farm",
+    tag: "Cooperative",
     title: "Join a block farm",
     text: "Small farmers enrol their two to three hectares with a cooperative or association to share equipment, credit and support.",
+    cue: "2–3 ha shared farm model",
   },
   {
     id: "scout",
+    tag: "Field vigilance",
     title: "Scout and report",
     text: "Walk the field every month, and every week for RSSI. An early report protects the whole district.",
+    cue: "Monthly walk · weekly RSSI check",
   },
   {
     id: "career",
+    tag: "Industry & agritech",
     title: "Build a career",
     text: "Agronomy, mill engineering, SRA research, drone mapping and the kind of AI that CaneGuard uses all need people who know cane.",
+    cue: "Agronomy, engineering & AI",
   },
 ];
 
