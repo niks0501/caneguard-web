@@ -199,5 +199,28 @@ Three prune commands also run from the scheduler, daily in Asia/Manila: `auth:pr
 
 `notifications:derive-follow-up-due` runs on the same 15-minute schedule. It creates the overdue follow-up items Mobile renders; without the cron entry, no follow-up due notification is ever created and reading the feed never makes one appear.
 
+## Survey measurement backfill (operator-run, never part of a deploy)
+Reports and surveys saved before the mobile build that separates plot area from affected area can carry the plot area as the affected area, a forced `0` for an area nobody measured, a measurement flag that disagrees with its value, or a small patch rounded to `0.00`. `php artisan caneguard:audit-survey-measurements` finds them in five buckets and, on request, fixes four of them. Run it only after the new mobile build is released, from `/var/www/caneguard/current/api` as `deploy`, in this order:
+
+1. **Back up** the production database first. The command is audited and reversible by hand, but a backup is the only full undo.
+2. **Dry run**: `php artisan caneguard:audit-survey-measurements` (add `--json` for a machine-readable copy). It writes nothing and prints each planned change as old -> new.
+3. **Review** the output. Check the counts against the last audit, that each row's new value is what you expect, and the bucket E list below.
+4. **Apply**: `php artisan caneguard:audit-survey-measurements --apply --actor=<your user id or email> --force`. `--actor` is required and is recorded on every audit row. In production the command asks for confirmation unless `--force` is given. `--buckets=A,B,C,D` limits it to some buckets (default all four; E can never be applied).
+5. **Re-audit**: the apply step re-runs the audit itself and exits non-zero if any row is left in a bucket it fixed. Run the dry run once more to see all zeros.
+
+| Bucket | Finds | `--apply` does |
+| --- | --- | --- |
+| A | Survey with no affected polygons and a stored `0` that was never measured | `affected_area_sqm = null`, `affected_area_measurement = not_measured` |
+| B | Report whose affected area is the plot area | Plot area from the survey (`plot_area_hectares`, `measured`). With no measured affected area on the survey: affected area and percentage `null` / `not_measured`. Otherwise the survey's affected hectares and percentage, `measured` |
+| C | A `*_measurement` flag that disagrees with its value | The flag only, to match the stored value; the value is never changed |
+| D | A real patch under 50 m² saved as `0.00` | `affected_area_hectares = round(affected_area_sqm / 10000, 4)`, `measured` |
+| E | Sealed weekly and RSSI versions whose week contains a B, C or D report | Nothing. Never changed |
+
+Each survey or report changes in its own transaction together with its audit rows, so a row is either fully fixed and recorded or untouched. Rows go to `field_survey_audits` (bucket A) and `report_audits` (B, C, D): one row per changed field with `original_value`, `corrected_value`, `actor_id` and the reason `survey_measurement_mapping_remediation (bucket X)`. Running the command again finds nothing to change and writes no audit rows.
+
+To reverse a row by hand, read its old value from the audit table (`WHERE reason LIKE 'survey_measurement_mapping_remediation%'`) and write it back to the field named in `field`. A report whose row looks wrong should be corrected through Metadata Corrections in the office app, which writes its own audit entry.
+
+Bucket E lists each affected sealed week with its code (for example `2026-W40`), version and the change in affected hectares that week would see. The command never edits those versions. If the office wants the corrected figures in an official report, it reissues a new version for that week by hand. A survey that says it was measured but has no figure is reported as needing manual review and left unchanged; the command then exits non-zero.
+
 ## Explicit exclusions
 No Android app build, Mobile integration, SRA roster provisioning, district changes, seeding, Reverb launch, or database reset. District and first-admin creation happen only through `caneguard:bootstrap` above.
