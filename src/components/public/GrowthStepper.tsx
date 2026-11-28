@@ -486,13 +486,15 @@ export function GrowthStepper() {
 
         <div className="pub-growth__dossier">
           <p className="pub-card__label">{stage.window}</p>
-          <h3>{stage.name}</h3>
-          <p>{stage.text}</p>
-          <p>
-            <strong>Do:</strong> {stage.doThis}
-          </p>
-          <p className="pub-card__label">Watch for</p>
-          <EntryLinks ids={stage.watchFor} />
+          <h3 className="pub-growth__title">{stage.name}</h3>
+          <p className="pub-growth__text">{stage.text}</p>
+          <div className="pub-growth__actions">
+            <p className="pub-growth__do">
+              <strong>Do:</strong> {stage.doThis}
+            </p>
+            <p className="pub-card__label">Watch for</p>
+            <EntryLinks ids={stage.watchFor} />
+          </div>
         </div>
 
         <div className="pub-dwell" aria-hidden="true">

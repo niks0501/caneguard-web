@@ -97,6 +97,11 @@ export function LandingPage() {
 
         <section id="legacy" className="pub-section" aria-labelledby="legacy-title">
           <h2 className="pub-section__title" id="legacy-title">Ways to stay in cane, and grow with it</h2>
+          <p className="pub-lead">
+            Whether you study on a grant, farm alongside neighbours in a block
+            cooperative, scout the rows early, or build a technical career,
+            Nasugbu&apos;s sugarcane legacy has room for the next generation.
+          </p>
           <LegacyPaths />
         </section>
 

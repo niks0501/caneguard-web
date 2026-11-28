@@ -314,7 +314,7 @@ export function AnatomyExplorer() {
           </div>
         </div>
 
-        <ul className="pub-chips" aria-label="Plant parts">
+        <ul className="pub-chips pub-anatomy__parts" aria-label="Plant parts">
           {anatomyParts.map((part, idx) => (
             <li key={part.id}>
               <button
@@ -334,9 +334,11 @@ export function AnatomyExplorer() {
           aria-live="polite"
         >
           <h3>{selected.name}</h3>
-          <p>{selected.text}</p>
-          <p className="pub-card__label">Look here for</p>
-          <EntryLinks ids={selected.watchFor} />
+          <p className="pub-anatomy__desc">{selected.text}</p>
+          <div className="pub-anatomy__watch">
+            <p className="pub-card__label">Look here for</p>
+            <EntryLinks ids={selected.watchFor} />
+          </div>
           <div className="pub-dwell" aria-hidden="true">
             <span
               key={`${selected.id}-${isPaused ? "paused" : reducedMotion ? "static" : "live"}`}

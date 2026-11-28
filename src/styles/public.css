@@ -95,7 +95,7 @@
 }
 .pub-nav {
   pointer-events: auto;
-  max-width: 1160px;
+  max-width: 1280px;
   margin: 0 auto;
   display: flex;
   flex-wrap: wrap;
@@ -184,18 +184,19 @@
    --------------------------------------------------------------------------- */
 .pub-main { flex: 1; }
 .pub-section {
-  max-width: 1160px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: var(--space-9) var(--space-4) 0;
   scroll-margin-top: var(--space-9);
 }
 .pub-section__title {
-  max-width: 22ch;
+  max-width: 26ch;
   margin-bottom: var(--space-4);
   font-size: var(--pub-text-section);
   font-weight: 700;
+  text-wrap: balance;
 }
-.pub-lead { max-width: 70ch; font-size: var(--text-body); }
+.pub-lead { max-width: 72ch; font-size: var(--text-body); }
 .pub-note { color: var(--color-secondary-text); font-size: var(--text-body-sm); }
 .pub-grid { display: grid; gap: var(--space-4); }
 .pub-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -275,7 +276,7 @@
 }
 .pub-hero__grid,
 .pub-stats {
-  max-width: 1160px;
+  max-width: 1280px;
   margin: 0 auto;
 }
 .pub-hero__grid {
@@ -398,7 +399,7 @@
 /* ---------------------------------------------------------------------------
    Anatomy
    --------------------------------------------------------------------------- */
-.pub-anatomy { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: var(--space-5); align-items: start; }
+.pub-anatomy { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); align-items: stretch; }
 .pub-plant { width: 100%; max-width: 360px; justify-self: center; }
 .pub-plant__soil { fill: var(--color-accent); opacity: 0.5; }
 .pub-plant__root { stroke: var(--brand-gold); stroke-width: 3; fill: none; }
@@ -526,33 +527,121 @@
 .pub-timeline p { margin: 0; color: var(--color-secondary-text); }
 
 /* ---------------------------------------------------------------------------
-   Legacy: stepped bento (5/3 then 3/5 of an eight-column track = 1.25fr 0.75fr)
+   Legacy: balanced 2x2 pathway grid with botanical glass medallions
    --------------------------------------------------------------------------- */
 .pub-legacy {
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
+  align-items: stretch;
+  margin-top: var(--space-4);
 }
-.pub-legacy > li { grid-column: span 4; }
-.pub-legacy > li:nth-child(4n + 1),
-.pub-legacy > li:nth-child(4n + 4) { grid-column: span 5; }
-.pub-legacy > li:nth-child(4n + 2),
-.pub-legacy > li:nth-child(4n + 3) { grid-column: span 3; }
-.pub-path { position: relative; padding-top: var(--space-6); }
+.pub-path {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: 100%;
+  padding: var(--space-5);
+  overflow: hidden;
+  border-radius: var(--pub-radius-glass-lg);
+  transition: border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
 .pub-path::before {
   content: "";
   position: absolute;
-  top: var(--space-4);
-  left: var(--space-4);
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--color-border-strong);
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--color-primary);
+  opacity: 0.72;
 }
 .pub-path--1::before { background: var(--kpi-band-1); }
-.pub-path--2::before { background: var(--kpi-band-2); }
-.pub-path--3::before { background: var(--kpi-band-3); }
-.pub-path--4::before { background: var(--kpi-band-4); }
+.pub-path--2::before { background: var(--color-primary); }
+.pub-path--3::before { background: var(--brand-gold); }
+.pub-path--4::before { background: var(--brand-lime); }
+.pub-path:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 var(--pub-glass-highlight), var(--pub-shadow-glass-lg);
+}
+.pub-path__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.pub-path__identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.pub-path__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 1px solid var(--pub-glass-border-strong);
+  border-radius: var(--pub-radius-glass-md);
+  background: var(--color-primary-tint);
+  color: var(--color-primary-text);
+  box-shadow: inset 0 1px 0 var(--pub-glass-highlight), var(--pub-shadow-glass-sm);
+}
+.pub-path--3 .pub-path__icon {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+.pub-path__tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-3);
+  border: 1px solid var(--pub-glass-border);
+  border-radius: var(--radius-pill);
+  background: var(--pub-glass-surface-subtle);
+  color: var(--color-secondary-text);
+  font-size: var(--text-machine);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.pub-path__num {
+  color: var(--color-secondary-text);
+  font-size: var(--text-machine);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+}
+.pub-path__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.pub-path__body h3 {
+  margin: 0;
+  font-size: var(--text-h3);
+  line-height: 1.2;
+}
+.pub-path__body p {
+  margin: 0;
+  color: var(--color-secondary-text);
+}
+.pub-path__cue {
+  margin: auto 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--pub-glass-border);
+  color: var(--color-primary-text);
+  font-size: var(--text-machine);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.pub-path--3 .pub-path__cue {
+  color: var(--color-warning);
+}
 
 /* ---------------------------------------------------------------------------
    How it works: four-step pipeline
@@ -606,7 +695,7 @@
    --------------------------------------------------------------------------- */
 .pub-footer {
   width: calc(100% - var(--space-7));
-  max-width: 1160px;
+  max-width: 1280px;
   margin: var(--space-9) auto var(--space-4);
   padding: var(--space-5) var(--space-6);
   border-radius: var(--pub-radius-glass-lg);
@@ -626,14 +715,13 @@
   .pub-hero__grid, .pub-anatomy, .pub-quiz, .pub-entry__head { grid-template-columns: minmax(0, 1fr); }
   .pub-hero__photos { justify-self: center; }
   .pub-legacy { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .pub-legacy > li,
-  .pub-legacy > li:nth-child(n) { grid-column: auto; }
 }
 @media (max-width: 620px) {
   .pub-nav-wrap { position: static; padding: var(--space-2) var(--space-3); }
   .pub-nav { padding: var(--space-2) var(--space-3); border-radius: var(--pub-radius-glass-lg); }
   .pub-nav__links { order: 3; flex: 1 0 100%; }
   .pub-grid--2, .pub-grid--4, .pub-stages, .pub-quiz__answers, .pub-timeline, .pub-legacy { grid-template-columns: minmax(0, 1fr); }
+  .pub-path { padding: var(--space-4); }
   .pub-stats { grid-template-columns: minmax(0, 1fr); }
   .pub-stat + .pub-stat { border-left: 0; padding-top: var(--space-3); border-top: 1px solid var(--pub-glass-scrim-border); }
   .pub-section { padding-top: var(--space-8); }
@@ -693,5 +781,6 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .pub-page * { transition: none !important; animation: none !important; }
-  .pub-gcard:hover { transform: none; }
+  .pub-gcard:hover,
+  .pub-path:hover { transform: none; }
 }
