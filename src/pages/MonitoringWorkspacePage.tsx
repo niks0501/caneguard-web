@@ -3,6 +3,7 @@ import { lazy, Suspense } from "react";
 import type { ReactNode } from "react";
 import { Link, useLocation, useSearchParams } from "react-router";
 import { PageContent, PageHeader } from "../components/layout/Page";
+import "./MonitoringWorkspacePage.css";
 import { MonitoringCalendar } from "../components/reports/MonitoringCalendar";
 import { LoadingState } from "../components/ui/States";
 import { SubmittedReportsPage } from "./SubmittedReportsPage";
@@ -40,7 +41,7 @@ export function MonitoringWorkspacePage() {
   );
 
   return (
-    <PageContent>
+    <PageContent className="field-visits-page">
       <PageHeader title="Field visits" />
       <nav className="monitoring-workspace-tabs" aria-label="Field visit views">
         <span className="monitoring-workspace-tabs__label">Workspace views</span>

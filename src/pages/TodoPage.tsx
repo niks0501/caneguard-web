@@ -10,6 +10,7 @@ import { fieldWorkloadItemFromReport, mergeFieldWorkload } from "../domain/field
 import { manilaDateAt } from "../domain/reportingTime";
 import type { ReviewQueueContext } from "../components/reports/reviewQueueContext";
 import { PageContent, PageHeader } from "../components/layout/Page";
+import "./TodoPage.css";
 import { WorkspaceFreshness } from "../components/layout/WorkspaceFreshness";
 import { oldestServerReadAt } from "../hooks/oldestServerRead";
 import { Button } from "../components/ui/Button";
@@ -247,7 +248,7 @@ export function TodoPage() {
     || (noActiveWorkQuery.isRefetchError && isRateLimitedError(noActiveWorkQuery.error));
 
   return (
-    <PageContent>
+    <PageContent className="todo-page">
       <PageHeader
         title="To do"
         actions={(

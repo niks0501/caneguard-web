@@ -1,0 +1,230 @@
+.todo-page {
+  max-width: 1480px;
+  padding: 24px 28px 40px;
+}
+
+.todo-page > .page-header {
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.todo-page > .page-header h1 {
+  font-size: var(--text-dashboard-metric);
+  line-height: 1.2;
+}
+
+.todo-page .needs-assessment-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.todo-page .needs-assessment-summary > a {
+  grid-template-columns: 40px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-content: center;
+  column-gap: var(--space-2);
+  row-gap: 2px;
+  min-width: 0;
+  min-height: 80px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-dashboard-card);
+}
+
+.todo-page .needs-assessment-summary > a:hover {
+  background: var(--color-surface-muted);
+}
+
+.todo-page .needs-assessment-summary > a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.todo-page .needs-assessment-summary svg {
+  box-sizing: content-box;
+  grid-column: 1;
+  grid-row: 1 / 3;
+  align-self: center;
+  width: 22px;
+  height: 22px;
+  padding: 9px;
+  color: var(--color-primary);
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-md);
+}
+
+.todo-page .needs-assessment-summary strong {
+  grid-column: 2;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--text-h2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.todo-page .needs-assessment-summary span {
+  grid-column: 2;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.todo-page > .workspace-freshness {
+  margin-block: 0 var(--space-4);
+  font-size: var(--text-dashboard-label);
+}
+
+.todo-page .needs-assessment-queue {
+  margin-top: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-surface);
+}
+
+.todo-page .needs-assessment-group {
+  scroll-margin-top: 100px;
+}
+
+.todo-page .needs-assessment-group__heading {
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-muted);
+}
+
+.todo-page .needs-assessment-group:first-child .needs-assessment-group__heading {
+  border-start-start-radius: var(--radius-lg);
+  border-start-end-radius: var(--radius-lg);
+}
+
+.todo-page .needs-assessment-folded {
+  padding-inline: var(--space-4);
+}
+
+.todo-page .needs-assessment-group:last-child .needs-assessment-folded,
+.todo-page .needs-assessment-group:last-child .needs-assessment-row:last-child {
+  border-bottom: 0;
+}
+
+.todo-page .needs-assessment-group__heading h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: var(--text-dashboard-chart-title);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.todo-page .needs-assessment-group__heading svg {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+}
+
+.todo-page .needs-assessment-count {
+  flex: 0 0 auto;
+  min-width: 32px;
+  min-height: 32px;
+  padding-inline: var(--space-1);
+  font-size: var(--text-dashboard-table);
+  font-variant-numeric: tabular-nums;
+}
+
+.todo-page .needs-assessment-row {
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-body-sm);
+}
+
+.todo-page .needs-assessment-row__identity,
+.todo-page .needs-assessment-row__outcome {
+  gap: 3px;
+}
+
+.todo-page .needs-assessment-row__actions {
+  grid-column: -2 / -1;
+}
+
+.todo-page .needs-assessment-row .table-secondary {
+  font-size: var(--text-dashboard-label);
+  line-height: 1.4;
+}
+
+.todo-page .needs-assessment-row > p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--text-dashboard-table);
+  line-height: 1.5;
+}
+
+.todo-page #lane-review > .needs-assessment-group__heading {
+  min-height: 64px;
+  padding: var(--space-3) var(--space-4);
+  color: var(--case-bar-ink);
+  background: var(--case-bar-bg);
+}
+
+.todo-page #lane-review > .needs-assessment-group__heading h2 {
+  margin: 0;
+  color: inherit;
+  font-size: var(--text-dashboard-chart-title);
+  font-weight: 700;
+}
+
+.todo-page #lane-review .needs-assessment-count {
+  color: var(--case-bar-bg);
+  background: var(--case-bar-ink);
+}
+
+.todo-page #lane-review .needs-assessment-row {
+  font-size: var(--text-dashboard-table);
+  line-height: 1.4;
+}
+
+.todo-page #lane-review .needs-assessment-row__identity,
+.todo-page #lane-review .needs-assessment-row__outcome {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.todo-page #lane-review .needs-assessment-row__actions .button {
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-dashboard-label);
+  line-height: 1.35;
+  white-space: normal;
+}
+
+@media (max-width: 1100px) {
+  .todo-page .needs-assessment-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1000px) {
+  .todo-page .needs-assessment-row__actions {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 680px) {
+  .todo-page {
+    padding: var(--space-4) var(--space-3) var(--space-6);
+  }
+
+  .todo-page .needs-assessment-group__heading,
+  .todo-page .needs-assessment-row,
+  .todo-page .needs-assessment-folded {
+    padding-inline: var(--space-3);
+  }
+}
+
+@media (max-width: 600px) {
+  .todo-page .needs-assessment-summary {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+}

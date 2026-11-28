@@ -18,6 +18,7 @@ import { routes } from "../app/routes";
 import { env } from "../config/env";
 import { apiEndpointDetail, serviceUnreachableMessage, serviceUnreachableWhileShowingData } from "../lib/serviceMessages";
 import { PageContent, PageHeader } from "../components/layout/Page";
+import "./SubmittedReportsPage.css";
 import { WorkspaceFreshness } from "../components/layout/WorkspaceFreshness";
 import { AppliedFilterChips, type AppliedFilterChip } from "../components/reports/AppliedFilterChips";
 import { ExportMenu } from "../components/reports/ExportMenu";
@@ -465,7 +466,7 @@ export function SubmittedReportsPage({
       ) : null}
 
       <section
-        className="report-workspace"
+        className={`report-workspace${!isMonitoring && !embedded ? " recent-cases-workspace" : ""}`}
         aria-labelledby="report-table-heading"
       >
         <div className="workspace-heading">

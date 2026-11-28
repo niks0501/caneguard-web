@@ -1,0 +1,138 @@
+.recent-cases-workspace > .workspace-heading {
+  min-height: 64px;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  color: var(--case-bar-ink);
+  background: var(--case-bar-bg);
+}
+
+.recent-cases-workspace > .workspace-heading h2 {
+  margin: 0;
+  color: inherit;
+  font-size: var(--text-dashboard-chart-title);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.recent-cases-workspace > .workspace-heading > span {
+  color: var(--case-bar-ink);
+  font-size: var(--text-dashboard-label);
+  line-height: 1.4;
+}
+
+.recent-cases-workspace .report-table {
+  width: 100%;
+  font-size: var(--text-dashboard-label);
+  line-height: 1.4;
+}
+
+.recent-cases-workspace .report-table th {
+  font-size: var(--text-dashboard-table);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.recent-cases-workspace .report-table th,
+.recent-cases-workspace .report-table td {
+  padding: var(--space-2) var(--space-3);
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.recent-cases-workspace .report-table .table-secondary {
+  font-size: var(--text-dashboard-label);
+  line-height: 1.4;
+}
+
+.recent-cases-workspace .report-table td,
+.recent-cases-workspace .report-table .table-primary,
+.recent-cases-workspace .report-table .disease-badge,
+.recent-cases-workspace .report-table .table-action,
+.recent-cases-workspace .report-table .workflow-status-badge,
+.recent-cases-workspace .report-table .workflow-track,
+.recent-cases-workspace .report-table .queue-tag,
+.recent-cases-workspace .report-table .queue-caution {
+  font-size: var(--text-dashboard-label);
+  line-height: 1.4;
+}
+
+.recent-cases-workspace .report-table .table-secondary,
+.recent-cases-workspace .report-table .queue-caution {
+  margin-top: 3px;
+}
+
+.recent-cases-workspace .report-table .workflow-status {
+  gap: var(--space-1);
+}
+
+.recent-cases-workspace .report-table .workflow-status-badge {
+  max-width: 100%;
+}
+
+.recent-cases-workspace .report-table .report-review-cell {
+  text-align: center;
+}
+
+.recent-cases-workspace .report-review-cell .table-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height);
+  padding-inline: var(--space-1);
+  white-space: nowrap;
+}
+
+@media (min-width: 681px) {
+  .recent-cases-workspace .report-table {
+    min-width: 1000px;
+    table-layout: auto;
+  }
+
+  .recent-cases-workspace .report-table th:first-child {
+    width: 22%;
+  }
+
+  .recent-cases-workspace .report-table th:nth-child(2) {
+    width: 15%;
+  }
+
+  .recent-cases-workspace .report-table th:nth-child(3) {
+    width: 21%;
+  }
+
+  .recent-cases-workspace .report-table th:nth-child(4),
+  .recent-cases-workspace .report-table td:nth-child(4) {
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .recent-cases-workspace .report-table th:nth-child(5) {
+    width: 25%;
+  }
+
+  .recent-cases-workspace .report-table th:last-child,
+  .recent-cases-workspace .report-table td:last-child {
+    min-width: 88px;
+    white-space: nowrap;
+  }
+
+  .recent-cases-workspace .report-table th:last-child {
+    text-align: center;
+  }
+}
+
+@media (max-width: 680px) {
+  .recent-cases-workspace .report-table td {
+    padding: 6px var(--space-3);
+  }
+
+  .recent-cases-workspace .report-table td[data-label]::before {
+    font-size: var(--text-dashboard-table);
+    font-weight: 700;
+  }
+
+  .recent-cases-workspace > .workspace-heading {
+    padding: var(--space-3);
+  }
+}

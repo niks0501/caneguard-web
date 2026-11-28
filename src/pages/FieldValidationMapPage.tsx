@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
-import { MapPinOff, RefreshCw } from "lucide-react";
+import { AlarmClock, ClipboardList, MapPinOff, RefreshCw, UserRoundSearch } from "lucide-react";
 import { ZodError } from "zod";
 import { ApiError, isApiConnectionError } from "../api/ApiError";
 import { FieldValidationFilterBar } from "../components/fieldValidation/FieldValidationFilterBar";
@@ -396,25 +396,25 @@ export function FieldValidationMapPage({ embedded = false }: { embedded?: boolea
           <ul className="map-summary" aria-label="Map summary">
             <li>
               <button type="button" className={`map-summary__action${appliedFilters.queue === undefined ? " is-active" : ""}`} onClick={() => applyQueueScope(undefined)}>
-                <span className="map-summary__label">{appliedFilters.status ? "Matching reports" : "Matching active reports"}</span>
+                <span className="map-summary__label">{embedded ? <ClipboardList aria-hidden="true" /> : null}{appliedFilters.status ? "Matching reports" : "Matching active reports"}</span>
                 <strong>{summaryCount(summary.activeCases)}</strong>
               </button>
             </li>
             <li>
               <button type="button" className={`map-summary__action${appliedFilters.queue === "needs_visit" ? " is-active" : ""}`} onClick={() => applyQueueScope("needs_visit")}>
-                <span className="map-summary__label">Reports needing visit</span>
+                <span className="map-summary__label">{embedded ? <UserRoundSearch aria-hidden="true" /> : null}Reports needing visit</span>
                 <strong>{summaryCount(summary.needVisit)}</strong>
               </button>
             </li>
             <li>
               <button type="button" className={`map-summary__action${appliedFilters.queue === "follow_up_due" ? " is-active" : ""}`} onClick={() => applyQueueScope("follow_up_due")}>
-                <span className="map-summary__label">Reports past target date</span>
+                <span className="map-summary__label">{embedded ? <AlarmClock aria-hidden="true" /> : null}Reports past target date</span>
                 <strong>{summaryCount(summary.overdue)}</strong>
               </button>
             </li>
             <li>
               <button type="button" className="map-summary__action" onClick={() => navigate(registerUrl("unlocated"))}>
-                <span className="map-summary__label">Reports without location</span>
+                <span className="map-summary__label">{embedded ? <MapPinOff aria-hidden="true" /> : null}Reports without location</span>
                 <strong>{summaryCount(summary.noLocation)}</strong>
               </button>
             </li>
