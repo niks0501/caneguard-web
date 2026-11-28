@@ -72,7 +72,10 @@ export function percentAffected(
 ): number | null {
   if (!isAffectedAreaMeasured(affectedAreaSqm, affectedAreaMeasurement)) return null;
   if (affectedAreaSqm === null || areaSqm <= 0) return null;
-  return Math.round(Math.min(100, (affectedAreaSqm / areaSqm) * 100) * 10) / 10;
+  if (affectedAreaSqm <= 0) return 0;
+  const raw = Math.min(100, (affectedAreaSqm / areaSqm) * 100);
+  if (raw < 0.01) return Math.max(0.0001, Math.round(raw * 10_000) / 10_000);
+  return Math.round(raw * 100) / 100;
 }
 
 /** What people recognise: the name the inspector typed, else the case reference, else "Map N". */

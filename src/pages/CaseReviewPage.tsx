@@ -806,7 +806,9 @@ function CaseReviewContent() {
         report.affectedPortionMeasurement === "not_measured"
           ? "Not measured"
           : report.affectedPortionPercent !== undefined
-            ? formatMeasuredPercent(report.affectedPortionPercent, report.affectedPortionMeasurement)
+            ? formatMeasuredPercent(report.affectedPortionPercent, report.affectedPortionMeasurement, {
+                positiveArea: (report.affectedAreaHectares ?? 0) > 0,
+              })
             : null,
     },
     { label: "Crop age", short: "crop age", value: report.cropAge ?? null },

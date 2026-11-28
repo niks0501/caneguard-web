@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Http\Resources\ReportAffectedFieldResource;
 use App\Models\FieldSurvey;
 use App\Models\FieldSurveyAudit;
 use App\Models\Report;
@@ -301,13 +302,19 @@ final class AuditSurveyMeasurements extends Command
     {
         DB::table('reports')->orderBy('id')->chunkById(500, function (Collection $reports): void {
             $surveys = $this->linkedSurveys($reports);
+            $audited = $this->auditedMeasurementReportIds($reports);
 
             foreach ($reports as $report) {
-                $linked = $surveys[$report->id] ?? [];
+                $linkInfo = $surveys[$report->id] ?? ['surveys' => [], 'source' => 'none'];
+                $linked = $linkInfo['surveys'];
+                $source = $linkInfo['source'];
+                $officeAudited = isset($audited[(int) $report->id]);
 
-                $survey = $this->firstMatching($linked, fn (object $candidate): bool => $this->plotMappedAsAffected($report, $candidate));
-                if ($survey !== null && $this->plotNeedsRemediation($report, $survey)) {
-                    $this->items['B'][] = $this->reportItem($report) + ['field_survey_id' => (int) $survey->id];
+                if (! $officeAudited && $this->isPreSeparationReport($report)) {
+                    $bMatches = $this->allMatching($linked, fn (object $candidate): bool => $this->plotMappedAsAffected($report, $candidate));
+                    if ($bMatches !== [] && (count($linked) > 1 || $this->plotNeedsRemediation($report, $bMatches[0]))) {
+                        $this->items['B'][] = $this->reportItem($report) + ['field_survey_id' => (int) $bMatches[0]->id];
+                    }
                 }
 
                 $fields = $this->desyncedFields($report);
@@ -315,22 +322,57 @@ final class AuditSurveyMeasurements extends Command
                     $this->items['C'][] = $this->reportItem($report) + ['fields' => $fields];
                 }
 
-                $survey = $this->firstMatching($linked, fn (object $candidate): bool => $this->tinyPatchRoundedToZero($report, $candidate));
-                if ($survey !== null) {
-                    $this->items['D'][] = $this->reportItem($report) + ['field_survey_id' => (int) $survey->id];
+                if (! $officeAudited
+                    && $this->isPreSeparationReport($report)
+                    && ! $this->isConfirmedZeroReport($report, $source)) {
+                    $dMatches = $this->allMatching($linked, fn (object $candidate): bool => $this->tinyPatchRoundedToZero($report, $candidate));
+                    if ($dMatches !== []) {
+                        $this->items['D'][] = $this->reportItem($report) + ['field_survey_id' => (int) $dMatches[0]->id];
+                    }
                 }
             }
         });
     }
 
     /**
-     * A report is linked to a survey by the uuid the phone sent
-     * (reports.field_survey_client_uuid) or by an office link
-     * (report_affected_field_surveys). Surveys come back in id order, so the
-     * survey named in an item is always the lowest-id match.
+     * Reports whose measurement figures were already edited through office review
+     * (any non-remediation report_audits row on a measurement column). Those
+     * audited office corrections must never be overwritten by historical backfill.
      *
      * @param  Collection<int, object>  $reports
-     * @return array<int, list<object>> report id => linked surveys
+     * @return array<int, true>
+     */
+    private function auditedMeasurementReportIds(Collection $reports): array
+    {
+        if ($reports->isEmpty() || ! Schema::hasTable('report_audits')) {
+            return [];
+        }
+
+        $ids = [];
+        $rows = DB::table('report_audits')
+            ->whereIn('report_id', $reports->pluck('id'))
+            ->whereIn('field', self::REPORT_FIELDS)
+            ->get(['report_id', 'reason']);
+
+        foreach ($rows as $row) {
+            if (! str_starts_with((string) ($row->reason ?? ''), self::REMEDIATION_REASON)) {
+                $ids[(int) $row->report_id] = true;
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * Resolve each report's source field survey(s):
+     * - If the report carries a phone attachment (`field_survey_client_uuid`),
+     *   ONLY that survey is consulted; unrelated office links never override it.
+     * - Otherwise, office-linked surveys (`report_affected_field_surveys`) are
+     *   returned in id order; multiple links route to manual review rather than
+     *   picking an arbitrary survey.
+     *
+     * @param  Collection<int, object>  $reports
+     * @return array<int, array{surveys: list<object>, source: 'uuid'|'office_link'|'none'}>
      */
     private function linkedSurveys(Collection $reports): array
     {
@@ -348,37 +390,82 @@ final class AuditSurveyMeasurements extends Command
 
         $linked = [];
         foreach ($reports as $report) {
-            $found = [];
             if ($report->field_survey_client_uuid !== null) {
                 $uuid = strtolower($report->field_survey_client_uuid);
+                $matched = [];
                 foreach ($byUuid as $survey) {
-                    if ($survey->client_uuid === $uuid) {
-                        $found[$survey->id] = $survey;
+                    if (strtolower((string) $survey->client_uuid) === $uuid) {
+                        $matched[$survey->id] = $survey;
                     }
                 }
+                ksort($matched);
+                $linked[$report->id] = [
+                    'surveys' => array_values($matched),
+                    'source' => 'uuid',
+                ];
+
+                continue;
             }
+
+            $found = [];
             foreach ($pivot as $link) {
                 if ((int) $link->report_id === (int) $report->id && $pivotSurveys->has($link->field_survey_id)) {
                     $found[$link->field_survey_id] = $pivotSurveys->get($link->field_survey_id);
                 }
             }
             ksort($found);
-            $linked[$report->id] = array_values($found);
+            $linked[$report->id] = [
+                'surveys' => array_values($found),
+                'source' => $found === [] ? 'none' : 'office_link',
+            ];
         }
 
         return $linked;
     }
 
-    /** @param  list<object>  $surveys */
-    private function firstMatching(array $surveys, callable $matches): ?object
+    /**
+     * @param  list<object>  $surveys
+     * @return list<object>
+     */
+    private function allMatching(array $surveys, callable $matches): array
     {
+        $matched = [];
         foreach ($surveys as $survey) {
             if ($matches($survey)) {
-                return $survey;
+                $matched[] = $survey;
             }
         }
 
-        return null;
+        return $matched;
+    }
+
+    /**
+     * Pre-separation historical uploads never recorded a separate plot area and
+     * stored affected_area_hectares in decimal(12,2). Reports that already carry
+     * a measured plot area come from the separated schema and are not historical
+     * mapping or decimal(12,2) truncation rows.
+     */
+    private function isPreSeparationReport(object $report): bool
+    {
+        return $report->plot_area_hectares === null
+            && $report->plot_area_measurement !== Report::MEASUREMENT_MEASURED;
+    }
+
+    /**
+     * Without a phone-attached survey proving a tiny polygon, an explicit
+     * measured 0 ha + 0% report is a confirmed zero and must not be overwritten
+     * by an office-linked map.
+     */
+    private function isConfirmedZeroReport(object $report, string $source): bool
+    {
+        if ($source === 'uuid') {
+            return false;
+        }
+
+        return $report->affected_area_measurement === Report::MEASUREMENT_MEASURED
+            && $report->affected_portion_measurement === Report::MEASUREMENT_MEASURED
+            && $report->affected_portion_percent !== null
+            && (float) $report->affected_portion_percent === 0.0;
     }
 
     private function plotMappedAsAffected(object $report, object $survey): bool
@@ -610,14 +697,20 @@ final class AuditSurveyMeasurements extends Command
         foreach (array_chunk($reportIds, 500) as $ids) {
             $reports = DB::table('reports')->whereIn('id', $ids)->orderBy('id')->get();
             $linked = $this->linkedSurveys($reports);
+            $audited = $this->auditedMeasurementReportIds($reports);
 
             foreach ($reports as $report) {
-                $reportPlan = $this->planReport($report, $linked[$report->id] ?? [], $buckets);
+                $reportPlan = $this->planReport(
+                    $report,
+                    $linked[$report->id] ?? ['surveys' => [], 'source' => 'none'],
+                    $buckets,
+                    isset($audited[(int) $report->id]),
+                );
                 $reportPlans[(int) $report->id] = $reportPlan;
 
                 $byBucket = $reportPlan['by_bucket'];
-                if ($reportPlan['ambiguous']) {
-                    $byBucket['B'] ??= [];
+                foreach ($reportPlan['ambiguous_buckets'] as $ambiguousBucket => $reason) {
+                    $byBucket[$ambiguousBucket] ??= [];
                 }
 
                 foreach ($byBucket as $bucket => $changes) {
@@ -626,8 +719,8 @@ final class AuditSurveyMeasurements extends Command
                         $entry['field_survey_id'] = $reportPlan['field_survey_id'];
                     }
                     $entry['changes'] = $changes;
-                    if ($bucket === 'B' && $reportPlan['ambiguous']) {
-                        $entry['needs_manual_review'] = $reportPlan['ambiguous_reason'];
+                    if (isset($reportPlan['ambiguous_buckets'][$bucket])) {
+                        $entry['needs_manual_review'] = $reportPlan['ambiguous_buckets'][$bucket];
                     }
                     $planned[$bucket][] = $entry;
                 }
@@ -670,7 +763,7 @@ final class AuditSurveyMeasurements extends Command
      * Combine every selected bucket's change for one report, applied in order
      * B, D, C on a working copy so a report in several buckets is fixed once.
      *
-     * @param  list<object>  $linked
+     * @param  array{surveys: list<object>, source: 'uuid'|'office_link'|'none'}  $linkInfo
      * @param  list<string>  $buckets
      * @return array{
      *     field_survey_id: ?int,
@@ -678,17 +771,19 @@ final class AuditSurveyMeasurements extends Command
      *     by_bucket: array<string, array<string, array{old: mixed, new: mixed}>>,
      *     ambiguous: bool,
      *     ambiguous_reason: ?string,
+     *     ambiguous_buckets: array<string, string>,
      *     hectares: array{before: float, after: float}
      * }
      */
-    private function planReport(object $report, array $linked, array $buckets): array
+    private function planReport(object $report, array $linkInfo, array $buckets, bool $officeAudited = false): array
     {
+        $linked = $linkInfo['surveys'];
+        $source = $linkInfo['source'];
         $original = $this->reportState($report);
         $state = $original;
         $tags = [];
         $surveyId = null;
-        $ambiguous = false;
-        $ambiguousReason = null;
+        $ambiguousBuckets = [];
 
         $set = function (string $bucket, array $values) use (&$state, &$tags): void {
             foreach ($values as $field => $value) {
@@ -699,28 +794,54 @@ final class AuditSurveyMeasurements extends Command
             }
         };
 
-        if (in_array('B', $buckets, true)) {
-            $survey = $this->firstMatching($linked, fn (object $candidate): bool => $this->plotMappedAsAffected($report, $candidate));
-            if ($survey !== null) {
-                $surveyId = (int) $survey->id;
-                $target = $this->plotTarget($survey);
-                if ($target === null) {
-                    $ambiguous = true;
-                    $ambiguousReason = "survey {$survey->id} is marked measured but has no affected area figure";
+        if (in_array('B', $buckets, true) && ! $officeAudited && $this->isPreSeparationReport($report)) {
+            $bMatches = $this->allMatching($linked, fn (object $candidate): bool => $this->plotMappedAsAffected($report, $candidate));
+            if ($bMatches !== []) {
+                $surveyId = (int) $bMatches[0]->id;
+                if (count($linked) > 1) {
+                    $ambiguousBuckets['B'] = 'multiple linked field surveys ('.implode(',', array_map(fn (object $s): int => (int) $s->id, $linked)).')';
                 } else {
-                    $set('B', $target);
+                    $survey = $bMatches[0];
+                    $target = $this->plotTarget($survey);
+                    if ($target === null) {
+                        $ambiguousBuckets['B'] = "survey {$survey->id} is marked measured but has no affected area figure";
+                    } else {
+                        $set('B', $target);
+                    }
                 }
             }
         }
 
-        if (in_array('D', $buckets, true)) {
-            $survey = $this->firstMatching($linked, fn (object $candidate): bool => $this->tinyPatchRoundedToZero($report, $candidate));
-            if ($survey !== null) {
-                $surveyId ??= (int) $survey->id;
-                $set('D', [
-                    'affected_area_hectares' => round((float) $survey->affected_area_sqm / 10000, 4),
-                    'affected_area_measurement' => Report::MEASUREMENT_MEASURED,
-                ]);
+        if (in_array('D', $buckets, true)
+            && ! $officeAudited
+            && $this->isPreSeparationReport($report)
+            && ! $this->isConfirmedZeroReport($report, $source)) {
+            $dMatches = $this->allMatching($linked, fn (object $candidate): bool => $this->tinyPatchRoundedToZero($report, $candidate));
+            if ($dMatches !== []) {
+                $surveyId ??= (int) $dMatches[0]->id;
+                if (count($linked) > 1) {
+                    $ambiguousBuckets['D'] = 'multiple linked field surveys ('.implode(',', array_map(fn (object $s): int => (int) $s->id, $linked)).')';
+                } else {
+                    $survey = $dMatches[0];
+                    $dTarget = [
+                        'affected_area_hectares' => round((float) $survey->affected_area_sqm / 10000, 4),
+                        'affected_area_measurement' => Report::MEASUREMENT_MEASURED,
+                    ];
+                    if ($state['affected_portion_percent'] !== null
+                        && (float) $state['affected_portion_percent'] === 0.0
+                        && $survey->area_sqm !== null
+                        && (float) $survey->area_sqm > 0) {
+                        $percent = ReportAffectedFieldResource::percentFromAreas(
+                            (float) $survey->affected_area_sqm,
+                            (float) $survey->area_sqm,
+                        );
+                        if ($percent !== null) {
+                            $dTarget['affected_portion_percent'] = $percent;
+                            $dTarget['affected_portion_measurement'] = Report::MEASUREMENT_MEASURED;
+                        }
+                    }
+                    $set('D', $dTarget);
+                }
             }
         }
 
@@ -754,8 +875,9 @@ final class AuditSurveyMeasurements extends Command
             'field_survey_id' => $surveyId,
             'changes' => $changes,
             'by_bucket' => $byBucket,
-            'ambiguous' => $ambiguous,
-            'ambiguous_reason' => $ambiguousReason,
+            'ambiguous' => $ambiguousBuckets !== [],
+            'ambiguous_reason' => $ambiguousBuckets === [] ? null : reset($ambiguousBuckets),
+            'ambiguous_buckets' => $ambiguousBuckets,
             'hectares' => [
                 'before' => $this->countedHectares($original),
                 'after' => $this->countedHectares($state),
@@ -795,7 +917,7 @@ final class AuditSurveyMeasurements extends Command
         }
 
         $affectedSqm = (float) $survey->affected_area_sqm;
-        $percent = $plotSqm > 0 ? round(min(100.0, $affectedSqm / $plotSqm * 100), 1) : null;
+        $percent = ReportAffectedFieldResource::percentFromAreas($affectedSqm, $plotSqm);
 
         return $target + [
             'affected_area_hectares' => round($affectedSqm / 10000, 4),
@@ -936,8 +1058,8 @@ final class AuditSurveyMeasurements extends Command
             if ($applied === null) {
                 continue;
             }
-            if ($applied['skipped'] !== null) {
-                $result['skipped'][] = $applied['skipped'];
+            if ($applied['skipped'] !== []) {
+                array_push($result['skipped'], ...$applied['skipped']);
             }
             if ($applied['changes'] !== []) {
                 $result['reports'][] = $applied['row'];
@@ -980,7 +1102,7 @@ final class AuditSurveyMeasurements extends Command
 
     /**
      * @param  list<string>  $buckets
-     * @return array{row: array<string, mixed>, changes: array<string, mixed>, skipped: ?array<string, mixed>}|null
+     * @return array{row: array<string, mixed>, changes: array<string, mixed>, skipped: list<array<string, mixed>>}|null
      */
     private function applyReport(int $reportId, array $buckets, User $actor): ?array
     {
@@ -989,18 +1111,23 @@ final class AuditSurveyMeasurements extends Command
             return null;
         }
 
-        $linked = $this->linkedSurveys(collect([$report]))[$report->id] ?? [];
-        $plan = $this->planReport($report, $linked, $buckets);
+        $batch = collect([$report]);
+        $linkInfo = $this->linkedSurveys($batch)[$report->id] ?? ['surveys' => [], 'source' => 'none'];
+        $officeAudited = isset($this->auditedMeasurementReportIds($batch)[(int) $report->id]);
+        $plan = $this->planReport($report, $linkInfo, $buckets, $officeAudited);
 
-        $skipped = $plan['ambiguous'] ? [
-            'bucket' => 'B',
-            'target' => 'report',
-            'id' => $reportId,
-            'reason' => (string) $plan['ambiguous_reason'].'; decide by hand',
-        ] : null;
+        $skipped = [];
+        foreach ($plan['ambiguous_buckets'] as $ambiguousBucket => $reason) {
+            $skipped[] = [
+                'bucket' => $ambiguousBucket,
+                'target' => 'report',
+                'id' => $reportId,
+                'reason' => $reason.'; decide by hand',
+            ];
+        }
 
         if ($plan['changes'] === []) {
-            return $skipped === null ? null : ['row' => [], 'changes' => [], 'skipped' => $skipped];
+            return $skipped === [] ? null : ['row' => [], 'changes' => [], 'skipped' => $skipped];
         }
 
         Report::query()->whereKey($reportId)->update(

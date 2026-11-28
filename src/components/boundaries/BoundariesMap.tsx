@@ -4,7 +4,7 @@ import "../../lib/mapLibreWorker";
 import { Link } from "react-router";
 import { X } from "lucide-react";
 import type { FieldSurveyBoundariesData, FieldSurveyBoundaryFeature, FieldSurveyPosition } from "../../domain/fieldSurvey.types";
-import { formatAreaHectares, formatDateTime, formatMeasuredArea } from "../../lib/formatters";
+import { formatAreaHectares, formatDateTime, formatMeasuredArea, formatMeasuredPercent } from "../../lib/formatters";
 import { env } from "../../config/env";
 import { routes } from "../../app/routes";
 import { useMapPaint } from "../../theme/mapTheme";
@@ -535,7 +535,7 @@ export function BoundariesMap({
                       {!confirmedZero && affectedPct !== null ? (
                         <div>
                           <dt>% affected</dt>
-                          <dd>{affectedPct}%</dd>
+                          <dd>{formatMeasuredPercent(affectedPct, "measured", { positiveArea: (selectedFeature.properties.affectedAreaSqm ?? 0) > 0 })}</dd>
                         </div>
                       ) : null}
                       <div><dt>Inspector</dt><dd>{selectedFeature.properties.inspector.name}</dd></div>

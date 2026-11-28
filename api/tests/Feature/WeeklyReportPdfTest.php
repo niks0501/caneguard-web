@@ -128,4 +128,34 @@ class WeeklyReportPdfTest extends TestCase
         $this->expectException(\LogicException::class);
         $approved->update(['document_sha256' => str_repeat('0', 64)]);
     }
+
+    public function test_weekly_document_preserves_small_patch_hectares_instead_of_rounding_to_zero(): void
+    {
+        $district = $this->pilotDistrict();
+        $officer = User::factory()->admin()->inDistrict($district)->create();
+        DistrictGrant::query()->create(['user_id' => $officer->id, 'district_id' => $district->id, 'ability' => 'report:approve']);
+
+        Report::factory()->inDistrict($district)->create([
+            'submitted_at' => '2026-09-29 10:00:00',
+            'authority_classified_condition' => 'smut',
+            'affected_area_hectares' => 0.004,
+            'affected_area_measurement' => 'measured',
+        ]);
+
+        $version = app(DistrictReportWorkflow::class)->prepare($officer, '2026-W40');
+        $this->actingAs($officer, 'web');
+
+        $html = $this->get('/api/v1/district-reports/'.$version->uuid.'/document')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString(
+            '<tr><td>Sugarcane Smut</td><td class="num">0.004</td><td class="num">0.004</td></tr>',
+            $html,
+        );
+        $this->assertStringNotContainsString(
+            '<tr><td>Sugarcane Smut</td><td class="num">0.00</td><td class="num">0.00</td></tr>',
+            $html,
+        );
+    }
 }

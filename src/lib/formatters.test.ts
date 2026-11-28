@@ -52,8 +52,12 @@ describe("area and measurement formatting", () => {
     expect(formatMeasuredPercent(0, "not_measured")).toBe("Not measured");
     expect(formatMeasuredPercent(25, "not_measured")).toBe("Not measured");
     expect(formatMeasuredPercent(0, "measured")).toBe("0%");
+    expect(formatMeasuredPercent(0, "measured", { positiveArea: true })).toBe("<0.01%");
+    expect(formatMeasuredPercent(0.004, "measured")).toBe("<0.01%");
+    expect(formatMeasuredPercent(0.04, "measured")).toBe("0.04%");
     expect(formatMeasuredPercent(25, "measured")).toBe("25%");
     expect(formatMeasuredPercent(42.75, "measured")).toBe("42.75%");
+    expect(formatMeasuredPercent(100, "measured")).toBe("100%");
   });
 
   it("keeps formatAffectedArea compact for table cells without rounding tiny patches to zero", () => {

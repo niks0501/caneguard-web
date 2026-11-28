@@ -105,7 +105,7 @@
             <dl>
                 <div><dt>Total plot area</dt><dd>{{ \App\Support\AreaFormatter::formatMeasuredHectares($summary['affected']['plot_area_hectares'] ?? null, $summary['affected']['plot_area_measurement'] ?? null) }}</dd></div>
                 <div><dt>Affected ground area</dt><dd>{{ \App\Support\AreaFormatter::formatMeasuredHectares($summary['affected']['area_hectares'] ?? null, $summary['affected']['affected_area_measurement'] ?? null) }}</dd></div>
-                <div><dt>Affected portion</dt><dd>{{ \App\Support\AreaFormatter::formatMeasuredPercent($summary['affected']['portion_percent'] ?? null, $summary['affected']['affected_portion_measurement'] ?? null) }}</dd></div>
+                <div><dt>Affected portion</dt><dd>{{ \App\Support\AreaFormatter::formatMeasuredPercent($summary['affected']['portion_percent'] ?? null, $summary['affected']['affected_portion_measurement'] ?? null, positiveArea: (float) ($summary['affected']['area_hectares'] ?? 0) > 0) }}</dd></div>
             </dl>
         </section>
 
