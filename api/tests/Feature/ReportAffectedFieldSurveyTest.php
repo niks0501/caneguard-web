@@ -310,6 +310,40 @@ class ReportAffectedFieldSurveyTest extends TestCase
             ->assertJsonPath('data.inspector_attachment.field_survey.affected_area_measurement', 'not_measured');
     }
 
+    public function test_small_positive_affected_shares_retain_two_decimals_and_never_round_to_zero(): void
+    {
+        $district = $this->pilotDistrict();
+        $inspector = User::factory()->inDistrict($district)->create();
+        $reviewer = User::factory()->reviewer()->create();
+        $report = Report::factory()->inDistrict($district)->create(['lock_version' => 0]);
+
+        // 40 m² in 10 ha (100,000 m²) is 0.04% — must not round to 0%.
+        $smallPatch = $this->storeSurvey($district, $inspector, 100000);
+        $smallPatch->update(['affected_area_sqm' => 40, 'affected_area_measurement' => 'measured']);
+
+        // 1 m² in 10 ha is 0.001% — strictly positive below 0.01%, never 0.
+        $tinyPatch = $this->storeSurvey($district, $inspector, 100000);
+        $tinyPatch->update(['affected_area_sqm' => 1, 'affected_area_measurement' => 'measured']);
+
+        // 100% whole plot stays 100.
+        $wholePlot = $this->storeSurvey($district, $inspector, 100000);
+        $wholePlot->update(['affected_area_sqm' => 100000, 'affected_area_measurement' => 'measured']);
+
+        $response = $this->actingAs($reviewer, 'web')->putJson("/api/v1/reports/{$report->uuid}/affected-fields", [
+            'expected_version' => 0,
+            'affected_fields' => [
+                ['field_survey_id' => $smallPatch->id],
+                ['field_survey_id' => $tinyPatch->id],
+                ['field_survey_id' => $wholePlot->id],
+            ],
+        ])->assertOk();
+
+        $fields = collect($response->json('data.affected_fields'))->keyBy('field_survey_id');
+        $this->assertSame(0.04, $fields[$smallPatch->id]['affected_percent']);
+        $this->assertSame(0.001, $fields[$tinyPatch->id]['affected_percent']);
+        $this->assertSame(100, $fields[$wholePlot->id]['affected_percent']);
+    }
+
     private function storeSurvey(District $district, User $inspector, float $areaSqm = 6075.12): FieldSurvey
     {
         return FieldSurvey::query()->create([

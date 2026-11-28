@@ -43,7 +43,7 @@ function queueItemMeta(item: FieldValidationQueueItem) {
     : `${formatMeasuredArea(item.affectedAreaHectares, item.affectedAreaMeasurement)} affected`;
   const affectedPortion = item.affectedPortionMeasurement === "not_measured" || item.affectedPortionPercent === null
     ? "Portion not measured"
-    : `${formatMeasuredPercent(item.affectedPortionPercent, item.affectedPortionMeasurement)} of plot`;
+    : `${formatMeasuredPercent(item.affectedPortionPercent, item.affectedPortionMeasurement, { positiveArea: (item.affectedAreaHectares ?? 0) > 0 })} of plot`;
   const targetDate = item.targetVisitDate
     ? `Visit by ${formatCalendarDate(item.targetVisitDate)}`
     : "No visit date";

@@ -167,7 +167,7 @@ function FieldMapSummary({
         <dl className="field-map__numbers">
           <div><dt>Plot</dt><dd>{formatAreaHectares(map.areaSqm / 10_000)}</dd></div>
           <div><dt>Affected area</dt><dd>{formatMeasuredArea(map.affectedAreaSqm === null ? null : map.affectedAreaSqm / 10_000, measurementState)}</dd></div>
-          <div><dt>% affected</dt><dd>{formatMeasuredPercent(map.affectedPercent, measurementState)}</dd></div>
+          <div><dt>% affected</dt><dd>{formatMeasuredPercent(map.affectedPercent, measurementState, { positiveArea: (map.affectedAreaSqm ?? 0) > 0 })}</dd></div>
         </dl>
         {actions ? <div className="field-map__actions">{actions}</div> : null}
       </div>
@@ -473,7 +473,7 @@ export function AffectedFieldLinkage({
                       </span>
                       <span>
                         {formatAreaHectares(choice.areaSqm / 10_000)}
-                        {choice.affectedPercent === null ? "" : ` · ${choice.affectedPercent}% affected`}
+                        {choice.affectedPercent === null ? "" : ` · ${formatMeasuredPercent(choice.affectedPercent, "measured", { positiveArea: (choice.affectedAreaSqm ?? 0) > 0 })} affected`}
                         {meters === null ? "" : ` · ${formatDistance(meters)} from case`}
                       </span>
                     </span>

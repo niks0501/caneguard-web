@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { routes } from "../../app/routes";
 import type { FieldSurveyBoundariesData, FieldSurveyBoundaryFeature } from "../../domain/fieldSurvey.types";
 import { Button } from "../ui/Button";
-import { formatAreaHectares, formatDateTime, formatMeasuredArea } from "../../lib/formatters";
+import { formatAreaHectares, formatDateTime, formatMeasuredArea, formatMeasuredPercent } from "../../lib/formatters";
 import { createReturnContext, withReturnContext, type MapReturnContext } from "../navigation/mapNavigationContext";
 import { FIELD_MAP_STATUS_LABEL, fieldMapName, fieldMapStatus, isAffectedAreaMeasured, percentAffected, primaryCase } from "./fieldMapStatus";
 
@@ -134,9 +134,12 @@ export function BoundariesList({
                     <td>
                       {affected === null
                         ? "Not measured"
-                        : affectedAreaLabel
-                          ? `${affectedAreaLabel} · ${affected}%`
-                          : `${affected}%`}
+                        : (() => {
+                            const pctLabel = formatMeasuredPercent(affected, "measured", {
+                              positiveArea: (feature.properties.affectedAreaSqm ?? 0) > 0,
+                            });
+                            return affectedAreaLabel ? `${affectedAreaLabel} · ${pctLabel}` : pctLabel;
+                          })()}
                     </td>
                     <td>{feature.properties.inspector.name}</td>
                     <td className="field-validation-table__action-cell">

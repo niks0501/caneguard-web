@@ -205,7 +205,7 @@ describe("BoundariesMap", () => {
     render(<MemoryRouter><BoundariesMap data={data} selectedBoundaryId="123" /></MemoryRouter>);
 
     expect(screen.getByText("Damage · device-reported")).toBeInTheDocument();
-    expect(screen.getByText("6.8%")).toBeInTheDocument();
+    expect(screen.getByText("6.79%")).toBeInTheDocument();
     expect(screen.getByText("0.04 ha")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "CG-1" })).toHaveAttribute("href", "/reports/case-1");
   });
@@ -231,11 +231,19 @@ describe("BoundariesMap", () => {
     expect(within(screen.getByRole("dialog", { name: "Map 123" })).getByText("0 ha (none found) · 0%")).toBeInTheDocument();
 
     const smallPatch = boundaryData();
-    smallPatch.features[0].properties.areaSqm = 12_000;
+    smallPatch.features[0].properties.areaSqm = 100_000;
     smallPatch.features[0].properties.affectedAreaSqm = 40;
     smallPatch.features[0].properties.affectedAreaMeasurement = "measured";
     rerender(<MemoryRouter><BoundariesMap data={smallPatch} selectedBoundaryId="123" /></MemoryRouter>);
     expect(within(screen.getByRole("dialog", { name: "Map 123" })).getByText("0.004 ha")).toBeInTheDocument();
+    expect(within(screen.getByRole("dialog", { name: "Map 123" })).getByText("0.04%")).toBeInTheDocument();
+
+    const tinyPatch = boundaryData();
+    tinyPatch.features[0].properties.areaSqm = 100_000;
+    tinyPatch.features[0].properties.affectedAreaSqm = 1;
+    tinyPatch.features[0].properties.affectedAreaMeasurement = "measured";
+    rerender(<MemoryRouter><BoundariesMap data={tinyPatch} selectedBoundaryId="123" /></MemoryRouter>);
+    expect(within(screen.getByRole("dialog", { name: "Map 123" })).getByText("<0.01%")).toBeInTheDocument();
 
     const separated = boundaryData();
     separated.features[0].properties.areaSqm = 12_000;

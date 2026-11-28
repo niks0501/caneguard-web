@@ -152,17 +152,18 @@ export function formatMeasuredArea(
 
 /**
  * Tri-state percentage formatter distinguishing unmeasured ("Not measured"),
- * confirmed zero ("0%"), and measured positive percentages.
+ * confirmed zero ("0%"), sub-0.01% positive patches ("<0.01%"), and measured percentages.
  */
 export function formatMeasuredPercent(
   percent: number | null | undefined,
   measurement?: "measured" | "not_measured" | null,
-  options?: { unmeasuredLabel?: string },
+  options?: { unmeasuredLabel?: string; positiveArea?: boolean },
 ): string {
   const unmeasuredLabel = options?.unmeasuredLabel ?? "Not measured";
   if (measurement === "not_measured") return unmeasuredLabel;
   if (typeof percent !== "number" || !Number.isFinite(percent)) return unmeasuredLabel;
-  if (percent === 0) return "0%";
+  if (percent === 0) return options?.positiveArea ? "<0.01%" : "0%";
+  if (percent > 0 && percent < 0.01) return "<0.01%";
 
   const formatted = new Intl.NumberFormat("en-PH", { maximumFractionDigits: 2 }).format(percent);
   return `${formatted}%`;

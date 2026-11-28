@@ -58,6 +58,8 @@ describe("BoundariesList", () => {
       feature(2, { label: "Plot Unmeasured", areaSqm: 12_000, affectedAreaSqm: 0, affectedAreaMeasurement: "not_measured" }),
       feature(3, { label: "Plot Zero", areaSqm: 12_000, affectedAreaSqm: 0, affectedAreaMeasurement: "measured" }),
       feature(4, { label: "Plot Tiny", areaSqm: 12_000, affectedAreaSqm: 40, affectedAreaMeasurement: "measured" }),
+      feature(5, { label: "Plot Small Share", areaSqm: 100_000, affectedAreaSqm: 40, affectedAreaMeasurement: "measured" }),
+      feature(6, { label: "Plot Sub Threshold", areaSqm: 100_000, affectedAreaSqm: 1, affectedAreaMeasurement: "measured" }),
     ]);
 
     const rows = screen.getAllByRole("row").slice(1);
@@ -69,6 +71,8 @@ describe("BoundariesList", () => {
     expect(within(rows[1]).queryByText("0%")).not.toBeInTheDocument();
 
     expect(within(rows[2]).getByText("0 ha · 0%")).toBeInTheDocument();
-    expect(within(rows[3]).getByText("0.004 ha · 0.3%")).toBeInTheDocument();
+    expect(within(rows[3]).getByText("0.004 ha · 0.33%")).toBeInTheDocument();
+    expect(within(rows[4]).getByText("0.004 ha · 0.04%")).toBeInTheDocument();
+    expect(within(rows[5]).getByText("0.0001 ha · <0.01%")).toBeInTheDocument();
   });
 });
